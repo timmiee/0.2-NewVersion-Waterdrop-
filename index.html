@@ -13,12 +13,11 @@
     left: 50%;
     transform: translate(-50%, -50%) scale(0);
     font-size: 3em;
-    color: #ff0000;
-    text-shadow: 0 0 15px #000, 0 0 30px #ff0000;
+    color: #ffdd00;
+    text-shadow: 0 0 15px #ff0, 0 0 30px #ff6600;
     pointer-events: none;
     z-index: 10;
     transition: transform 0.5s ease-out;
-    font-weight: bold;
   }
   /* --- NEW: Level Up Modal Styles --- */
   #levelup-modal {
@@ -69,7 +68,7 @@
 </style>
 </head>
 <body>
-<div id="levelUpPopup">LEVEL UP!</div>
+<div id="levelUpPopup">❗️💥 LEVEL UP ❗️💥</div>
 
 <!-- Level Up Modal -->
 <div id="levelup-modal">
@@ -84,53 +83,6 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.176.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.176.0/examples/js/controls/OrbitControls.js"></script>
 <script>
-// =================== AUDIO SYSTEM ===================
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
-function playSound(type) {
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    const now = audioCtx.currentTime;
-    
-    if (type === 'levelup') {
-        // Create a more complex and epic sound
-        const osc1 = audioCtx.createOscillator();
-        const osc2 = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        
-        osc1.type = 'sine';
-        osc1.frequency.setValueAtTime(200, now);
-        osc1.frequency.exponentialRampToValueAtTime(800, now + 0.3);
-        
-        osc2.type = 'square';
-        osc2.frequency.setValueAtTime(100, now);
-        osc2.frequency.exponentialRampToValueAtTime(400, now + 0.3);
-        
-        gain.gain.setValueAtTime(0.3, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
-        
-        osc1.connect(gain);
-        osc2.connect(gain);
-        gain.connect(audioCtx.destination);
-        
-        osc1.start(now);
-        osc2.start(now);
-        osc1.stop(now + 0.5);
-        osc2.stop(now + 0.5);
-    } else if (type === 'collect') {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(800, now);
-        osc.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
-        gain.gain.setValueAtTime(0.1, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(now);
-        osc.stop(now + 0.1);
-    }
-}
-
 // =================== GAME SETUP ===================
 let scene, camera, renderer, clock;
 let player, enemies = [], expGems = [], meteors = [], particles = [];
@@ -141,8 +93,6 @@ let dashCooldown = 0;
 let swipeVector = null;
 let levelUpPopup = document.getElementById('levelUpPopup');
 let isPaused = false;
-let isLevelingUp = false; // New flag for level up animation
-let levelUpTimer = 0;
 
 // Player stats
 let playerStats = {
@@ -166,7 +116,7 @@ let playerStats = {
 const weapons = {
   gun: { active: true, level: 1, damage: 15, cooldown: 1000, lastShot: 0 },
   sword: { active: false, level: 0, damage: 30, cooldown: 1500, lastShot: 0 },
-  aura: { active: false, level: 0, damage: 5, cooldown: 500, lastShot: 0, range: 4 },
+  aura: { active: false, level: 0, damage: 5, cooldown: 500, lastShot: 0 },
   meteor: { active: false, level: 0, damage: 60, cooldown: 2500, lastShot: 0 }
 };
 
@@ -255,20 +205,23 @@ function gainExp(amount) {
 }
 
 function levelUp() {
-    isLevelingUp = true;
-    levelUpTimer = 0;
     level++;
-    
-    // Play the new embedded sound
-    playSound('levelup');
+    // Player grows slightly for dopamin effect
+    let scaleFactor = 1 + 0.05*(Math.random()*0.5+0.5); 
+    player.mesh.scale.multiplyScalar(scaleFactor);
 
-    // Weapon unlock progression at Level 4 (changed from 5)
-    if (level === 4) {
-        setTimeout(() => showWeaponUnlockModal(), 1000); // Show modal after animation
-    }
-    // Second weapon choice at Level 8
-    else if (level === 8) {
-        setTimeout(() => showSecondWeaponModal(), 1000);
+    // Show popup
+    levelUpPopup.style.transform = 'translate(-50%, -50%) scale(1.2)';
+    setTimeout(() => { levelUpPopup.style.transform = 'translate(-50%, -50%) scale(0)'; }, 800);
+
+    // Sound effect
+    let audio = new Audio('https://freesound.org/data/previews/341/341695_5121236-lq.mp3');
+    audio.volume = 0.4;
+    audio.play();
+
+    // Weapon unlock progression at Level 5
+    if (level === 5) {
+        showWeaponUnlockModal();
     }
 
     // Stat increases for player
@@ -278,48 +231,7 @@ function levelUp() {
     player.stats.health = player.stats.maxHealth;
 }
 
-// --- NEW: Epic Level Up Animation ---
-function updateLevelUpAnimation(delta) {
-    if (!isLevelingUp) return;
-    
-    levelUpTimer += delta;
-    
-    // Slow motion effect
-    const slowMoFactor = 0.2;
-    const normalSpeed = 1.0;
-    const currentSpeed = levelUpTimer < 1.0 ? slowMoFactor : normalSpeed;
-    
-    // Vortex implosion/explosion effect
-    const vortexDuration = 1.0; // seconds
-    if (levelUpTimer < vortexDuration) {
-        const t = levelUpTimer / vortexDuration;
-        const scale = 1 - t * 0.8; // Shrink to 20%
-        const rotation = t * Math.PI * 4; // Rotate 2 full times
-        
-        player.mesh.scale.set(scale, scale, scale);
-        player.mesh.rotation.y = rotation;
-        player.mesh.rotation.x = rotation * 0.5;
-        
-        // Camera zoom - more dramatic
-        camera.position.lerp(new THREE.Vector3(0, 3, 8), t * 0.7);
-    } else if (levelUpTimer < vortexDuration + 0.5) {
-        // Explosion phase
-        const t = (levelUpTimer - vortexDuration) / 0.5;
-        const scale = 0.2 + t * 1.0; // Grow back to 120%
-        player.mesh.scale.set(scale, scale, scale);
-        
-        // Camera zoom out
-        camera.position.lerp(new THREE.Vector3(0, 10, 20), t);
-    } else {
-        // Reset and end
-        player.mesh.scale.set(1, 1, 1);
-        player.mesh.rotation.set(0, 0, 0);
-        camera.position.set(0, 10, 20);
-        isLevelingUp = false;
-    }
-}
-
-// --- NEW: Weapon Unlock Modal at Level 4 ---
+// --- NEW: Weapon Unlock Modal ---
 function showWeaponUnlockModal() {
     isPaused = true;
     const modal = document.getElementById('levelup-modal');
@@ -350,63 +262,24 @@ function showWeaponUnlockModal() {
     modal.style.display = 'flex';
 }
 
-// --- NEW: Second Weapon Choice at Level 8 ---
-function showSecondWeaponModal() {
-    isPaused = true;
-    const modal = document.getElementById('levelup-modal');
-    const list = document.getElementById('upgrade-list');
-    list.innerHTML = '';
-
-    const choices = [
-        { id: 'double_gun', title: 'DUAL PISTOLS', desc: 'Fire two shots at once!', apply: () => { weapons.gun.barrels = 2; } },
-        { id: 'enhanced_aura', title: 'ENHANCED AURA', desc: 'Larger and more damaging field!', apply: () => { weapons.aura.range = 6; weapons.aura.damage = 10; } },
-        { id: 'rapid_meteor', title: 'RAPID METEORS', desc: 'Call meteors more frequently!', apply: () => { weapons.meteor.cooldown = 1500; } }
-    ];
-
-    choices.forEach((u, index) => {
-        const card = document.createElement('div');
-        card.className = 'upgrade-card';
-        const colors = ['#000000', '#FF0000', '#FFFF00', '#808080'];
-        card.style.backgroundColor = colors[index % colors.length];
-        card.innerHTML = `<div class="upgrade-title">${u.title}</div><div class="upgrade-desc">${u.desc}</div>`;
-        card.onclick = () => {
-            u.apply();
-            modal.style.display = 'none';
-            isPaused = false;
-        };
-        list.appendChild(card);
-    });
-
-    modal.style.display = 'flex';
+function unlockWeapon() {
+    // This function is now replaced by showWeaponUnlockModal
+    console.log("Weapon system updated!");
 }
 
 // ================= ENEMY SYSTEM =================
 function spawnEnemy() {
     let geometry = new THREE.BoxGeometry(1,1,1);
     let material = new THREE.MeshStandardMaterial({color: 0xff0000});
-    let enemy = { 
-        mesh: new THREE.Mesh(geometry, material), 
-        health: 100, 
-        isDead: false,
-        isStrong: Math.random() > 0.7 // 30% chance to be strong
-    };
+    let enemy = { mesh: new THREE.Mesh(geometry, material), health: 100, isDead: false };
     enemy.mesh.position.set(Math.random()*20-10,1,Math.random()*20-10);
-    
-    // Make strong enemies visually distinct
-    if (enemy.isStrong) {
-        enemy.health = 200;
-        enemy.mesh.material.color.set(0xff00ff); // Magenta for strong enemies
-        enemy.mesh.scale.set(1.3, 1.3, 1.3);
-    }
-    
     scene.add(enemy.mesh);
     enemies.push(enemy);
 }
 
 // ================= EXP GEMS =================
-function spawnExpGem(x,z, isLarge = false) {
-    const size = isLarge ? 0.36 : 0.3; // 20% larger base size, even larger for strong enemies
-    let geo = new THREE.OctahedronGeometry(size);
+function spawnExpGem(x,z) {
+    let geo = new THREE.OctahedronGeometry(0.3);
     let mat = new THREE.MeshStandardMaterial({color: 0xffff00});
     let gem = { mesh: new THREE.Mesh(geo, mat), active: true };
     gem.mesh.position.set(x,1,z);
@@ -426,17 +299,13 @@ function spawnParticle(pos) {
 
 // =================== ANIMATE LOOP ===================
 function animate() {
-    requestAnimationFrame(animate);
-    let delta = clock.getDelta();
-    
-    // Handle level up animation
-    updateLevelUpAnimation(delta);
-    
-    if (isPaused || isLevelingUp) {
-        // Still render during level up for the animation
-        if (!isLevelingUp) return;
+    if (isPaused) {
+        requestAnimationFrame(animate);
+        return;
     }
     
+    requestAnimationFrame(animate);
+    let delta = clock.getDelta();
     if (dashCooldown > 0) dashCooldown -= delta;
 
     // Player regen
@@ -450,11 +319,6 @@ function animate() {
             if (e.mesh.position.distanceTo(player.mesh.position) < 1) {
                 player.stats.health -= 5*delta; // simple damage
             }
-            
-            // Squishy effect on movement
-            const speed = 0.5;
-            const squish = Math.sin(Date.now() * 0.01) * 0.1;
-            e.mesh.scale.set(1 - squish, 1 + squish, 1 - squish);
         }
     });
 
@@ -462,14 +326,9 @@ function animate() {
     expGems.forEach(g => {
         if (player.mesh.position.distanceTo(g.mesh.position) < 1) {
             gainExp(1);
-            playSound('collect'); // Play collect sound
             scene.remove(g.mesh);
             g.active = false;
         }
-        
-        // Make gems rotate for visual appeal
-        g.mesh.rotation.y += 0.05;
-        g.mesh.rotation.x += 0.03;
     });
 
     // Update particles
@@ -478,54 +337,6 @@ function animate() {
         if (p.lifetime <= 0) { scene.remove(p.mesh); return false; }
         return true;
     });
-
-    // Squishy player physics with gravity feel
-    if (swipeVector) {
-        const gravityEffect = 0.1;
-        player.mesh.position.y -= gravityEffect * delta;
-        if (player.mesh.position.y < 1) {
-            player.mesh.position.y = 1;
-            // Add splash particles on landing
-            for (let i = 0; i < 5; i++) {
-                spawnParticle(player.mesh.position);
-            }
-            swipeVector = null;
-        }
-    }
-
-    // Aura weapon logic
-    if (weapons.aura.active && !isLevelingUp) {
-        // Visualize aura
-        if (!player.auraMesh) {
-            let auraGeo = new THREE.RingGeometry(2, weapons.aura.range, 32);
-            let auraMat = new THREE.MeshBasicMaterial({ 
-                color: 0x00ffff, 
-                side: THREE.DoubleSide,
-                transparent: true,
-                opacity: 0.3
-            });
-            player.auraMesh = new THREE.Mesh(auraGeo, auraMat);
-            player.auraMesh.rotation.x = -Math.PI / 2;
-            scene.add(player.auraMesh);
-        }
-        player.auraMesh.position.copy(player.mesh.position);
-        
-        // Damage enemies in aura range
-        enemies.forEach(e => {
-            if (!e.isDead && player.mesh.position.distanceTo(e.mesh.position) < weapons.aura.range) {
-                e.health -= weapons.aura.damage * delta;
-                if (e.health <= 0) {
-                    e.isDead = true;
-                    scene.remove(e.mesh);
-                    // Drop larger EXP if strong enemy
-                    spawnExpGem(e.mesh.position.x, e.mesh.position.z, e.isStrong);
-                }
-            }
-        });
-    } else if (player.auraMesh) {
-        scene.remove(player.auraMesh);
-        player.auraMesh = null;
-    }
 
     renderer.render(scene, camera);
 }
