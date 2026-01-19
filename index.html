@@ -1,249 +1,1580 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Waterdrop Survivor</title>
-<style>
-  body { margin: 0; overflow: hidden; background: #0a0a0a; }
-  canvas { display: block; }
-  #levelUpPopup {
-    position: absolute;
-    top: 40%;
-    left: 50%;
-    transform: translate(-50%, -50%) scale(0);
-    font-size: 3em;
-    color: #ffdd00;
-    text-shadow: 0 0 15px #ff0, 0 0 30px #ff6600;
-    pointer-events: none;
-    z-index: 10;
-    transition: transform 0.5s ease-out;
-  }
-</style>
+  <!--
+  GAME REQUIREMENTS:
+  - Genre: Survivor / Horde Survival (Vampire Survivors style)
+  - Theme: Water drops (Player), Round/Soft/Squishy shapes
+  - Map: Big map with Forest, Lake, Cabin, Farmlands
+  - Map Updates: Small forest roads, Windmill, Mine, Remove Farmlands
+  - Player: Starts at Lvl 1, Water drop character
+  - Player Physics: Squishy, loses droplets on hit, feels gravity/inertia
+  - Player Actions: Dash (Swipe to dash in direction)
+  - Starting Stats:
+    - Strength: 1
+    - Speed: 1
+    - Crit Chance: 0.1 (10%)
+    - Crit Damage: 5% (interpreted as +5% or 1.05x, will use 1.5x base + upgrades for playability, or strict 1.05x if desired. Will stick to playable baseline)
+    - Damage: 1
+    - Atk Speed: 1
+    - Dodge: 0
+    - Evasion: 0
+    - Phys/Mag Damage: 1
+    - Health: 100
+    - Health Regen: 0
+    - Walk Speed: 25%
+    - Armor: 0 (New stat, reduces damage)
+  - Weapon: Gun (1 shot/sec, 15 Dmg)
+  - Weapon Progression: 
+    - Lvl 5: Sword (Front Slash)
+    - Lvl 10: Double Barrel / Energy Aura
+  - Enemies: Squares, Triangles, Rounds. Squishy. Spawn in Waves.
+    - HP: 100
+    - Walk Speed: 50%
+    - Attack: Melee (33 dmg, ~3 hits to kill)
+    - Visuals: Blood/Stains on hit
+  - Drops: EXP (Small 8-sided stars)
+  - Level Up: Even Faster (2 kills, 4 kills...)
+  - Upgrades: Atk +10%, AtkSpd +10%, Armor +25%
+  - Visual Style: Green ground, Brown/Beige Windmill, Blue Lakes, Trees with shadows/canopy
+  - Controls: Mobile Touch (Joystick) + Portrait Mode
+  -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="screen-orientation" content="portrait">
+  <title>Water Drop Survivor</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: #FFF0F5; /* Lavender Blush */
+      font-family: 'M PLUS Rounded 1c', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    #game-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    #ui-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    /* HUD */
+    .hud-top {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .bar-container {
+      width: 200px;
+      height: 20px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 10px;
+      border: 2px solid #fff;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .bar-fill {
+      height: 100%;
+      width: 100%;
+      transition: width 0.2s;
+    }
+
+    #hp-bar .bar-fill { background: #FF69B4; width: 100%; }
+    #exp-bar .bar-fill { background: #4ECDC4; width: 0%; }
+
+    .stat-text {
+      color: #FF69B4;
+      font-weight: bold;
+      text-shadow: 1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff;
+      font-size: 14px;
+    }
+
+    /* Joystick */
+    #joystick-zone {
+      position: absolute;
+      bottom: 50px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 150px;
+      height: 150px;
+      pointer-events: auto;
+      touch-action: none;
+    }
+
+    /* Level Up Modal */
+    #levelup-modal {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 240, 245, 0.9);
+      display: none; /* Flex when active */
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: auto;
+      z-index: 20;
+    }
+
+    .modal-content {
+      background: #fff;
+      padding: 20px;
+      border-radius: 20px;
+      border: 4px solid #FF69B4;
+      width: 80%;
+      max-width: 400px;
+      text-align: center;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      color: #FF69B4;
+      margin-top: 0;
+    }
+
+    .upgrade-card {
+      background: #E6E6FA;
+      margin: 10px 0;
+      padding: 15px;
+      border-radius: 15px;
+      border: 2px solid #9370DB;
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+
+    .upgrade-card:active {
+      transform: scale(0.95);
+    }
+
+    .upgrade-title {
+      font-weight: bold;
+      color: #9370DB;
+      font-size: 18px;
+    }
+
+    .upgrade-desc {
+      font-size: 12px;
+      color: #555;
+    }
+
+    /* Damage Numbers */
+    .damage-number {
+      position: absolute;
+      color: #fff;
+      font-weight: bold;
+      font-size: 20px;
+      pointer-events: none;
+      text-shadow: 0 0 3px #FF0000;
+      animation: floatUp 1s forwards;
+    }
+
+    @keyframes floatUp {
+      0% { transform: translateY(0) scale(1); opacity: 1; }
+      100% { transform: translateY(-50px) scale(1.5); opacity: 0; }
+    }
+
+    /* Game Over Screen */
+    #gameover-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.8);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: auto;
+      z-index: 30;
+      color: white;
+    }
+
+    .btn {
+      background: #FF69B4;
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      font-size: 20px;
+      border-radius: 50px;
+      margin-top: 20px;
+      font-weight: bold;
+      box-shadow: 0 4px 0 #C71585;
+    }
+    .btn:active {
+      transform: translateY(4px);
+      box-shadow: none;
+    }
+
+    .btn-small {
+      background: #4ECDC4;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 16px;
+      border-radius: 30px;
+      font-weight: bold;
+      box-shadow: 0 3px 0 #2F4F4F;
+      cursor: pointer;
+    }
+    .btn-small:active {
+      transform: translateY(3px);
+      box-shadow: none;
+    }
+
+  </style>
 </head>
 <body>
-<div id="levelUpPopup">❗️💥 LEVEL UP ❗️💥</div>
 
-<script src="https://cdn.jsdelivr.net/npm/three@0.176.0/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.176.0/examples/js/controls/OrbitControls.js"></script>
-<script>
-// =================== GAME SETUP ===================
-let scene, camera, renderer, clock;
-let player, enemies = [], expGems = [], meteors = [], particles = [];
-let level = 1;
-let exp = 0;
-let nextLevelExp = 10;
-let dashCooldown = 0;
-let swipeVector = null;
-let levelUpPopup = document.getElementById('levelUpPopup');
+  <div id="game-container"></div>
 
-// Player stats
-let playerStats = {
-    strength: 1,
-    speed: 1,
-    critChance: 0.1,
-    critDamage: 1.05,
-    damage: 1,
-    atkSpeed: 1,
-    dodge: 0,
-    evasion: 0,
-    physMagDamage: 1,
-    health: 100,
-    maxHealth: 100,
-    healthRegen: 0,
-    walkSpeed: 0.25,
-    armor: 0
-};
+  <div id="ui-layer">
+    <div class="hud-top">
+      <div class="bar-container" id="hp-bar-container">
+        <div class="bar-fill" id="hp-fill"></div>
+      </div>
+      <div class="stat-text" id="hp-text">HP: 100/100</div>
+      
+      <div class="bar-container" id="exp-bar-container" style="border-color: #4ECDC4;">
+        <div class="bar-fill" id="exp-fill"></div>
+      </div>
+      <div class="stat-text" id="lvl-text" style="color: #4ECDC4;">LVL: 1</div>
+      <div class="stat-text" id="score-text" style="color: #9370DB;">KILLS: 0</div>
+    </div>
+    <button id="stats-btn" class="btn-small" style="position: absolute; top: 20px; right: 20px; pointer-events: auto;">STATS</button>
 
-// =============== THREE.JS INIT ==================
-function init() {
-    scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0a0a0a);
+    <div id="joystick-zone"></div>
+  </div>
 
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 10, 20);
+  <!-- Level Up Modal -->
+  <div id="levelup-modal">
+    <div class="modal-content">
+      <h2>LEVEL UP!</h2>
+      <div id="upgrade-list">
+        <!-- Cards injected by JS -->
+      </div>
+    </div>
+  </div>
 
-    renderer = new THREE.WebGLRenderer({antialias: true});
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
+  <!-- Stats Modal -->
+  <div id="stats-modal" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 25; align-items: center; justify-content: center; pointer-events: auto; flex-direction: column;">
+    <div class="modal-content">
+      <h2>PLAYER STATS</h2>
+      <div id="stats-content" style="text-align: left; margin-bottom: 20px; font-family: monospace; font-size: 16px; line-height: 1.5;"></div>
+      <button class="btn" id="close-stats-btn">CLOSE</button>
+    </div>
+  </div>
 
-    clock = new THREE.Clock();
+  <!-- Game Over Screen -->
+  <div id="gameover-screen">
+    <h1 style="color: #FF69B4; font-size: 40px; text-shadow: 2px 2px 0 #fff;">GAME OVER</h1>
+    <p id="final-score">Survived: 0s</p>
+    <button class="btn" id="restart-btn">TRY AGAIN</button>
+  </div>
 
-    // Player
-    let geometry = new THREE.SphereGeometry(1, 16, 16);
-    let material = new THREE.MeshStandardMaterial({color: 0x00aaff, transparent: true, opacity: 0.8});
-    player = { mesh: new THREE.Mesh(geometry, material), stats: {...playerStats}, velocity: new THREE.Vector3() };
-    scene.add(player.mesh);
-    player.mesh.position.set(0,1,0);
-
-    // Lighting
-    let light = new THREE.PointLight(0xffffff, 1);
-    light.position.set(10, 20, 10);
-    scene.add(light);
-
-    // Floor
-    let floorGeo = new THREE.PlaneGeometry(100,100);
-    let floorMat = new THREE.MeshStandardMaterial({color: 0x222222});
-    let floor = new THREE.Mesh(floorGeo, floorMat);
-    floor.rotation.x = -Math.PI/2;
-    scene.add(floor);
-
-    // Event listeners
-    initTouchControls();
-
-    // Start loop
-    animate();
-}
-
-// ================= INPUT / SWIPE DASH =================
-let touchStartPos = null;
-let touchEndPos = null;
-function initTouchControls() {
-    window.addEventListener('touchstart', e => {
-        let t = e.touches[0];
-        touchStartPos = {x: t.clientX, y: t.clientY};
-    });
-    window.addEventListener('touchend', e => {
-        let t = e.changedTouches[0];
-        touchEndPos = {x: t.clientX, y: t.clientY};
-        handleSwipeDash();
-    });
-}
-
-function handleSwipeDash() {
-    if (!touchStartPos || !touchEndPos || dashCooldown > 0) return;
-
-    let dx = touchEndPos.x - touchStartPos.x;
-    let dz = touchEndPos.y - touchStartPos.y; // use y as forward/back for simplicity
-    let dir = new THREE.Vector3(dx, 0, dz).normalize();
-    let dashDistance = 5;
-
-    // Apply dash
-    player.mesh.position.add(dir.multiplyScalar(dashDistance));
-    dashCooldown = 0.5; // 0.5s cooldown
-    swipeVector = dir.clone();
-
-    // Reset touch
-    touchStartPos = null;
-    touchEndPos = null;
-}
-
-// ================= LEVEL UP SYSTEM =================
-function gainExp(amount) {
-    exp += amount;
-    if (exp >= nextLevelExp) {
-        exp -= nextLevelExp;
-        levelUp();
-        // increase nextLevelExp slightly randomly for small variation
-        nextLevelExp = Math.floor(nextLevelExp * (1.1 + Math.random()*0.05));
+  <!-- Import Map for Three.js -->
+  <script async src="https://unpkg.com/es-module-shims@1.8.0/dist/es-module-shims.js"></script>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.176.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.176.0/examples/jsm/"
+      }
     }
-}
+  </script>
 
-function levelUp() {
-    level++;
-    // Player grows slightly for dopamin effect
-    let scaleFactor = 1 + 0.05*(Math.random()*0.5+0.5); 
-    player.mesh.scale.multiplyScalar(scaleFactor);
+  <script type="module">
+    import * as THREE from 'three';
 
-    // Show popup
-    levelUpPopup.style.transform = 'translate(-50%, -50%) scale(1.2)';
-    setTimeout(() => { levelUpPopup.style.transform = 'translate(-50%, -50%) scale(0)'; }, 800);
+    // --- CONSTANTS & CONFIG ---
+    const COLORS = {
+      bg: 0xFFF0F5,
+      player: 0x4ECDC4, // Tiffany Blue / Water
+      enemySquare: 0xFF69B4, // Hot Pink
+      enemyTriangle: 0xFFD700, // Gold
+      enemyRound: 0x9370DB, // Purple
+      ground: 0x7CFC00, // Lawn Green (More vibrant)
+      forest: 0x98FB98, // Pale Green
+      lake: 0x1E90FF, // Dodger Blue (More water-like)
+      cabin: 0xDEB887, // Burlywood
+      farmland: 0xF0E68C, // Khaki
+      exp: 0x00FFFF, // Cyan
+    };
 
-    // Sound effect
-    let audio = new Audio('https://freesound.org/data/previews/341/341695_5121236-lq.mp3');
-    audio.volume = 0.4;
-    audio.play();
+    const GAME_CONFIG = {
+      playerSpeedBase: 0.12, // Slower as requested
+      enemySpeedBase: 0.05,  // Slower as requested
+      waveInterval: 300, // Frames between waves (approx 5s)
+      expValue: 10,
+      baseExpReq: 20
+    };
 
-    // Weapon unlock progression
-    if (level === 3) {
-        unlockWeapon();
+    // --- AUDIO SYSTEM (Oscillators) ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    
+    function playSound(type) {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      const now = audioCtx.currentTime;
+      
+      if (type === 'shoot') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, now);
+        osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+        gain.gain.setValueAtTime(0.1, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        osc.start(now);
+        osc.stop(now + 0.1);
+      } else if (type === 'hit') {
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(150, now);
+        gain.gain.setValueAtTime(0.1, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        osc.start(now);
+        osc.stop(now + 0.1);
+      } else if (type === 'levelup') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(400, now);
+        osc.frequency.linearRampToValueAtTime(800, now + 0.2);
+        gain.gain.setValueAtTime(0.1, now);
+        gain.gain.linearRampToValueAtTime(0, now + 0.5);
+        osc.start(now);
+        osc.stop(now + 0.5);
+      } else if (type === 'collect') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1200, now);
+        osc.frequency.exponentialRampToValueAtTime(2000, now + 0.1);
+        gain.gain.setValueAtTime(0.05, now);
+        gain.gain.linearRampToValueAtTime(0, now + 0.1);
+        osc.start(now);
+        osc.stop(now + 0.1);
+      } else if (type === 'coin') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1500, now);
+        osc.frequency.linearRampToValueAtTime(2500, now + 0.1);
+        gain.gain.setValueAtTime(0.05, now);
+        gain.gain.linearRampToValueAtTime(0, now + 0.1);
+        osc.start(now);
+        osc.stop(now + 0.1);
+      }
     }
 
-    // Stat increases for player
-    player.stats.strength += 0.5;
-    player.stats.damage += 0.5;
-    player.stats.maxHealth += 5;
-    player.stats.health = player.stats.maxHealth;
-}
+    // --- GAME STATE ---
+    let scene, camera, renderer;
+    let player;
+    let enemies = [];
+    let projectiles = [];
+    let expGems = [];
+    let particles = [];
+    let damageNumbers = [];
+    let meteors = [];
+    let lastTime = 0;
+    let frameCount = 0;
+    let isPaused = false;
+    let isGameOver = false;
+    let isGameActive = true;
+    let gameTime = 0;
+    let waveCount = 0;
 
-function unlockWeapon() {
-    // Example: Sword unlocked
-    console.log("Weapon Unlocked: Sword!");
-}
+    // Input
+    const joystick = { x: 0, y: 0, active: false, id: null, originX: 0, originY: 0 };
+    
+    // Stats
+    const playerStats = {
+      lvl: 1,
+      exp: 0,
+      expReq: GAME_CONFIG.baseExpReq,
+      hp: 100,
+      maxHp: 100,
+      strength: 1,
+      armor: 0, // Percentage reduction (0-100)
+      speed: 1, // Multiplier
+      critChance: 0.1,
+      critDmg: 1.5, // 150% base (User said 5%, assuming +5% or 1.05x, but 1.5x is standard)
+      damage: 1, // Multiplier
+      atkSpeed: 1, // Multiplier
+      walkSpeed: 25, // Display value
+      kills: 0,
+      hpRegen: 0,
+      gold: 0
+    };
 
-// ================= ENEMY SYSTEM =================
-function spawnEnemy() {
-    let geometry = new THREE.BoxGeometry(1,1,1);
-    let material = new THREE.MeshStandardMaterial({color: 0xff0000});
-    let enemy = { mesh: new THREE.Mesh(geometry, material), health: 100, isDead: false };
-    enemy.mesh.position.set(Math.random()*20-10,1,Math.random()*20-10);
-    scene.add(enemy.mesh);
-    enemies.push(enemy);
-}
+    // Weapons State
+    const weapons = {
+      gun: { active: true, level: 1, damage: 15, cooldown: 1000, lastShot: 0, range: 12, barrels: 1 },
+      sword: { active: false, level: 0, damage: 30, cooldown: 1500, lastShot: 0, range: 3.5 },
+      aura: { active: false, level: 0, damage: 5, cooldown: 500, lastShot: 0, range: 4 },
+      meteor: { active: false, level: 0, damage: 60, cooldown: 2500, lastShot: 0, area: 5 }
+    };
 
-// ================= EXP GEMS =================
-function spawnExpGem(x,z) {
-    let geo = new THREE.OctahedronGeometry(0.3);
-    let mat = new THREE.MeshStandardMaterial({color: 0xffff00});
-    let gem = { mesh: new THREE.Mesh(geo, mat), active: true };
-    gem.mesh.position.set(x,1,z);
-    scene.add(gem.mesh);
-    expGems.push(gem);
-}
+    // Upgrade Config
+    const UPGRADES = {
+      damage: { name: "Base Damage", cost: 100, inc: 0.1, max: 10 },
+      health: { name: "Max Health", cost: 100, inc: 10, max: 10 },
+      speed: { name: "Move Speed", cost: 150, inc: 0.05, max: 5 },
+      armor: { name: "Armor", cost: 200, inc: 2, max: 10 },
+      magnet: { name: "Magnet Range", cost: 100, inc: 0.5, max: 5 }
+    };
 
-// ================= PARTICLES =================
-function spawnParticle(pos) {
-    let geo = new THREE.SphereGeometry(0.1,8,8);
-    let mat = new THREE.MeshStandardMaterial({color: 0xffffff});
-    let p = { mesh: new THREE.Mesh(geo, mat), lifetime: 1 };
-    p.mesh.position.copy(pos);
-    scene.add(p.mesh);
-    particles.push(p);
-}
+    // --- CLASSES ---
 
-// =================== ANIMATE LOOP ===================
-function animate() {
-    requestAnimationFrame(animate);
-    let delta = clock.getDelta();
-    if (dashCooldown > 0) dashCooldown -= delta;
+    class Player {
+      constructor() {
+        const geometry = new THREE.SphereGeometry(0.5, 16, 16);
+        const material = new THREE.MeshToonMaterial({ color: COLORS.player });
+        this.mesh = new THREE.Mesh(geometry, material);
+        this.mesh.position.y = 0.5;
+        this.mesh.castShadow = true;
+        scene.add(this.mesh);
+        
+        // Physics/Visuals
+        this.velocity = new THREE.Vector3(0, 0, 0);
+        this.targetScale = new THREE.Vector3(1, 1, 1);
+        
+        // Dash
+        this.isDashing = false;
+        this.dashTime = 0;
+        this.dashDuration = 0.2;
+        this.dashVec = new THREE.Vector3();
+      }
 
-    // Player regen
-    player.stats.health = Math.min(player.stats.maxHealth, player.stats.health + player.stats.healthRegen*delta);
+      update(dt) {
+        // Dash Logic
+        if (this.isDashing) {
+          this.dashTime -= dt;
+          const t = 1 - (this.dashTime / this.dashDuration);
+          const speed = Math.sin(t * Math.PI) * 25; // Slow-Fast-Slow curve
+          this.mesh.position.x += this.dashVec.x * speed * dt;
+          this.mesh.position.z += this.dashVec.z * speed * dt;
+          
+          if (this.dashTime <= 0) {
+            this.isDashing = false;
+          }
+          // Trail effect could go here
+        }
+        // Movement
+        else {
+          const targetVel = new THREE.Vector3(0, 0, 0);
+        
+          if (joystick.active) {
+          const speed = GAME_CONFIG.playerSpeedBase * (playerStats.walkSpeed / 25); // Normalize 25 to base
+          targetVel.x = joystick.x * speed;
+          targetVel.z = joystick.y * speed;
+          
+          this.mesh.position.x += targetVel.x;
+          this.mesh.position.z += targetVel.z;
 
-    // Update enemies
-    enemies.forEach(e => {
-        if (!e.isDead) {
-            let dir = new THREE.Vector3().subVectors(player.mesh.position, e.mesh.position).normalize();
-            e.mesh.position.add(dir.multiplyScalar(0.5*delta));
-            if (e.mesh.position.distanceTo(player.mesh.position) < 1) {
-                player.stats.health -= 5*delta; // simple damage
+          // Rotate to face movement
+          const angle = Math.atan2(targetVel.x, targetVel.z);
+          this.mesh.rotation.y = angle;
+          } else {
+          // Idle
+          }
+
+          // Inertia / Squish Effect
+          // Lerp velocity for smooth transition
+          this.velocity.lerp(targetVel, 0.1);
+        }
+        
+        const speedMag = this.velocity.length();
+        // Stretch in Y when moving fast? No, flatten like a drop on ground
+        // Actually, cartoon drops stretch in direction of motion
+        // Let's do a wobble
+        const wobble = Math.sin(gameTime * 15) * speedMag * 2;
+        
+        // Base squish based on speed
+        const stretch = 1 + (speedMag * 2);
+        const squash = 1 / Math.sqrt(stretch);
+        
+        // Apply to mesh (local axis)
+        // We want to stretch along Z (forward) if we rotated mesh
+        // But we rotated mesh Y. So Z is forward.
+        this.mesh.scale.set(squash, squash - wobble*0.2, stretch + wobble*0.2);
+
+        // Camera Follow
+        camera.position.x = this.mesh.position.x;
+        camera.position.z = this.mesh.position.z + 20; // Isometric offset
+        camera.lookAt(this.mesh.position);
+
+        // Bounds (Map is 200x200)
+        this.mesh.position.x = Math.max(-95, Math.min(95, this.mesh.position.x));
+        this.mesh.position.z = Math.max(-95, Math.min(95, this.mesh.position.z));
+      }
+
+      dash(dx, dz) {
+        if (this.isDashing) return;
+        this.isDashing = true;
+        this.dashTime = this.dashDuration;
+        
+        // Convert Screen Swipe (dx, dy) to Isometric World Direction
+        // Screen Right (dx+) -> World (-1, 0, 1)
+        // Screen Down (dy+) -> World (1, 0, 1)
+        // CORRECTED: Screen Right -> World (1, 0, -1), Screen Down -> World (1, 0, 1)
+        const wx = dx + dy;
+        const wz = dy - dx;
+        
+        this.dashVec.set(wx, 0, wz).normalize();
+      }
+
+      takeDamage(amount) {
+        // Armor reduction
+        const reduced = Math.max(1, amount * (1 - playerStats.armor / 100));
+        playerStats.hp -= reduced;
+        updateHUD();
+        playSound('hit');
+        
+        // Visual flash
+        this.mesh.material.color.setHex(0xFF0000);
+        setTimeout(() => {
+          this.mesh.material.color.setHex(COLORS.player);
+        }, 100);
+        
+        // Drop water particles
+        spawnParticles(this.mesh.position, COLORS.player, 5);
+
+        if (playerStats.hp <= 0) {
+          gameOver();
+        }
+      }
+    }
+
+    class Enemy {
+      constructor(type, x, z) {
+        this.type = type; // 0: Square, 1: Triangle, 2: Round
+        let geometry;
+        let color;
+        
+        if (type === 0) {
+          geometry = new THREE.BoxGeometry(0.8, 0.8, 0.8); // Square
+          color = COLORS.enemySquare; // Tanky
+        } else if (type === 1) {
+          geometry = new THREE.ConeGeometry(0.5, 1, 8); // Triangle
+          color = COLORS.enemyTriangle; // Fast
+        } else {
+          geometry = new THREE.SphereGeometry(0.5, 12, 12); // Round
+          color = COLORS.enemyRound; // Balanced
+        }
+
+        const material = new THREE.MeshToonMaterial({ color: color });
+        this.mesh = new THREE.Mesh(geometry, material);
+        this.mesh.position.set(x, 0.5, z);
+        this.mesh.castShadow = true;
+        scene.add(this.mesh);
+
+        // Stats based on type
+        if (type === 0) { // Square (Tank)
+          this.hp = 150;
+          this.speed = GAME_CONFIG.enemySpeedBase * 0.6;
+        } else if (type === 1) { // Triangle (Fast, Low HP)
+          this.hp = 40;
+          this.speed = GAME_CONFIG.enemySpeedBase * 1.6;
+        } else { // Round (Balanced)
+          this.hp = 80;
+          this.speed = GAME_CONFIG.enemySpeedBase;
+        }
+        
+        this.maxHp = this.hp;
+        this.damage = 33;
+        this.isDead = false;
+        this.pulsePhase = Math.random() * Math.PI;
+        this.wobbleOffset = Math.random() * 100;
+      }
+
+      update(dt, playerPos) {
+        if (this.isDead) return;
+
+        // Move towards player
+        const dx = playerPos.x - this.mesh.position.x;
+        const dz = playerPos.z - this.mesh.position.z;
+        const dist = Math.sqrt(dx*dx + dz*dz);
+
+        if (dist > 0.5) {
+          let vx = (dx / dist) * this.speed;
+          let vz = (dz / dist) * this.speed;
+          
+          // Triangle moves erratically
+          if (this.type === 1) {
+            const wobble = Math.sin(gameTime * 10 + this.wobbleOffset) * 0.05;
+            vx += wobble * (dz/dist); // Perpendicular
+            vz -= wobble * (dx/dist);
+          }
+          
+          this.mesh.position.x += vx;
+          this.mesh.position.z += vz;
+          this.mesh.lookAt(playerPos);
+        }
+
+        // Collision with player
+        if (dist < 1.0) {
+          player.takeDamage(this.damage);
+          // Knockback
+          this.mesh.position.x -= (dx / dist) * 2;
+          this.mesh.position.z -= (dz / dist) * 2;
+        }
+
+        // Squishy idle
+        this.pulsePhase += dt * 5;
+        const squish = Math.sin(this.pulsePhase) * 0.05;
+        if (this.type === 0) {
+           // Box breathes
+           this.mesh.scale.set(1+squish, 1-squish, 1+squish);
+        } else {
+           this.mesh.scale.set(1-squish, 1+squish, 1-squish);
+        }
+      }
+
+      takeDamage(amount) {
+        this.hp -= amount;
+        createDamageNumber(amount, this.mesh.position);
+        
+        // Flash
+        const oldColor = this.mesh.material.color.getHex();
+        this.mesh.material.color.setHex(0xFFFFFF);
+        
+        // Blood/Stain particles
+        spawnParticles(this.mesh.position, 0x880000, 3);
+        
+        setTimeout(() => this.mesh.material.color.setHex(oldColor), 50);
+
+        if (this.hp <= 0) {
+          this.die();
+        }
+      }
+
+      die() {
+        this.isDead = true;
+        scene.remove(this.mesh);
+        this.mesh.geometry.dispose();
+        this.mesh.material.dispose();
+        
+        // Drop EXP
+        spawnExp(this.mesh.position.x, this.mesh.position.z);
+        
+        playerStats.kills++;
+        updateHUD();
+      }
+    }
+
+    class Projectile {
+      constructor(x, z, target) {
+        const geometry = new THREE.SphereGeometry(0.2, 8, 8);
+        const material = new THREE.MeshBasicMaterial({ color: 0xFFFF00 });
+        this.mesh = new THREE.Mesh(geometry, material);
+        this.mesh.position.set(x, 0.5, z);
+        scene.add(this.mesh);
+
+        this.speed = 0.4;
+        this.active = true;
+        this.life = 60; // Frames
+
+        // Calculate direction
+        const dx = target.x - x;
+        const dz = target.z - z;
+        const dist = Math.sqrt(dx*dx + dz*dz);
+        this.vx = (dx / dist) * this.speed;
+        this.vz = (dz / dist) * this.speed;
+      }
+
+      update() {
+        if (!this.active) return;
+        
+        this.mesh.position.x += this.vx;
+        this.mesh.position.z += this.vz;
+        this.life--;
+
+        if (this.life <= 0) {
+          this.destroy();
+          return;
+        }
+
+        // Collision Check
+        for (let enemy of enemies) {
+          if (enemy.isDead) continue;
+          const dx = this.mesh.position.x - enemy.mesh.position.x;
+          const dz = this.mesh.position.z - enemy.mesh.position.z;
+          if (dx*dx + dz*dz < 0.6) { // Hit radius
+            // Calculate Damage
+            let dmg = weapons.gun.damage * playerStats.damage * playerStats.strength;
+            const isCrit = Math.random() < playerStats.critChance;
+            if (isCrit) dmg *= playerStats.critDmg;
+            
+            enemy.takeDamage(Math.floor(dmg));
+            this.destroy();
+            playSound('hit');
+            break;
+          }
+        }
+      }
+
+      destroy() {
+        this.active = false;
+        scene.remove(this.mesh);
+        this.mesh.geometry.dispose();
+        this.mesh.material.dispose();
+      }
+    }
+
+    class SwordSlash {
+      constructor(x, z, angle) {
+        // Arc geometry
+        const geometry = new THREE.RingGeometry(1.5, 2.5, 8, 1, -Math.PI/4, Math.PI/2);
+        const material = new THREE.MeshBasicMaterial({ color: 0xFFFFFF, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
+        this.mesh = new THREE.Mesh(geometry, material);
+        this.mesh.rotation.x = -Math.PI / 2;
+        this.mesh.rotation.z = angle - Math.PI/4; // Adjust for arc center
+        this.mesh.position.set(x, 0.6, z);
+        scene.add(this.mesh);
+        
+        this.life = 10; // frames
+        this.maxLife = 10;
+        
+        // Deal damage immediately
+        const dmg = weapons.sword.damage * playerStats.strength * playerStats.damage;
+        
+        enemies.forEach(e => {
+          const dx = e.mesh.position.x - x;
+          const dz = e.mesh.position.z - z;
+          const dist = Math.sqrt(dx*dx + dz*dz);
+          
+          if (dist < 3.5) {
+            // Check angle
+            const eAngle = Math.atan2(dz, dx); // -PI to PI
+            // Normalize angles
+            let diff = eAngle - angle;
+            while (diff < -Math.PI) diff += Math.PI*2;
+            while (diff > Math.PI) diff -= Math.PI*2;
+            
+            if (Math.abs(diff) < Math.PI/3) {
+              e.takeDamage(dmg);
             }
+          }
+        });
+      }
+      
+      update() {
+        this.life--;
+        this.mesh.material.opacity = this.life / this.maxLife;
+        if (this.life <= 0) {
+          scene.remove(this.mesh);
+          this.mesh.geometry.dispose();
+          this.mesh.material.dispose();
+          return false;
         }
-    });
-
-    // Update exp gems
-    expGems.forEach(g => {
-        if (player.mesh.position.distanceTo(g.mesh.position) < 1) {
-            gainExp(1);
-            scene.remove(g.mesh);
-            g.active = false;
-        }
-    });
-
-    // Update particles
-    particles = particles.filter(p => {
-        p.lifetime -= delta;
-        if (p.lifetime <= 0) { scene.remove(p.mesh); return false; }
         return true;
-    });
+      }
+    }
 
-    renderer.render(scene, camera);
-}
+    class Meteor {
+      constructor(targetX, targetZ) {
+        this.target = new THREE.Vector3(targetX, 0, targetZ);
+        
+        // Falling sphere
+        const geo = new THREE.DodecahedronGeometry(1.5);
+        const mat = new THREE.MeshToonMaterial({ color: 0xFF4500, emissive: 0x8B0000 });
+        this.mesh = new THREE.Mesh(geo, mat);
+        this.mesh.position.set(targetX, 20, targetZ);
+        scene.add(this.mesh);
+        
+        // Shadow indicator
+        const shadowGeo = new THREE.CircleGeometry(2.5, 16);
+        const shadowMat = new THREE.MeshBasicMaterial({ color: 0x000000, opacity: 0.3, transparent: true });
+        this.shadow = new THREE.Mesh(shadowGeo, shadowMat);
+        this.shadow.rotation.x = -Math.PI/2;
+        this.shadow.position.set(targetX, 0.1, targetZ);
+        scene.add(this.shadow);
+        
+        this.speed = 0.5;
+        this.active = true;
+      }
+      
+      update() {
+        if (!this.active) return false;
+        
+        this.mesh.position.y -= this.speed;
+        this.speed += 0.05; // Gravity
+        
+        if (this.mesh.position.y <= 0) {
+          this.explode();
+          return false;
+        }
+        return true;
+      }
+      
+      explode() {
+        this.active = false;
+        scene.remove(this.mesh);
+        scene.remove(this.shadow);
+        this.mesh.geometry.dispose();
+        this.mesh.material.dispose();
+        this.shadow.geometry.dispose();
+        this.shadow.material.dispose();
+        
+        // AOE Damage
+        const range = weapons.meteor.area;
+        const dmg = weapons.meteor.damage * playerStats.strength;
+        
+        enemies.forEach(e => {
+          const d = e.mesh.position.distanceTo(this.target);
+          if (d < range) {
+            e.takeDamage(dmg);
+          }
+        });
+        
+        // Visuals
+        spawnParticles(this.target, 0xFF4500, 10);
+        spawnParticles(this.target, 0xFFFF00, 5);
+        playSound('hit'); // Boom
+      }
+    }
 
-// =================== INIT GAME ===================
-try { init(); spawnEnemy(); spawnEnemy(); spawnExpGem(5,5); spawnExpGem(-5,-5); } 
-catch(e) { console.error(e); alert("Game Error: " + e.message); }
+    class Particle {
+      constructor(pos, color) {
+        const geo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+        const mat = new THREE.MeshBasicMaterial({ color: color });
+        this.mesh = new THREE.Mesh(geo, mat);
+        this.mesh.position.copy(pos);
+        
+        this.vel = new THREE.Vector3(
+          (Math.random() - 0.5) * 0.3,
+          Math.random() * 0.3,
+          (Math.random() - 0.5) * 0.3
+        );
+        
+        scene.add(this.mesh);
+        this.life = 30;
+      }
+      
+      update() {
+        this.life--;
+        this.mesh.position.add(this.vel);
+        this.vel.y -= 0.02; // Gravity
+        this.mesh.rotation.x += 0.1;
+        this.mesh.rotation.y += 0.1;
+        
+        if (this.mesh.position.y < 0) {
+          this.mesh.position.y = 0;
+          this.vel.y = 0;
+          this.vel.x *= 0.8;
+          this.vel.z *= 0.8;
+        }
+        
+        if (this.life <= 0) {
+          scene.remove(this.mesh);
+          this.mesh.geometry.dispose();
+          this.mesh.material.dispose();
+          return false;
+        }
+        return true;
+      }
+    }
 
-</script>
+    class ExpGem {
+      constructor(x, z) {
+        // 8-sided star -> Octahedron
+        const geometry = new THREE.OctahedronGeometry(0.3, 0);
+        const material = new THREE.MeshToonMaterial({ color: COLORS.exp, emissive: 0x222222 });
+        this.mesh = new THREE.Mesh(geometry, material);
+        this.mesh.position.set(x, 0.5, z);
+        scene.add(this.mesh);
+        this.active = true;
+        this.rotSpeed = Math.random() * 0.1 + 0.05;
+      }
+
+      update(playerPos) {
+        if (!this.active) return;
+
+        this.mesh.rotation.y += this.rotSpeed;
+        this.mesh.rotation.x += this.rotSpeed;
+
+        // Magnet
+        const dx = playerPos.x - this.mesh.position.x;
+        const dz = playerPos.z - this.mesh.position.z;
+        const dist = Math.sqrt(dx*dx + dz*dz);
+        
+        const magnetRange = 3.0;
+        if (dist < magnetRange) { // Magnet range
+          this.mesh.position.x += (dx / dist) * 0.3;
+          this.mesh.position.z += (dz / dist) * 0.3;
+          
+          // Visual Trail when pulled
+          if (Math.random() < 0.3) {
+             spawnParticles(this.mesh.position, COLORS.exp, 1);
+          }
+        }
+
+        if (dist < 0.8) { // Collect
+          this.collect();
+        }
+      }
+
+      collect() {
+        this.active = false;
+        scene.remove(this.mesh);
+        this.mesh.geometry.dispose();
+        this.mesh.material.dispose();
+        addExp(GAME_CONFIG.expValue);
+        playSound('collect');
+      }
+    }
+
+    // --- WORLD GENERATION ---
+    function createWorld() {
+      // Ground
+      const groundGeo = new THREE.PlaneGeometry(200, 200);
+      const groundMat = new THREE.MeshToonMaterial({ color: COLORS.ground });
+      const ground = new THREE.Mesh(groundGeo, groundMat);
+      ground.rotation.x = -Math.PI / 2;
+      ground.receiveShadow = true;
+      scene.add(ground);
+
+      // Features
+      // Lake (Blue Plane)
+      const lakeGeo = new THREE.CircleGeometry(15, 32);
+      const lakeMat = new THREE.MeshBasicMaterial({ color: COLORS.lake });
+      const lake = new THREE.Mesh(lakeGeo, lakeMat);
+      lake.rotation.x = -Math.PI / 2;
+      lake.position.set(30, 0.01, -30);
+      scene.add(lake);
+
+      // Roads (Curves)
+      const roadMat = new THREE.MeshBasicMaterial({ color: 0xD8BFD8 }); // Thistle
+      const roadGeo = new THREE.PlaneGeometry(2, 2);
+      // Simple grid of paths
+      for(let i=0; i<40; i++) {
+        const road = new THREE.Mesh(roadGeo, roadMat);
+        road.rotation.x = -Math.PI/2;
+        // Create a winding path
+        const t = i / 40 * Math.PI * 4;
+        const x = Math.sin(t) * 40;
+        const z = Math.cos(t) * 40 - i*2 + 40;
+        road.position.set(x, 0.02, z);
+        scene.add(road);
+      }
+
+      // Cabin (Box)
+      const cabinGeo = new THREE.BoxGeometry(6, 5, 6);
+      const cabinMat = new THREE.MeshToonMaterial({ color: COLORS.cabin });
+      const cabin = new THREE.Mesh(cabinGeo, cabinMat);
+      cabin.position.set(-20, 2.5, -20);
+      cabin.castShadow = true;
+      scene.add(cabin);
+
+      // Windmill
+      const wmGroup = new THREE.Group();
+      wmGroup.position.set(40, 0, 40);
+      const wmBase = new THREE.Mesh(new THREE.CylinderGeometry(2, 3, 8, 8), new THREE.MeshToonMaterial({color: 0xD2B48C})); // Beige
+      wmBase.position.y = 4;
+      wmGroup.add(wmBase);
+      const wmBlades = new THREE.Mesh(new THREE.BoxGeometry(12, 1, 1), new THREE.MeshBasicMaterial({color: 0x8B4513})); // Brown
+      wmBlades.position.set(0, 7, 2);
+      wmGroup.add(wmBlades);
+      const wmBlades2 = wmBlades.clone();
+      wmBlades2.rotation.z = Math.PI/2;
+      wmGroup.add(wmBlades2);
+      scene.add(wmGroup);
+      // Animate blades later? We can just rotate the group children in animate loop if we track it, but for now static is safer or add to update list.
+      // Let's add a simple rotator script
+      wmGroup.userData = { isWindmill: true, blades: [wmBlades, wmBlades2] };
+      scene.add(wmGroup);
+      
+      // Mine
+      const mineGeo = new THREE.DodecahedronGeometry(5);
+      const mineMat = new THREE.MeshToonMaterial({ color: 0x555555 });
+      const mine = new THREE.Mesh(mineGeo, mineMat);
+      mine.position.set(-40, 2, 40);
+      scene.add(mine);
+      const mineEnt = new THREE.Mesh(new THREE.CircleGeometry(2, 16), new THREE.MeshBasicMaterial({color: 0x000000}));
+      mineEnt.position.set(-40, 2, 44);
+      mineEnt.rotation.y = Math.PI;
+      scene.add(mineEnt);
+
+      // Forest (Cones)
+      // Trees with trunks so you can walk under
+      const trunkGeo = new THREE.CylinderGeometry(0.5, 0.7, 2, 6);
+      const trunkMat = new THREE.MeshToonMaterial({ color: 0x8B4513 });
+      const leavesGeo = new THREE.ConeGeometry(2.5, 5, 8);
+      const treeMat = new THREE.MeshToonMaterial({ color: COLORS.forest });
+      
+      for (let i = 0; i < 50; i++) {
+        const group = new THREE.Group();
+        const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+        trunk.position.y = 1;
+        const leaves = new THREE.Mesh(leavesGeo, treeMat);
+        leaves.position.y = 4; // Raised canopy
+        leaves.castShadow = true;
+        group.add(trunk);
+        group.add(leaves);
+        
+        // Random pos in forest area (Top Left quadrant mostly)
+        const tx = (Math.random() * 80) - 90;
+        const tz = (Math.random() * 80) - 90;
+        group.position.set(tx, 0, tz);
+        scene.add(group);
+      }
+    }
+
+    // --- GAME LOGIC ---
+
+    function init() {
+      // Scene
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(COLORS.bg);
+      // Fog for depth
+      scene.fog = new THREE.Fog(COLORS.bg, 20, 60);
+
+      // Camera (Orthographic for miniature look)
+      const aspect = window.innerWidth / window.innerHeight;
+      const d = 20;
+      camera = new THREE.OrthographicCamera(-d * aspect, d * aspect, d, -d, 1, 1000);
+      camera.position.set(20, 20, 20); // Isometric angle
+      camera.lookAt(scene.position);
+
+      // Renderer
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      document.getElementById('game-container').appendChild(renderer.domElement);
+
+      // Lights
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+      scene.add(ambientLight);
+
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      dirLight.position.set(50, 100, 50);
+      dirLight.castShadow = true;
+      dirLight.shadow.mapSize.width = 2048;
+      dirLight.shadow.mapSize.height = 2048;
+      dirLight.shadow.camera.left = -100;
+      dirLight.shadow.camera.right = 100;
+      dirLight.shadow.camera.top = 100;
+      dirLight.shadow.camera.bottom = -100;
+      scene.add(dirLight);
+
+      // Setup
+      createWorld();
+      player = new Player();
+      
+      // Listeners
+      setupInputs();
+      window.addEventListener('resize', onWindowResize, false);
+      resetGame(); // Start immediately
+
+      // Start Loop
+      requestAnimationFrame(animate);
+    }
+
+    function spawnWave() {
+      waveCount++;
+      const count = 3 + Math.floor(waveCount / 2); // 3, 3, 4, 4, 5...
+      
+      for(let i=0; i<count; i++) {
+        // Spawn at edge of camera view approx
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 25 + Math.random() * 10; // Just outside view
+        const ex = player.mesh.position.x + Math.cos(angle) * dist;
+        const ez = player.mesh.position.z + Math.sin(angle) * dist;
+        
+        // Random type
+        const type = Math.floor(Math.random() * 3);
+        enemies.push(new Enemy(type, ex, ez));
+      }
+    }
+
+    function spawnParticles(pos, color, count) {
+      for(let i=0; i<count; i++) particles.push(new Particle(pos, color));
+    }
+
+    function spawnExp(x, z) {
+      expGems.push(new ExpGem(x, z));
+    }
+
+    function addExp(amount) {
+      playerStats.exp += amount;
+      if (playerStats.exp >= playerStats.expReq) {
+        levelUp();
+      }
+      updateHUD();
+    }
+
+    function levelUp() {
+      isPaused = true;
+      playerStats.lvl++;
+      playerStats.exp -= playerStats.expReq;
+      
+      // Custom XP Curve: 3, 5, 7, 10...
+      // Lvl 1->2 (3 kills=30), 2->3 (5 kills=50), 3->4 (7 kills=70), 4->5 (10 kills=100)
+      const nextKills = [1, 2, 3, 4, 5, 6, 8, 10]; // Even Faster
+      const killsNeeded = nextKills[Math.min(playerStats.lvl-1, nextKills.length-1)] || 25;
+      playerStats.expReq = killsNeeded * GAME_CONFIG.expValue;
+      
+      playSound('levelup');
+      showUpgradeModal();
+    }
+
+    function showUpgradeModal() {
+      const modal = document.getElementById('levelup-modal');
+      const list = document.getElementById('upgrade-list');
+      list.innerHTML = '';
+      
+      let choices = [];
+
+      // --- POOL OF UPGRADES ---
+      const commonUpgrades = [
+        { id: 'str', title: 'STRENGTH', desc: 'Damage +10%', apply: () => { playerStats.strength += 0.1; } },
+        { id: 'aspd', title: 'HASTE', desc: 'Atk Speed +10%', apply: () => { playerStats.atkSpeed += 0.1; weapons.gun.cooldown *= 0.9; } },
+        { id: 'armor', title: 'ARMOR', desc: 'Damage Taken -10%', apply: () => { playerStats.armor = Math.min(80, playerStats.armor + 10); } },
+        { id: 'hp', title: 'VITALITY', desc: 'Max HP +20', apply: () => { playerStats.maxHp += 20; playerStats.hp += 20; } },
+        { id: 'crit', title: 'CRITICAL', desc: 'Crit Chance +5%', apply: () => { playerStats.critChance += 0.05; } },
+        { id: 'regen', title: 'REGENERATION', desc: 'HP Regen +1/sec', apply: () => { playerStats.hpRegen += 1; } },
+        { id: 'speed', title: 'AGILITY', desc: 'Move Speed +10%', apply: () => { playerStats.walkSpeed += 2.5; } }
+      ];
+
+      // Weapon Upgrades (Only if active)
+      if (weapons.gun.active) commonUpgrades.push({ id: 'gun_up', title: 'GUN UPGRADE', desc: 'Damage +5', apply: () => { weapons.gun.damage += 5; } });
+      if (weapons.sword.active) commonUpgrades.push({ id: 'sword_up', title: 'SWORD UPGRADE', desc: 'Damage +10', apply: () => { weapons.sword.damage += 10; } });
+      if (weapons.aura.active) commonUpgrades.push({ id: 'aura_up', title: 'AURA UPGRADE', desc: 'Range +1', apply: () => { weapons.aura.range += 1; } });
+      if (weapons.meteor.active) commonUpgrades.push({ id: 'meteor_up', title: 'METEOR UPGRADE', desc: 'Cooldown -0.5s', apply: () => { weapons.meteor.cooldown = Math.max(500, weapons.meteor.cooldown - 500); } });
+
+      // --- SPECIAL LEVELS ---
+      
+      // Level 5: Choose Secondary Weapon (Changed from Level 2)
+      if (playerStats.lvl === 5) {
+        choices = [
+          { id: 'sword', title: 'NEW: BLADE', desc: 'Slash enemies in front', apply: () => { weapons.sword.active = true; } },
+          { id: 'aura', title: 'NEW: ENERGY FIELD', desc: 'Damage aura around you', apply: () => { weapons.aura.active = true; } },
+          { id: 'meteor', title: 'NEW: METEOR', desc: 'Call meteors from sky', apply: () => { weapons.meteor.active = true; } }
+        ];
+      }
+      // Level 10: Major Upgrade (Skill + Weapon + Perk)
+      else if (playerStats.lvl === 10) {
+        choices = [
+          { id: 'major_tank', title: 'TANK SET', desc: 'HP+50, Regen+2, Armor+20%', apply: () => { playerStats.maxHp+=50; playerStats.hp+=50; playerStats.hpRegen+=2; playerStats.armor+=20; } },
+          { id: 'major_dps', title: 'BERSERKER SET', desc: 'Str+30%, Crit+10%, Gun Dmg+10', apply: () => { playerStats.strength+=0.3; playerStats.critChance+=0.1; weapons.gun.damage+=10; } },
+          { id: 'major_mage', title: 'MAGE SET', desc: 'Aura Range+2, Meteor CD-1s, Exp+20%', apply: () => { weapons.aura.range+=2; weapons.meteor.cooldown-=1000; GAME_CONFIG.expValue+=2; } }
+        ];
+      } 
+      else {
+        // Random 4
+        choices = commonUpgrades.sort(() => 0.5 - Math.random()).slice(0, 4);
+      }
+
+      choices.forEach(u => {
+        const card = document.createElement('div');
+        card.className = 'upgrade-card';
+        card.innerHTML = `<div class="upgrade-title">${u.title}</div><div class="upgrade-desc">${u.desc}</div>`;
+        card.onclick = () => {
+          u.apply();
+          modal.style.display = 'none';
+          isPaused = false;
+          updateHUD();
+        };
+        list.appendChild(card);
+      });
+
+      // --- NEW: Apply custom color scheme to upgrade cards ---
+      const colors = ['#000000', '#FF0000', '#FFFF00', '#808080']; // Black, Red, Yellow, Gray
+      const cards = document.querySelectorAll('.upgrade-card');
+      cards.forEach((card, index) => {
+        card.style.backgroundColor = colors[index % colors.length];
+        card.style.color = '#FFFFFF';
+        card.querySelector('.upgrade-title').style.color = '#FFFFFF';
+      });
+
+      modal.style.display = 'flex';
+    }
+
+    function updateHUD() {
+      const hpPct = (playerStats.hp / playerStats.maxHp) * 100;
+      document.getElementById('hp-fill').style.width = `${Math.max(0, hpPct)}%`;
+      document.getElementById('hp-text').innerText = `HP: ${Math.ceil(playerStats.hp)}/${playerStats.maxHp}`;
+      
+      const expPct = (playerStats.exp / playerStats.expReq) * 100;
+      document.getElementById('exp-fill').style.width = `${Math.min(100, expPct)}%`;
+      document.getElementById('lvl-text').innerText = `LVL: ${playerStats.lvl}`;
+      document.getElementById('score-text').innerText = `KILLS: ${playerStats.kills}`;
+    }
+
+    function createDamageNumber(amount, pos) {
+      const div = document.createElement('div');
+      div.className = 'damage-number';
+      div.innerText = amount;
+      
+      // Project 3D pos to 2D screen
+      const vec = pos.clone();
+      vec.y += 1.5;
+      vec.project(camera);
+      
+      const x = (vec.x * .5 + .5) * window.innerWidth;
+      const y = (-(vec.y * .5) + .5) * window.innerHeight;
+      
+      div.style.left = `${x}px`;
+      div.style.top = `${y}px`;
+      
+      document.body.appendChild(div);
+      setTimeout(() => div.remove(), 1000);
+    }
+
+    function gameOver() {
+      isGameOver = true;
+      isPaused = true;
+      document.getElementById('gameover-screen').style.display = 'flex';
+      document.getElementById('final-score').innerText = `Kills: ${playerStats.kills} | Lvl: ${playerStats.lvl}`;
+    }
+
+    function resetGame() {
+      // Reset Stats
+      playerStats.lvl = 1;
+      playerStats.exp = 0;
+      playerStats.expReq = GAME_CONFIG.baseExpReq;
+      playerStats.hp = 100;
+      playerStats.maxHp = 100;
+      playerStats.strength = 1;
+      playerStats.walkSpeed = 25;
+      playerStats.kills = 0;
+      playerStats.atkSpeed = 1;
+      playerStats.critChance = 0.1;
+      playerStats.armor = 0;
+      playerStats.hpRegen = 0;
+      waveCount = 0;
+      
+      weapons.gun = { active: true, level: 1, damage: 15, cooldown: 1000, lastShot: 0, range: 12, barrels: 1 };
+      weapons.sword.active = false;
+      weapons.aura.active = false;
+      weapons.meteor.active = false;
+
+      // Clear Entities
+      enemies.forEach(e => {
+        scene.remove(e.mesh);
+        e.mesh.geometry.dispose();
+        e.mesh.material.dispose();
+      });
+      enemies = [];
+      
+      expGems.forEach(e => {
+        scene.remove(e.mesh);
+        e.mesh.geometry.dispose();
+        e.mesh.material.dispose();
+      });
+      expGems = [];
+
+      projectiles.forEach(p => {
+        scene.remove(p.mesh);
+        p.mesh.geometry.dispose();
+        p.mesh.material.dispose();
+      });
+      projectiles = [];
+      
+      particles.forEach(p => {
+        scene.remove(p.mesh);
+        p.mesh.geometry.dispose();
+        p.mesh.material.dispose();
+      });
+      particles = [];
+      
+      meteors.forEach(m => {
+        scene.remove(m.mesh);
+        scene.remove(m.shadow);
+        m.mesh.geometry.dispose();
+        m.mesh.material.dispose();
+      });
+      meteors = [];
+
+      // Reset Player
+      player.mesh.position.set(0, 0.5, 0);
+      player.mesh.material.color.setHex(COLORS.player);
+
+      isGameOver = false;
+      isPaused = false;
+      document.getElementById('gameover-screen').style.display = 'none';
+      updateHUD();
+    }
+
+    function toggleStats() {
+      const modal = document.getElementById('stats-modal');
+      const levelUpModal = document.getElementById('levelup-modal');
+      
+      if (modal.style.display === 'flex') {
+        modal.style.display = 'none';
+        if (levelUpModal.style.display !== 'flex' && !isGameOver) {
+          isPaused = false;
+        }
+      } else {
+        const content = document.getElementById('stats-content');
+        content.innerHTML = 
+          `LVL: ${playerStats.lvl}<br>
+          HP: ${Math.floor(playerStats.hp)}/${playerStats.maxHp}<br>
+          STR: ${playerStats.strength.toFixed(1)}x<br>
+          SPD: ${playerStats.speed.toFixed(1)}x<br>
+          ARMOR: ${playerStats.armor}%<br>
+          REGEN: ${playerStats.hpRegen}/s<br>
+          CRIT: ${(playerStats.critChance*100).toFixed(0)}%<br>
+          ATK SPD: ${playerStats.atkSpeed.toFixed(1)}x<br>
+          KILLS: ${playerStats.kills}
+        `;
+        modal.style.display = 'flex';
+        isPaused = true;
+      }
+    }
+
+    // --- INPUT SYSTEM ---
+    function setupInputs() {
+      const zone = document.getElementById('joystick-zone');
+      const container = document.getElementById('game-container');
+      
+      let touchStartX = 0;
+      let touchStartY = 0;
+      let touchStartTime = 0;
+      
+      zone.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        const touch = e.changedTouches[0];
+        joystick.id = touch.identifier;
+        joystick.active = true;
+        joystick.originX = touch.clientX;
+        joystick.originY = touch.clientY;
+        
+        // Visual feedback could be added here
+      }, { passive: false });
+
+      zone.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        if (!joystick.active) return;
+        
+        for (let i = 0; i < e.changedTouches.length; i++) {
+          if (e.changedTouches[i].identifier === joystick.id) {
+            const touch = e.changedTouches[i];
+            const dx = touch.clientX - joystick.originX;
+            const dy = touch.clientY - joystick.originY;
+            
+            // Normalize
+            const maxDist = 40;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            const clampedDist = Math.min(dist, maxDist);
+            
+            if (dist > 0) {
+              joystick.x = (dx / dist) * (clampedDist / maxDist);
+              joystick.y = (dy / dist) * (clampedDist / maxDist);
+            }
+            break;
+          }
+        }
+      }, { passive: false });
+
+      const endJoystick = (e) => {
+        e.preventDefault();
+        for (let i = 0; i < e.changedTouches.length; i++) {
+          if (e.changedTouches[i].identifier === joystick.id) {
+            joystick.active = false;
+            joystick.x = 0;
+            joystick.y = 0;
+            break;
+          }
+        }
+      };
+
+      zone.addEventListener('touchend', endJoystick);
+      zone.addEventListener('touchcancel', endJoystick);
+
+      // Restart Button
+      document.getElementById('restart-btn').addEventListener('click', resetGame);
+      document.getElementById('restart-btn').addEventListener('touchstart', (e) => {
+        e.stopPropagation(); // Prevent joystick interference
+      }, { passive: true });
+
+      // Stats Button
+      document.getElementById('stats-btn').addEventListener('click', toggleStats);
+      document.getElementById('close-stats-btn').addEventListener('click', toggleStats);
+      
+      // Swipe Detection (Global)
+      container.addEventListener('touchstart', (e) => {
+        // Don't interfere with joystick if it's in the zone
+        // But we need to track start for swipe
+        const t = e.changedTouches[0];
+        touchStartX = t.clientX;
+        touchStartY = t.clientY;
+        touchStartTime = Date.now();
+      }, { passive: false });
+
+      container.addEventListener('touchend', (e) => {
+        const t = e.changedTouches[0];
+        const dx = t.clientX - touchStartX;
+        const dy = t.clientY - touchStartY;
+        const dt = Date.now() - touchStartTime;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        
+        if (dt < 500 && dist > 20) { // Easier swipe
+           player.dash(dx/dist, dy/dist);
+        }
+      }, { passive: false });
+    }
+
+    function onWindowResize() {
+      const aspect = window.innerWidth / window.innerHeight;
+      const d = 20;
+      camera.left = -d * aspect;
+      camera.right = d * aspect;
+      camera.top = d;
+      camera.bottom = -d;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    // --- MAIN LOOP ---
+    function animate(time) {
+      requestAnimationFrame(animate);
+
+      const dt = (time - lastTime) / 1000;
+      lastTime = time;
+
+      if (isPaused || isGameOver || !isGameActive) return;
+
+      // Spawn Logic
+      frameCount++;
+      if (frameCount % GAME_CONFIG.waveInterval === 0) {
+        spawnWave();
+      }
+      
+      // HP Regen (Every 60 frames approx 1 sec)
+      if (frameCount % 60 === 0 && playerStats.hpRegen > 0 && playerStats.hp < playerStats.maxHp) {
+        playerStats.hp = Math.min(playerStats.maxHp, playerStats.hp + playerStats.hpRegen);
+        updateHUD();
+        // Green particle
+        spawnParticles(player.mesh.position, 0x00FF00, 2);
+      }
+
+      // Player Update
+      player.update(dt);
+
+      // --- WEAPONS ---
+      
+      // 1. GUN
+      if (weapons.gun.active && time - weapons.gun.lastShot > weapons.gun.cooldown) {
+        // Find nearest enemy
+        let nearest = null;
+        let minDst = Infinity;
+        
+        for (let e of enemies) {
+          if (e.isDead) continue;
+          const d = player.mesh.position.distanceTo(e.mesh.position);
+          if (d < weapons.gun.range && d < minDst) {
+            minDst = d;
+            nearest = e;
+          }
+        }
+
+        if (nearest) {
+          // Fire based on barrels
+          for(let i=0; i<weapons.gun.barrels; i++) {
+            setTimeout(() => {
+              projectiles.push(new Projectile(player.mesh.position.x, player.mesh.position.z, nearest.mesh.position));
+            }, i * 100);
+          }
+          weapons.gun.lastShot = time;
+          playSound('shoot');
+        }
+      }
+
+      // 2. SWORD
+      if (weapons.sword.active && time - weapons.sword.lastShot > weapons.sword.cooldown) {
+        // Find enemy in front or just slash in movement dir
+        // If moving, slash forward. If idle, slash nearest?
+        // Let's slash in player rotation direction
+        const angle = player.mesh.rotation.y;
+        projectiles.push(new SwordSlash(player.mesh.position.x, player.mesh.position.z, angle));
+        weapons.sword.lastShot = time;
+        playSound('shoot'); // Reuse sound for now
+      }
+
+      // 3. AURA
+      if (weapons.aura.active && time - weapons.aura.lastShot > weapons.aura.cooldown) {
+        // Damage all in range
+        let hit = false;
+        enemies.forEach(e => {
+          if (e.isDead) return;
+          const d = player.mesh.position.distanceTo(e.mesh.position);
+          if (d < weapons.aura.range) {
+            e.takeDamage(weapons.aura.damage * playerStats.strength);
+            hit = true;
+          }
+        });
+        if (hit) {
+          // Visual effect for aura tick?
+          // Maybe just damage numbers
+        }
+        weapons.aura.lastShot = time;
+      }
+
+      // 4. METEOR
+      if (weapons.meteor.active && time - weapons.meteor.lastShot > weapons.meteor.cooldown) {
+        // Target random enemy or random spot near player
+        let targetX = player.mesh.position.x + (Math.random() - 0.5) * 10;
+        let targetZ = player.mesh.position.z + (Math.random() - 0.5) * 10;
+        
+        if (enemies.length > 0) {
+          const e = enemies[Math.floor(Math.random() * enemies.length)];
+          targetX = e.mesh.position.x;
+          targetZ = e.mesh.position.z;
+        }
+        
+        meteors.push(new Meteor(targetX, targetZ));
+        weapons.meteor.lastShot = time;
+      }
+
+      // Entities Update
+      enemies.forEach(e => e.update(dt, player.mesh.position));
+      // Projectiles update returns false if dead
+      projectiles = projectiles.filter(p => p.update() !== false);
+      meteors = meteors.filter(m => m.update() !== false);
+      expGems.forEach(g => g.update(player.mesh.position));
+      particles = particles.filter(p => p.update() !== false);
+      
+      // Windmill Rotation
+      scene.children.forEach(c => {
+        if (c.userData.isWindmill) {
+          c.children[1].rotation.z += 0.05;
+          c.children[2].rotation.z += 0.05;
+        }
+      });
+
+      // Cleanup
+      enemies = enemies.filter(e => !e.isDead);
+      expGems = expGems.filter(g => g.active);
+
+      renderer.render(scene, camera);
+    }
+
+    // Init Game
+    try { init(); } catch(e) { console.error(e); alert("Game Error: " + e.message); }
+
+  </script>
 </body>
 </html>
