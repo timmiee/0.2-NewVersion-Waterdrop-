@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Waterdrop Survivor</title>
+<style>
+  body { margin: 0; overflow: hidden; background: #0a0a0a; }
+  canvas { display: block; }
+  #levelUpPopup {
+    position: absolute;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    font-size: 3em;
+    color: #ff0000;
+    text-shadow: 0 0 15px #000, 0 0 30px #ff0000;
+    pointer-events: none;
+    z-index: 10;
+    transition: transform 0.5s ease-out;
+    font-weight: bold;
+  }
+  /* --- NEW: Level Up Modal Styles --- */
+  #levelup-modal {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+    z-index: 20;
+  }
+  .modal-content {
+    background: #111;
+    padding: 20px;
+    border-radius: 20px;
+    border: 4px solid #FFD700;
+    width: 80%;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+  }
+  .upgrade-card {
+    background: #222;
+    margin: 10px 0;
+    padding: 15px;
+    border-radius: 15px;
+    cursor: pointer;
+    transition: transform 0.1s;
+    color: white;
+  }
+  .upgrade-card:active {
+    transform: scale(0.95);
+  }
+  .upgrade-title {
+    font-weight: bold;
+    font-size: 18px;
+    margin-bottom: 5px;
+  }
+  .upgrade-desc {
+    font-size: 12px;
+    color: #aaa;
+  }
+</style>
+</head>
+<body>
+<div id="levelUpPopup">LEVEL UP!</div>
+
+<!-- Level Up Modal -->
+<div id="levelup-modal">
+  <div class="modal-content">
+    <h2 style="color: #FFD700; margin-top: 0;">CHOOSE YOUR UPGRADE</h2>
+    <div id="upgrade-list">
+      <!-- Cards will be injected here by JS -->
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.176.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.176.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+// =================== AUDIO SYSTEM ===================
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playSound(type) {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const now = audioCtx.currentTime;
+    
+    if (type === 'levelup') {
+        // Create a more complex and epic sound
+        const osc1 = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(200, now);
+        osc1.frequency.exponentialRampToValueAtTime(800, now + 0.3);
+        
+        osc2.type = 'square';
+        osc2.frequency.setValueAtTime(100, now);
+        osc2.frequency.exponentialRampToValueAtTime(400, now + 0.3);
+        
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+        
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(now + 0.5);
+        osc2.stop(now + 0.5);
+    } else if (type === 'collect') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, now);
+        osc.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
+        gain.gain.setValueAtTime(0.1, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.1);
+    }
+}
+
+// =================== GAME SETUP ===================
+let scene, camera, renderer, clock;
+let player, enemies = [], expGems = [], meteors = [], particles = [];
+let level = 1;
+let exp = 0;
+let nextLevelExp = 10;
+let dashCooldown = 0;
+let swipeVector = null;
+let levelUpPopup = document.getElementById('levelUpPopup');
+let isPaused = false;
+let isLevelingUp = false; // New flag for level up animation
+let levelUpTimer = 0;
+
+// Player stats
+let playerStats = {
+    strength: 1,
+    speed: 1,
+    critChance: 0.1,
+    critDamage: 1.05,
+    damage: 1,
+    atkSpeed: 1,
+    dodge: 0,
+    evasion: 0,
+    physMagDamage: 1,
+    health: 100,
+    maxHealth: 100,
+    healthRegen: 0,
+    walkSpeed: 0.25,
+    armor: 0
+};
+
+// Weapons State
+const weapons = {
+  gun: { active: true, level: 1, damage: 15, cooldown: 1000, lastShot: 0 },
+  sword: { active: false, level: 0, damage: 30, cooldown: 1500, lastShot: 0 },
+  aura: { active: false, level: 0, damage: 5, cooldown: 500, lastShot: 0, range: 4 },
+  meteor: { active: false, level: 0, damage: 60, cooldown: 2500, lastShot: 0 }
+};
+
+// =============== THREE.JS INIT ==================
+function init() {
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0a0a0a);
+
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 10, 20);
+
+    renderer = new THREE.WebGLRenderer({antialias: true});
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    clock = new THREE.Clock();
+
+    // Player
+    let geometry = new THREE.SphereGeometry(1, 16, 16);
+    let material = new THREE.MeshStandardMaterial({color: 0x00aaff, transparent: true, opacity: 0.8});
+    player = { mesh: new THREE.Mesh(geometry, material), stats: {...playerStats}, velocity: new THREE.Vector3() };
+    scene.add(player.mesh);
+    player.mesh.position.set(0,1,0);
+
+    // Lighting
+    let light = new THREE.PointLight(0xffffff, 1);
+    light.position.set(10, 20, 10);
+    scene.add(light);
+
+    // Floor
+    let floorGeo = new THREE.PlaneGeometry(100,100);
+    let floorMat = new THREE.MeshStandardMaterial({color: 0x222222});
+    let floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.rotation.x = -Math.PI/2;
+    scene.add(floor);
+
+    // Event listeners
+    initTouchControls();
+
+    // Start loop
+    animate();
+}
+
+// ================= INPUT / SWIPE DASH =================
+let touchStartPos = null;
+let touchEndPos = null;
+function initTouchControls() {
+    window.addEventListener('touchstart', e => {
+        let t = e.touches[0];
+        touchStartPos = {x: t.clientX, y: t.clientY};
+    });
+    window.addEventListener('touchend', e => {
+        let t = e.changedTouches[0];
+        touchEndPos = {x: t.clientX, y: t.clientY};
+        handleSwipeDash();
+    });
+}
+
+function handleSwipeDash() {
+    if (!touchStartPos || !touchEndPos || dashCooldown > 0) return;
+
+    let dx = touchEndPos.x - touchStartPos.x;
+    let dz = touchEndPos.y - touchStartPos.y; // use y as forward/back for simplicity
+    let dir = new THREE.Vector3(dx, 0, dz).normalize();
+    let dashDistance = 5;
+
+    // Apply dash
+    player.mesh.position.add(dir.multiplyScalar(dashDistance));
+    dashCooldown = 0.5; // 0.5s cooldown
+    swipeVector = dir.clone();
+
+    // Reset touch
+    touchStartPos = null;
+    touchEndPos = null;
+}
+
+// ================= LEVEL UP SYSTEM =================
+function gainExp(amount) {
+    exp += amount;
+    if (exp >= nextLevelExp) {
+        exp -= nextLevelExp;
+        levelUp();
+        // increase nextLevelExp slightly randomly for small variation
+        nextLevelExp = Math.floor(nextLevelExp * (1.1 + Math.random()*0.05));
+    }
+}
+
+function levelUp() {
+    isLevelingUp = true;
+    levelUpTimer = 0;
+    level++;
+    
+    // Play the new embedded sound
+    playSound('levelup');
+
+    // Weapon unlock progression at Level 4 (changed from 5)
+    if (level === 4) {
+        setTimeout(() => showWeaponUnlockModal(), 1000); // Show modal after animation
+    }
+    // Second weapon choice at Level 8
+    else if (level === 8) {
+        setTimeout(() => showSecondWeaponModal(), 1000);
+    }
+
+    // Stat increases for player
+    player.stats.strength += 0.5;
+    player.stats.damage += 0.5;
+    player.stats.maxHealth += 5;
+    player.stats.health = player.stats.maxHealth;
+}
+
+// --- NEW: Epic Level Up Animation ---
+function updateLevelUpAnimation(delta) {
+    if (!isLevelingUp) return;
+    
+    levelUpTimer += delta;
+    
+    // Slow motion effect
+    const slowMoFactor = 0.2;
+    const normalSpeed = 1.0;
+    const currentSpeed = levelUpTimer < 1.0 ? slowMoFactor : normalSpeed;
+    
+    // Vortex implosion/explosion effect
+    const vortexDuration = 1.0; // seconds
+    if (levelUpTimer < vortexDuration) {
+        const t = levelUpTimer / vortexDuration;
+        const scale = 1 - t * 0.8; // Shrink to 20%
+        const rotation = t * Math.PI * 4; // Rotate 2 full times
+        
+        player.mesh.scale.set(scale, scale, scale);
+        player.mesh.rotation.y = rotation;
+        player.mesh.rotation.x = rotation * 0.5;
+        
+        // Camera zoom - more dramatic
+        camera.position.lerp(new THREE.Vector3(0, 3, 8), t * 0.7);
+    } else if (levelUpTimer < vortexDuration + 0.5) {
+        // Explosion phase
+        const t = (levelUpTimer - vortexDuration) / 0.5;
+        const scale = 0.2 + t * 1.0; // Grow back to 120%
+        player.mesh.scale.set(scale, scale, scale);
+        
+        // Camera zoom out
+        camera.position.lerp(new THREE.Vector3(0, 10, 20), t);
+    } else {
+        // Reset and end
+        player.mesh.scale.set(1, 1, 1);
+        player.mesh.rotation.set(0, 0, 0);
+        camera.position.set(0, 10, 20);
+        isLevelingUp = false;
+    }
+}
+
+// --- NEW: Weapon Unlock Modal at Level 4 ---
+function showWeaponUnlockModal() {
+    isPaused = true;
+    const modal = document.getElementById('levelup-modal');
+    const list = document.getElementById('upgrade-list');
+    list.innerHTML = '';
+
+    const choices = [
+        { id: 'sword', title: 'BLADE OF LIGHT', desc: 'Unleash a powerful front slash!', apply: () => { weapons.sword.active = true; } },
+        { id: 'aura', title: 'ENERGY FIELD', desc: 'Damage enemies around you!', apply: () => { weapons.aura.active = true; } },
+        { id: 'meteor', title: 'SKYFALL', desc: 'Call devastating meteors!', apply: () => { weapons.meteor.active = true; } }
+    ];
+
+    choices.forEach((u, index) => {
+        const card = document.createElement('div');
+        card.className = 'upgrade-card';
+        // Apply custom colors: Black, Red, Yellow, Gray
+        const colors = ['#000000', '#FF0000', '#FFFF00', '#808080'];
+        card.style.backgroundColor = colors[index % colors.length];
+        card.innerHTML = `<div class="upgrade-title">${u.title}</div><div class="upgrade-desc">${u.desc}</div>`;
+        card.onclick = () => {
+            u.apply();
+            modal.style.display = 'none';
+            isPaused = false;
+        };
+        list.appendChild(card);
+    });
+
+    modal.style.display = 'flex';
+}
+
+// --- NEW: Second Weapon Choice at Level 8 ---
+function showSecondWeaponModal() {
+    isPaused = true;
+    const modal = document.getElementById('levelup-modal');
+    const list = document.getElementById('upgrade-list');
+    list.innerHTML = '';
+
+    const choices = [
+        { id: 'double_gun', title: 'DUAL PISTOLS', desc: 'Fire two shots at once!', apply: () => { weapons.gun.barrels = 2; } },
+        { id: 'enhanced_aura', title: 'ENHANCED AURA', desc: 'Larger and more damaging field!', apply: () => { weapons.aura.range = 6; weapons.aura.damage = 10; } },
+        { id: 'rapid_meteor', title: 'RAPID METEORS', desc: 'Call meteors more frequently!', apply: () => { weapons.meteor.cooldown = 1500; } }
+    ];
+
+    choices.forEach((u, index) => {
+        const card = document.createElement('div');
+        card.className = 'upgrade-card';
+        const colors = ['#000000', '#FF0000', '#FFFF00', '#808080'];
+        card.style.backgroundColor = colors[index % colors.length];
+        card.innerHTML = `<div class="upgrade-title">${u.title}</div><div class="upgrade-desc">${u.desc}</div>`;
+        card.onclick = () => {
+            u.apply();
+            modal.style.display = 'none';
+            isPaused = false;
+        };
+        list.appendChild(card);
+    });
+
+    modal.style.display = 'flex';
+}
+
+// ================= ENEMY SYSTEM =================
+function spawnEnemy() {
+    let geometry = new THREE.BoxGeometry(1,1,1);
+    let material = new THREE.MeshStandardMaterial({color: 0xff0000});
+    let enemy = { 
+        mesh: new THREE.Mesh(geometry, material), 
+        health: 100, 
+        isDead: false,
+        isStrong: Math.random() > 0.7 // 30% chance to be strong
+    };
+    enemy.mesh.position.set(Math.random()*20-10,1,Math.random()*20-10);
+    
+    // Make strong enemies visually distinct
+    if (enemy.isStrong) {
+        enemy.health = 200;
+        enemy.mesh.material.color.set(0xff00ff); // Magenta for strong enemies
+        enemy.mesh.scale.set(1.3, 1.3, 1.3);
+    }
+    
+    scene.add(enemy.mesh);
+    enemies.push(enemy);
+}
+
+// ================= EXP GEMS =================
+function spawnExpGem(x,z, isLarge = false) {
+    const size = isLarge ? 0.36 : 0.3; // 20% larger base size, even larger for strong enemies
+    let geo = new THREE.OctahedronGeometry(size);
+    let mat = new THREE.MeshStandardMaterial({color: 0xffff00});
+    let gem = { mesh: new THREE.Mesh(geo, mat), active: true };
+    gem.mesh.position.set(x,1,z);
+    scene.add(gem.mesh);
+    expGems.push(gem);
+}
+
+// ================= PARTICLES =================
+function spawnParticle(pos) {
+    let geo = new THREE.SphereGeometry(0.1,8,8);
+    let mat = new THREE.MeshStandardMaterial({color: 0xffffff});
+    let p = { mesh: new THREE.Mesh(geo, mat), lifetime: 1 };
+    p.mesh.position.copy(pos);
+    scene.add(p.mesh);
+    particles.push(p);
+}
+
+// =================== ANIMATE LOOP ===================
+function animate() {
+    requestAnimationFrame(animate);
+    let delta = clock.getDelta();
+    
+    // Handle level up animation
+    updateLevelUpAnimation(delta);
+    
+    if (isPaused || isLevelingUp) {
+        // Still render during level up for the animation
+        if (!isLevelingUp) return;
+    }
+    
+    if (dashCooldown > 0) dashCooldown -= delta;
+
+    // Player regen
+    player.stats.health = Math.min(player.stats.maxHealth, player.stats.health + player.stats.healthRegen*delta);
+
+    // Update enemies
+    enemies.forEach(e => {
+        if (!e.isDead) {
+            let dir = new THREE.Vector3().subVectors(player.mesh.position, e.mesh.position).normalize();
+            e.mesh.position.add(dir.multiplyScalar(0.5*delta));
+            if (e.mesh.position.distanceTo(player.mesh.position) < 1) {
+                player.stats.health -= 5*delta; // simple damage
+            }
+            
+            // Squishy effect on movement
+            const speed = 0.5;
+            const squish = Math.sin(Date.now() * 0.01) * 0.1;
+            e.mesh.scale.set(1 - squish, 1 + squish, 1 - squish);
+        }
+    });
+
+    // Update exp gems
+    expGems.forEach(g => {
+        if (player.mesh.position.distanceTo(g.mesh.position) < 1) {
+            gainExp(1);
+            playSound('collect'); // Play collect sound
+            scene.remove(g.mesh);
+            g.active = false;
+        }
+        
+        // Make gems rotate for visual appeal
+        g.mesh.rotation.y += 0.05;
+        g.mesh.rotation.x += 0.03;
+    });
+
+    // Update particles
+    particles = particles.filter(p => {
+        p.lifetime -= delta;
+        if (p.lifetime <= 0) { scene.remove(p.mesh); return false; }
+        return true;
+    });
+
+    // Squishy player physics with gravity feel
+    if (swipeVector) {
+        const gravityEffect = 0.1;
+        player.mesh.position.y -= gravityEffect * delta;
+        if (player.mesh.position.y < 1) {
+            player.mesh.position.y = 1;
+            // Add splash particles on landing
+            for (let i = 0; i < 5; i++) {
+                spawnParticle(player.mesh.position);
+            }
+            swipeVector = null;
+        }
+    }
+
+    // Aura weapon logic
+    if (weapons.aura.active && !isLevelingUp) {
+        // Visualize aura
+        if (!player.auraMesh) {
+            let auraGeo = new THREE.RingGeometry(2, weapons.aura.range, 32);
+            let auraMat = new THREE.MeshBasicMaterial({ 
+                color: 0x00ffff, 
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.3
+            });
+            player.auraMesh = new THREE.Mesh(auraGeo, auraMat);
+            player.auraMesh.rotation.x = -Math.PI / 2;
+            scene.add(player.auraMesh);
+        }
+        player.auraMesh.position.copy(player.mesh.position);
+        
+        // Damage enemies in aura range
+        enemies.forEach(e => {
+            if (!e.isDead && player.mesh.position.distanceTo(e.mesh.position) < weapons.aura.range) {
+                e.health -= weapons.aura.damage * delta;
+                if (e.health <= 0) {
+                    e.isDead = true;
+                    scene.remove(e.mesh);
+                    // Drop larger EXP if strong enemy
+                    spawnExpGem(e.mesh.position.x, e.mesh.position.z, e.isStrong);
+                }
+            }
+        });
+    } else if (player.auraMesh) {
+        scene.remove(player.auraMesh);
+        player.auraMesh = null;
+    }
+
+    renderer.render(scene, camera);
+}
+
+// =================== INIT GAME ===================
+try { init(); spawnEnemy(); spawnEnemy(); spawnExpGem(5,5); spawnExpGem(-5,-5); } 
+catch(e) { console.error(e); alert("Game Error: " + e.message); }
+
+</script>
+</body>
+</html>
