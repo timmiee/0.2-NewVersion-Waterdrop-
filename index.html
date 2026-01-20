@@ -882,11 +882,13 @@
             const x = positions.getX(i);
             const y = positions.getY(i);
             const z = positions.getZ(i);
-            // Add randomness for organic look
-            const noise = 1 + (Math.random() - 0.5) * 0.3;
-            positions.setX(i, x * noise);
-            positions.setY(i, y * noise);
-            positions.setZ(i, z * noise);
+            // Add different randomness for each axis for truly organic look
+            const noiseX = 1 + (Math.random() - 0.5) * 0.3;
+            const noiseY = 1 + (Math.random() - 0.5) * 0.3;
+            const noiseZ = 1 + (Math.random() - 0.5) * 0.3;
+            positions.setX(i, x * noiseX);
+            positions.setY(i, y * noiseY);
+            positions.setZ(i, z * noiseZ);
           }
           geometry.computeVertexNormals();
           color = COLORS.enemySquare; // Pink/Hot Pink - Tanky
@@ -1753,12 +1755,18 @@
         group.add(shadow);
         
         // Random pos in forest area and spread across map
+        // Lake exclusion zone constants
+        const LAKE_CENTER_X = 30;
+        const LAKE_CENTER_Z = -30;
+        const LAKE_EXCLUSION_RADIUS = 18; // Lake radius 15 + buffer 3
+        const MAX_SPAWN_ATTEMPTS = 20;
+        
         let tx, tz;
         let inLake = true;
         let attempts = 0;
         
-        // Lake is at (30, -30) with radius 15 - avoid spawning trees there
-        while (inLake && attempts < 20) {
+        // Avoid spawning trees in lake area
+        while (inLake && attempts < MAX_SPAWN_ATTEMPTS) {
           if (i < 80) {
             // First 80 trees in forest area (Top Left quadrant mostly)
             tx = (Math.random() * 100) - 90;
@@ -1769,9 +1777,9 @@
             tz = (Math.random() * 180) - 90;
           }
           
-          // Check if tree would be in lake (center at 30, -30, radius 15)
-          const distToLake = Math.sqrt((tx - 30) * (tx - 30) + (tz - (-30)) * (tz - (-30)));
-          inLake = distToLake < 18; // Add some buffer (15 + 3)
+          // Check if tree would be in lake
+          const distToLake = Math.sqrt((tx - LAKE_CENTER_X) * (tx - LAKE_CENTER_X) + (tz - LAKE_CENTER_Z) * (tz - LAKE_CENTER_Z));
+          inLake = distToLake < LAKE_EXCLUSION_RADIUS;
           attempts++;
         }
         
