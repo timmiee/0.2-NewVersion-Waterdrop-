@@ -227,7 +227,7 @@
     .damage-number {
       position: absolute;
       font-weight: bold;
-      font-size: 24px;
+      font-size: 16px;
       pointer-events: none;
       animation: floatUp 1s forwards;
       z-index: 1000;
@@ -236,7 +236,7 @@
     .damage-number.critical {
       color: #FFD700;
       text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 0 0 10px rgba(255,215,0,0.8), 0 0 20px rgba(255,215,0,0.5), 2px 2px 4px rgba(0,0,0,0.9);
-      font-size: 36px;
+      font-size: 24px;
     }
     
     .damage-number.normal {
@@ -420,80 +420,97 @@
       if (targetLevel > currentMusicLevel) {
         currentMusicLevel = targetLevel;
         
-        // Add new layer with electronic/synth sounds
+        // Add new layer with happier, more upbeat sounds
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         
         osc.connect(gain);
         gain.connect(musicGain);
         
-        // Electronic frequencies - more intense as levels increase
-        const baseFreq = 130.81; // C3
-        const frequencies = [
-          baseFreq, // Level 1 - calm
-          baseFreq * 1.25, // Level 2
-          baseFreq * 1.5, // Level 3 - building
-          baseFreq * 1.875, // Level 4
-          baseFreq * 2, // Level 5 - more intense
-          baseFreq * 2.25, // Level 6
-          baseFreq * 2.5, // Level 7 - getting epic
-          baseFreq * 2.75, // Level 8
-          baseFreq * 3, // Level 9 - very intense
-          baseFreq * 3.5 // Level 10 - maximum
+        // Major key frequencies - happier, more dopamine-inducing (C Major scale)
+        const baseFreq = 261.63; // C4 (Middle C)
+        const majorScaleFreqs = [
+          baseFreq,           // C - Level 1
+          baseFreq * 1.125,   // D - Level 2
+          baseFreq * 1.26,    // E - Level 3
+          baseFreq * 1.33,    // F - Level 4
+          baseFreq * 1.5,     // G - Level 5
+          baseFreq * 1.68,    // A - Level 6
+          baseFreq * 1.89,    // B - Level 7
+          baseFreq * 2,       // C - Level 8 (octave up)
+          baseFreq * 2.25,    // D - Level 9
+          baseFreq * 2.52     // E - Level 10
         ];
         
-        // Change waveform for more electronic sound
-        if (currentMusicLevel <= 2) {
-          osc.type = 'sine'; // Calm ambient
-        } else if (currentMusicLevel <= 4) {
-          osc.type = 'triangle'; // Building energy
-        } else if (currentMusicLevel <= 7) {
-          osc.type = 'sawtooth'; // Electronic intense
-        } else {
-          osc.type = 'square'; // Maximum intensity
-        }
+        // Use sine wave for happier, cleaner sound
+        osc.type = 'sine';
+        osc.frequency.value = majorScaleFreqs[currentMusicLevel - 1];
         
-        osc.frequency.value = frequencies[currentMusicLevel - 1];
-        
-        // Add vibrato for electronic feel (capped for pleasant sound)
+        // Add faster vibrato for more energetic feel
         const lfo = audioCtx.createOscillator();
         const lfoGain = audioCtx.createGain();
-        lfo.frequency.value = 5; // 5 Hz vibrato
-        lfoGain.gain.value = Math.min(currentMusicLevel * 0.5, 5); // Capped at 5 Hz
+        lfo.frequency.value = 6 + currentMusicLevel * 0.5; // Faster vibrato
+        lfoGain.gain.value = 8 + currentMusicLevel * 0.8; // More pronounced
         lfo.connect(lfoGain);
         lfoGain.connect(osc.frequency);
         lfo.start();
         
         gain.gain.value = 0;
-        gain.gain.linearRampToValueAtTime(0.2 + currentMusicLevel * 0.02, audioCtx.currentTime + 1);
+        gain.gain.linearRampToValueAtTime(0.25 + currentMusicLevel * 0.02, audioCtx.currentTime + 0.8);
         
         osc.start();
         musicOscillators.push({ osc, gain, lfo });
         
-        // Add bass layer for levels 5+
-        if (currentMusicLevel >= 5) {
-          const bass = audioCtx.createOscillator();
-          const bassGain = audioCtx.createGain();
-          bass.connect(bassGain);
-          bassGain.connect(musicGain);
-          bass.type = 'sawtooth';
-          bass.frequency.value = frequencies[currentMusicLevel - 1] / 2; // Octave lower
-          bassGain.gain.value = 0;
-          bassGain.gain.linearRampToValueAtTime(0.15, audioCtx.currentTime + 1);
-          bass.start();
-          musicOscillators.push({ osc: bass, gain: bassGain, lfo: null });
+        // Add harmony layer (third above) for richer sound
+        const harmony = audioCtx.createOscillator();
+        const harmonyGain = audioCtx.createGain();
+        harmony.connect(harmonyGain);
+        harmonyGain.connect(musicGain);
+        harmony.type = 'sine';
+        harmony.frequency.value = majorScaleFreqs[currentMusicLevel - 1] * 1.26; // Major third
+        harmonyGain.gain.value = 0;
+        harmonyGain.gain.linearRampToValueAtTime(0.15, audioCtx.currentTime + 0.8);
+        harmony.start();
+        musicOscillators.push({ osc: harmony, gain: harmonyGain, lfo: null });
+        
+        // Add uplifting high melody for levels 3+
+        if (currentMusicLevel >= 3) {
+          const melody = audioCtx.createOscillator();
+          const melodyGain = audioCtx.createGain();
+          melody.connect(melodyGain);
+          melodyGain.connect(musicGain);
+          melody.type = 'triangle';
+          melody.frequency.value = majorScaleFreqs[currentMusicLevel - 1] * 2; // Octave up
+          melodyGain.gain.value = 0;
+          melodyGain.gain.linearRampToValueAtTime(0.12, audioCtx.currentTime + 0.8);
+          melody.start();
+          musicOscillators.push({ osc: melody, gain: melodyGain, lfo: null });
         }
         
-        // Add high frequency sparkle for levels 8+
-        if (currentMusicLevel >= 8) {
+        // Add energetic rhythm layer for levels 5+
+        if (currentMusicLevel >= 5) {
+          const rhythm = audioCtx.createOscillator();
+          const rhythmGain = audioCtx.createGain();
+          rhythm.connect(rhythmGain);
+          rhythmGain.connect(musicGain);
+          rhythm.type = 'square';
+          rhythm.frequency.value = majorScaleFreqs[currentMusicLevel - 1] * 0.5; // Bass line
+          rhythmGain.gain.value = 0;
+          rhythmGain.gain.linearRampToValueAtTime(0.18, audioCtx.currentTime + 0.8);
+          rhythm.start();
+          musicOscillators.push({ osc: rhythm, gain: rhythmGain, lfo: null });
+        }
+        
+        // Add high frequency sparkle for levels 7+
+        if (currentMusicLevel >= 7) {
           const sparkle = audioCtx.createOscillator();
           const sparkleGain = audioCtx.createGain();
           sparkle.connect(sparkleGain);
           sparkleGain.connect(musicGain);
           sparkle.type = 'sine';
-          sparkle.frequency.value = frequencies[currentMusicLevel - 1] * 4; // Two octaves higher
+          sparkle.frequency.value = majorScaleFreqs[currentMusicLevel - 1] * 4; // High sparkle
           sparkleGain.gain.value = 0;
-          sparkleGain.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 1);
+          sparkleGain.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.8);
           sparkle.start();
           musicOscillators.push({ osc: sparkle, gain: sparkleGain, lfo: null });
         }
@@ -510,36 +527,36 @@
       const now = audioCtx.currentTime;
       
       if (type === 'shoot') {
-        // Realistic gun sound
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(100, now);
-        osc.frequency.exponentialRampToValueAtTime(50, now + 0.05);
-        gain.gain.setValueAtTime(0.15, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        // Realistic gun sound - sharper and snappier
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(800, now);
+        osc.frequency.exponentialRampToValueAtTime(80, now + 0.03);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
         osc.start(now);
-        osc.stop(now + 0.15);
+        osc.stop(now + 0.08);
       } else if (type === 'hit') {
-        // Darker, fast "swoosh-slap" hit sound with more bass
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(150, now);
-        osc.frequency.exponentialRampToValueAtTime(40, now + 0.12);
-        gain.gain.setValueAtTime(0.25, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+        // Punchy hit sound with more bass
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(200, now);
+        osc.frequency.exponentialRampToValueAtTime(50, now + 0.08);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
         osc.start(now);
-        osc.stop(now + 0.12);
+        osc.stop(now + 0.08);
         
-        // Add deep impact layer (bass)
+        // Add deep bass punch
         const osc2 = audioCtx.createOscillator();
         const gain2 = audioCtx.createGain();
         osc2.connect(gain2);
         gain2.connect(audioCtx.destination);
-        osc2.type = 'square';
-        osc2.frequency.setValueAtTime(60, now);
-        osc2.frequency.exponentialRampToValueAtTime(30, now + 0.08);
-        gain2.gain.setValueAtTime(0.15, now);
-        gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(80, now);
+        osc2.frequency.exponentialRampToValueAtTime(30, now + 0.06);
+        gain2.gain.setValueAtTime(0.25, now);
+        gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.06);
         osc2.start(now);
-        osc2.stop(now + 0.08);
+        osc2.stop(now + 0.06);
       } else if (type === 'levelup') {
         // Epic level up sound
         osc.type = 'sine';
@@ -2132,14 +2149,14 @@
       // Show upgrade modal with dramatic entrance after effects
       setTimeout(() => {
         showUpgradeModal();
-      }, 1500);
+      }, 2000);
     }
     
     function createSmallFloatingText(text, pos) {
       const div = document.createElement('div');
       div.style.position = 'absolute';
       div.style.color = '#5DADE2';
-      div.style.fontSize = '24px'; // Same size as damage numbers
+      div.style.fontSize = '18px';
       div.style.fontWeight = 'bold';
       div.style.textShadow = '0 0 10px rgba(93,173,226,0.8), 0 0 20px rgba(93,173,226,0.5), 2px 2px 4px #000';
       div.style.pointerEvents = 'none';
@@ -2438,11 +2455,12 @@
       const div = document.createElement('div');
       div.style.position = 'absolute';
       div.style.color = '#5DADE2';
-      div.style.fontSize = '48px';
+      div.style.fontSize = '28px';
       div.style.fontWeight = 'bold';
       div.style.textShadow = '0 0 15px rgba(93,173,226,0.8), 0 0 30px rgba(93,173,226,0.5), 2px 2px 4px #000';
       div.style.pointerEvents = 'none';
       div.style.zIndex = '100';
+      div.style.whiteSpace = 'nowrap';
       div.innerText = text;
       
       const vec = pos.clone();
@@ -2822,27 +2840,27 @@
     }
     
     function showStatChange(text) {
-      // Create floating text that grows and shrinks at center screen
+      // Create floating text on left side of screen
       const div = document.createElement('div');
       div.style.position = 'fixed';
       div.style.top = '50%';
-      div.style.left = '50%';
-      div.style.transform = 'translate(-50%, -50%) scale(0)';
+      div.style.left = '20px';
+      div.style.transform = 'translateX(-100%) translateY(-50%) scale(0)';
       div.style.color = '#FFD700';
-      div.style.fontSize = '32px';
+      div.style.fontSize = '20px';
       div.style.fontWeight = 'bold';
-      div.style.textShadow = '0 0 15px rgba(255,215,0,0.8), 0 0 30px rgba(255,215,0,0.5), 2px 2px 4px #000';
-      div.style.padding = '15px 25px';
+      div.style.textShadow = '0 0 10px rgba(255,215,0,0.8), 0 0 20px rgba(255,215,0,0.5), 2px 2px 4px #000';
+      div.style.padding = '10px 15px';
       div.style.background = 'rgba(30,30,30,0.9)';
-      div.style.borderRadius = '15px';
-      div.style.border = '3px solid #FFD700';
+      div.style.borderRadius = '10px';
+      div.style.border = '2px solid #FFD700';
       div.style.zIndex = '2000';
       div.style.pointerEvents = 'none';
       div.innerText = text;
       
       document.body.appendChild(div);
       
-      // Animate: scale 0 -> 1 -> 0
+      // Animate: slide in from left, scale up, then scale down
       let scale = 0;
       const animDuration = 1500; // ms
       const startTime = Date.now();
@@ -2858,7 +2876,9 @@
         
         // Scale up then down (sine wave)
         scale = Math.sin(t * Math.PI);
-        div.style.transform = `translate(-50%, -50%) scale(${scale})`;
+        // Slide in from left
+        const translateX = (1 - Math.min(t * 2, 1)) * -100;
+        div.style.transform = `translateX(${translateX}%) translateY(-50%) scale(${scale})`;
         
         requestAnimationFrame(animate);
       };
