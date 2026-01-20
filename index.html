@@ -319,12 +319,23 @@
       pointer-events: none;
     }
 
+    .loading-splash-logo {
+      max-width: 80%;
+      max-height: 50%;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      margin-bottom: 40px;
+      animation: pulse 2s infinite;
+    }
+
     .game-title {
       font-size: 48px;
       color: #5DADE2;
       text-shadow: 0 0 20px rgba(93,173,226,0.8), 0 0 40px rgba(93,173,226,0.5);
       margin-bottom: 40px;
       animation: pulse 2s infinite;
+      display: none; /* Hide text title when logo is present */
     }
 
     @keyframes pulse {
@@ -364,6 +375,21 @@
       z-index: 9999;
     }
 
+    #main-menu::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: url('654811F9-1760-4A74-B977-73ECB1A92913.png');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      opacity: 0.6;
+      z-index: -1;
+    }
+
     .menu-title {
       font-size: 42px;
       color: #5DADE2;
@@ -386,18 +412,45 @@
       border-radius: 50px;
       font-weight: bold;
       cursor: pointer;
-      box-shadow: 0 6px 0 #2874A6;
-      transition: transform 0.1s;
+      box-shadow: 0 6px 0 #2874A6, 0 0 0 rgba(93,173,226,0);
+      transition: all 0.15s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .menu-btn::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.5);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
     }
 
     .menu-btn:hover {
       transform: translateY(-2px);
-      box-shadow: 0 8px 0 #2874A6;
+      box-shadow: 0 8px 0 #2874A6, 0 0 20px rgba(93,173,226,0.6), 0 0 40px rgba(93,173,226,0.3);
+      filter: brightness(1.1);
     }
 
     .menu-btn:active {
-      transform: translateY(6px);
-      box-shadow: none;
+      transform: translateY(6px) scale(0.98);
+      box-shadow: none, 0 0 30px rgba(255,255,255,0.8), 0 0 50px rgba(93,173,226,0.8);
+      animation: lightning-flash 0.3s ease;
+    }
+
+    .menu-btn:active::before {
+      width: 300px;
+      height: 300px;
+    }
+
+    @keyframes lightning-flash {
+      0%, 100% { filter: brightness(1.1); }
+      50% { filter: brightness(2); box-shadow: 0 0 40px rgba(255,255,255,1), 0 0 80px rgba(93,173,226,1); }
     }
 
     .gold-display {
@@ -498,6 +551,27 @@
       font-weight: bold;
       cursor: pointer;
       margin-top: 5px;
+      transition: all 0.15s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .upgrade-buy-btn::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.5);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+
+    .upgrade-buy-btn:hover:not(:disabled) {
+      box-shadow: 0 0 20px rgba(39,174,96,0.6);
+      filter: brightness(1.1);
     }
 
     .upgrade-buy-btn:disabled {
@@ -507,6 +581,12 @@
 
     .upgrade-buy-btn:not(:disabled):active {
       transform: scale(0.95);
+      animation: lightning-flash 0.3s ease;
+    }
+
+    .upgrade-buy-btn:not(:disabled):active::before {
+      width: 200px;
+      height: 200px;
     }
 
     .back-btn {
@@ -522,12 +602,39 @@
       border-radius: 40px;
       font-weight: bold;
       cursor: pointer;
-      box-shadow: 0 4px 0 #a93226;
+      box-shadow: 0 4px 0 #a93226, 0 0 0 rgba(231,76,60,0);
+      transition: all 0.15s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .back-btn::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.5);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+
+    .back-btn:hover {
+      box-shadow: 0 6px 0 #a93226, 0 0 20px rgba(231,76,60,0.6);
+      filter: brightness(1.1);
     }
 
     .back-btn:active {
-      transform: translateX(-50%) translateY(4px);
-      box-shadow: none;
+      transform: translateX(-50%) translateY(4px) scale(0.98);
+      box-shadow: none, 0 0 30px rgba(255,255,255,0.8);
+      animation: lightning-flash 0.3s ease;
+    }
+
+    .back-btn:active::before {
+      width: 300px;
+      height: 300px;
     }
 
     /* Credits/Achievements Screens */
@@ -567,6 +674,7 @@
 
   <!-- Loading Screen -->
   <div id="loading-screen">
+    <img src="321E5768-E77B-4471-8C32-5D7C1D715A4B.png" alt="Water Drop Survivor" class="loading-splash-logo">
     <div class="game-title">WATER DROP SURVIVOR</div>
     <div class="loading-bar-container">
       <div class="loading-bar" id="loading-bar"></div>
@@ -668,10 +776,10 @@
   </div>
 
   <!-- Stats Modal -->
-  <div id="stats-modal" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 25; align-items: center; justify-content: center; pointer-events: auto; flex-direction: column;">
-    <div class="modal-content">
+  <div id="stats-modal" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 25; align-items: center; justify-content: center; pointer-events: auto; flex-direction: column;">
+    <div class="modal-content" style="max-height: 80vh; overflow-y: auto;">
       <h2>PLAYER STATS</h2>
-      <div id="stats-content" style="text-align: left; margin-bottom: 20px; font-family: monospace; font-size: 16px; line-height: 1.5;"></div>
+      <div id="stats-content" style="text-align: left; margin-bottom: 20px; font-family: monospace; font-size: 14px; line-height: 1.8; color: #ecf0f1;"></div>
       <button class="btn" id="close-stats-btn">CLOSE</button>
     </div>
   </div>
@@ -2687,7 +2795,10 @@
         
         if (!isMaxLevel) {
           const btn = card.querySelector('.upgrade-buy-btn');
-          btn.onclick = () => buyUpgrade(key);
+          btn.onclick = () => {
+            playSound('levelup');
+            buyUpgrade(key);
+          };
         }
         
         shopGrid.appendChild(card);
@@ -2716,43 +2827,51 @@
     function setupMenus() {
       // Main Menu Buttons
       document.getElementById('start-game-btn').onclick = () => {
+        playSound('levelup');
         hideMainMenu();
         resetGame();
       };
       
       document.getElementById('progression-btn').onclick = () => {
+        playSound('levelup');
         hideMainMenu();
         showProgressionShop();
       };
       
       document.getElementById('achievements-btn').onclick = () => {
+        playSound('levelup');
         hideMainMenu();
         document.getElementById('achievements-screen').style.display = 'flex';
       };
       
       document.getElementById('credits-btn').onclick = () => {
+        playSound('levelup');
         hideMainMenu();
         document.getElementById('credits-screen').style.display = 'flex';
       };
       
       // Back buttons
       document.getElementById('shop-back-btn').onclick = () => {
+        playSound('levelup');
         document.getElementById('progression-shop').style.display = 'none';
         showMainMenu();
       };
       
       document.getElementById('achievements-back-btn').onclick = () => {
+        playSound('levelup');
         document.getElementById('achievements-screen').style.display = 'none';
         showMainMenu();
       };
       
       document.getElementById('credits-back-btn').onclick = () => {
+        playSound('levelup');
         document.getElementById('credits-screen').style.display = 'none';
         showMainMenu();
       };
       
       // Restart button now returns to menu
       document.getElementById('restart-btn').onclick = () => {
+        playSound('levelup');
         document.getElementById('gameover-screen').style.display = 'none';
         showMainMenu();
       };
@@ -3744,6 +3863,7 @@
     }
 
     function toggleStats() {
+      playSound('levelup'); // Add button sound
       const modal = document.getElementById('stats-modal');
       const levelUpModal = document.getElementById('levelup-modal');
       
@@ -3753,17 +3873,62 @@
           isPaused = false;
         }
       } else {
+        // Calculate current run time
+        const currentRunTime = isGameActive ? Math.floor((Date.now() - gameStartTime) / 1000) : 0;
+        const goldThisRun = playerStats.gold - runStartGold;
+        
+        // Get permanent upgrade bonuses
+        const permMaxHp = PERMANENT_UPGRADES.maxHp.effect(saveData.upgrades.maxHp);
+        const permHpRegen = PERMANENT_UPGRADES.hpRegen.effect(saveData.upgrades.hpRegen);
+        const permMoveSpeed = PERMANENT_UPGRADES.moveSpeed.effect(saveData.upgrades.moveSpeed);
+        const permAttackDamage = PERMANENT_UPGRADES.attackDamage.effect(saveData.upgrades.attackDamage);
+        const permAttackSpeed = PERMANENT_UPGRADES.attackSpeed.effect(saveData.upgrades.attackSpeed);
+        const permCritChance = PERMANENT_UPGRADES.critChance.effect(saveData.upgrades.critChance);
+        const permCritDamage = PERMANENT_UPGRADES.critDamage.effect(saveData.upgrades.critDamage);
+        const permArmor = PERMANENT_UPGRADES.armor.effect(saveData.upgrades.armor);
+        const permCooldownReduction = PERMANENT_UPGRADES.cooldownReduction.effect(saveData.upgrades.cooldownReduction);
+        const permGoldEarned = PERMANENT_UPGRADES.goldEarned.effect(saveData.upgrades.goldEarned);
+        const permExpEarned = PERMANENT_UPGRADES.expEarned.effect(saveData.upgrades.expEarned);
+        const permMaxWeapons = saveData.upgrades.maxWeapons || 0;
+        
         const content = document.getElementById('stats-content');
-        content.innerHTML = 
-          `LVL: ${playerStats.lvl}<br>
-          HP: ${Math.floor(playerStats.hp)}/${playerStats.maxHp}<br>
-          STR: ${playerStats.strength.toFixed(1)}x<br>
-          SPD: ${playerStats.speed.toFixed(1)}x<br>
-          ARMOR: ${playerStats.armor}%<br>
-          REGEN: ${playerStats.hpRegen}/s<br>
-          CRIT: ${(playerStats.critChance*100).toFixed(0)}%<br>
-          ATK SPD: ${playerStats.atkSpeed.toFixed(1)}x<br>
-          KILLS: ${playerStats.kills}
+        content.innerHTML = `
+<span style="color: #5DADE2; font-size: 16px; font-weight: bold;">═══ BASE STATS ═══</span>
+Max HP: ${playerStats.maxHp}
+Current HP: ${Math.floor(playerStats.hp)}
+HP Regen: ${playerStats.hpRegen}/s
+Move Speed: ${playerStats.walkSpeed.toFixed(1)}
+Attack Damage: ${playerStats.strength.toFixed(2)}x
+Attack Speed: ${playerStats.atkSpeed.toFixed(2)}x
+Crit Chance: ${(playerStats.critChance*100).toFixed(1)}%
+Crit Damage: ${(playerStats.critDmg*100).toFixed(0)}%
+Armor: ${playerStats.armor.toFixed(0)}%
+
+<span style="color: #FFD700; font-size: 16px; font-weight: bold;">═══ PERMANENT UPGRADES ═══</span>
+Max HP Bonus: +${permMaxHp}
+HP Regen Bonus: +${permHpRegen}/s
+Move Speed Bonus: +${(permMoveSpeed*100).toFixed(1)}%
+Attack Damage Bonus: +${(permAttackDamage*100).toFixed(1)}%
+Attack Speed Bonus: +${(permAttackSpeed*100).toFixed(1)}%
+Crit Chance Bonus: +${(permCritChance*100).toFixed(1)}%
+Crit Damage Bonus: +${(permCritDamage*100).toFixed(1)}%
+Armor Bonus: +${permArmor.toFixed(0)}%
+Cooldown Reduction: ${(permCooldownReduction*100).toFixed(1)}%
+Gold Earned Bonus: +${(permGoldEarned*100).toFixed(1)}%
+EXP Earned Bonus: +${(permExpEarned*100).toFixed(1)}%
+Max Weapons: ${permMaxWeapons}
+
+<span style="color: #27ae60; font-size: 16px; font-weight: bold;">═══ RUN STATS ═══</span>
+Current Level: ${playerStats.lvl}
+Enemies Killed: ${playerStats.kills}
+Time Survived: ${currentRunTime}s
+Gold Earned This Run: ${goldThisRun}
+
+<span style="color: #e74c3c; font-size: 16px; font-weight: bold;">═══ LIFETIME STATS ═══</span>
+Total Runs: ${saveData.totalRuns}
+Best Time: ${saveData.bestTime}s
+Best Kills: ${saveData.bestKills}
+Total Gold Earned: ${saveData.totalGoldEarned}
         `;
         modal.style.display = 'flex';
         isPaused = true;
