@@ -275,11 +275,40 @@
       border-radius: 50px;
       margin-top: 20px;
       font-weight: bold;
-      box-shadow: 0 4px 0 #3a2a21;
+      box-shadow: 0 4px 0 #3a2a21, 0 0 0 rgba(90,58,49,0);
+      transition: all 0.15s ease;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
     }
+    
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.5);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+    
+    .btn:hover {
+      box-shadow: 0 6px 0 #3a2a21, 0 0 20px rgba(90,58,49,0.6);
+      filter: brightness(1.1);
+    }
+    
     .btn:active {
-      transform: translateY(4px);
-      box-shadow: none;
+      transform: translateY(4px) scale(0.98);
+      box-shadow: none, 0 0 30px rgba(255,255,255,0.8);
+      animation: lightning-flash 0.3s ease;
+    }
+    
+    .btn:active::before {
+      width: 300px;
+      height: 300px;
     }
 
     .btn-small {
@@ -290,12 +319,40 @@
       font-size: 16px;
       border-radius: 30px;
       font-weight: bold;
-      box-shadow: 0 3px 0 #3a2a21;
+      box-shadow: 0 3px 0 #3a2a21, 0 0 0 rgba(90,58,49,0);
       cursor: pointer;
+      transition: all 0.15s ease;
+      position: relative;
+      overflow: hidden;
     }
+    
+    .btn-small::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.5);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+    
+    .btn-small:hover {
+      box-shadow: 0 5px 0 #3a2a21, 0 0 20px rgba(90,58,49,0.6);
+      filter: brightness(1.1);
+    }
+    
     .btn-small:active {
-      transform: translateY(3px);
-      box-shadow: none;
+      transform: translateY(3px) scale(0.98);
+      box-shadow: none, 0 0 30px rgba(255,255,255,0.8);
+      animation: lightning-flash 0.3s ease;
+    }
+    
+    .btn-small:active::before {
+      width: 200px;
+      height: 200px;
     }
 
     /* Loading Screen */
@@ -461,6 +518,8 @@
       color: #FFD700;
       font-weight: bold;
       text-shadow: 0 0 10px rgba(255,215,0,0.8), 2px 2px 4px #000;
+      pointer-events: none; /* Allow clicks to pass through */
+      z-index: 1;
     }
 
     /* Progression Shop */
@@ -756,7 +815,7 @@
         <div class="stat-text" id="windmill-timer-text" style="color: #FFD700; font-size: 18px;">DEFEND: 30s</div>
       </div>
     </div>
-    <button id="stats-btn" class="btn-small" style="position: absolute; top: 20px; right: 20px; pointer-events: auto;">STATS</button>
+    <button id="stats-btn" class="btn-small" style="position: absolute; top: 20px; right: 20px; pointer-events: auto; z-index: 100;">STATS</button>
 
     <div id="joystick-zone">
       <div class="joystick-outer" id="joystick-outer">
