@@ -1706,11 +1706,62 @@
       const killsNeeded = nextKills[Math.min(playerStats.lvl-1, nextKills.length-1)] || 25;
       playerStats.expReq = killsNeeded * GAME_CONFIG.expValue;
       
-      // Level up visual effects
-      createLevelUpEffects();
+      // SLOW MOTION EFFECT - Time slows, sounds pitch down
+      createSlowMotionEffect();
       
-      playSound('levelup');
-      showUpgradeModal();
+      // Level up visual effects with delay for slow-mo
+      setTimeout(() => {
+        createLevelUpEffects();
+        playSound('levelup');
+      }, 500);
+      
+      // Show upgrade modal with dramatic entrance after effects
+      setTimeout(() => {
+        showUpgradeModal();
+      }, 1500);
+    }
+    
+    function createSlowMotionEffect() {
+      // Create slow motion visual overlay
+      const slowMoOverlay = document.createElement('div');
+      slowMoOverlay.style.position = 'fixed';
+      slowMoOverlay.style.top = '0';
+      slowMoOverlay.style.left = '0';
+      slowMoOverlay.style.width = '100%';
+      slowMoOverlay.style.height = '100%';
+      slowMoOverlay.style.background = 'radial-gradient(circle, rgba(93,173,226,0.3), rgba(0,0,0,0.6))';
+      slowMoOverlay.style.zIndex = '15';
+      slowMoOverlay.style.pointerEvents = 'none';
+      slowMoOverlay.style.animation = 'slowMoPulse 1.5s ease-in-out';
+      document.body.appendChild(slowMoOverlay);
+      
+      // Add CSS animation for slow-mo effect
+      if (!document.getElementById('slowMoStyle')) {
+        const style = document.createElement('style');
+        style.id = 'slowMoStyle';
+        style.textContent = `
+          @keyframes slowMoPulse {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+          }
+          @keyframes swooshInLeft {
+            0% { transform: translateX(-200%) scale(0.5); opacity: 0; }
+            60% { transform: translateX(10%) scale(1.1); opacity: 1; }
+            100% { transform: translateX(0) scale(1); opacity: 1; }
+          }
+          @keyframes swooshInRight {
+            0% { transform: translateX(200%) scale(0.5); opacity: 0; }
+            60% { transform: translateX(-10%) scale(1.1); opacity: 1; }
+            100% { transform: translateX(0) scale(1); opacity: 1; }
+          }
+        `;
+        document.head.appendChild(style);
+      }
+      
+      setTimeout(() => {
+        slowMoOverlay.remove();
+      }, 1500);
     }
     
     function createLevelUpEffects() {
@@ -2217,10 +2268,19 @@
         choices = commonUpgrades.sort(() => 0.5 - Math.random()).slice(0, 4);
       }
 
-      choices.forEach(u => {
+      choices.forEach((u, index) => {
         const card = document.createElement('div');
         card.className = 'upgrade-card';
         card.innerHTML = `<div class="upgrade-title">${u.title}</div><div class="upgrade-desc">${u.desc}</div>`;
+        
+        // Add dramatic entrance animation - alternate left/right
+        card.style.opacity = '0';
+        if (index % 2 === 0) {
+          card.style.animation = `swooshInLeft 0.6s ease-out ${index * 0.15}s forwards`;
+        } else {
+          card.style.animation = `swooshInRight 0.6s ease-out ${index * 0.15}s forwards`;
+        }
+        
         card.onclick = () => {
           playSound('splash'); // Water splash sound when picking
           u.apply();
