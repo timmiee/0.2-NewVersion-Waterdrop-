@@ -2450,6 +2450,7 @@
 
       const dt = (time - lastTime) / 1000;
       lastTime = time;
+      gameTime = time / 1000; // Update game time in seconds
 
       if (isPaused || isGameOver || !isGameActive) return;
 
