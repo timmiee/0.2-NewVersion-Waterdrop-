@@ -210,13 +210,13 @@
     
     .damage-number.critical {
       color: #FFD700;
-      text-shadow: 0 0 10px rgba(255,215,0,0.8), 0 0 20px rgba(255,215,0,0.5), 2px 2px 4px rgba(0,0,0,0.9);
+      text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 0 0 10px rgba(255,215,0,0.8), 0 0 20px rgba(255,215,0,0.5), 2px 2px 4px rgba(0,0,0,0.9);
       font-size: 36px;
     }
     
     .damage-number.normal {
       color: #FFFFFF;
-      text-shadow: 0 0 8px rgba(93,173,226,0.6), 0 0 15px rgba(93,173,226,0.3), 2px 2px 3px rgba(0,0,0,0.8);
+      text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 0 0 8px rgba(93,173,226,0.6), 0 0 15px rgba(93,173,226,0.3), 2px 2px 3px rgba(0,0,0,0.8);
     }
 
     @keyframes floatUp {
@@ -869,22 +869,46 @@
 
     class Enemy {
       constructor(type, x, z) {
-        this.type = type; // 0: Square, 1: Triangle, 2: Round
+        this.type = type; // 0: Bacteria/Amoeba, 1: Water Bug, 2: Microbe
         let geometry;
         let color;
         
         if (type === 0) {
-          geometry = new THREE.BoxGeometry(0.8, 0.8, 0.8); // Square
-          color = COLORS.enemySquare; // Tanky
+          // Bacteria/Amoeba - Squishy organic blob shape
+          geometry = new THREE.SphereGeometry(0.6, 8, 8);
+          // Modify geometry to make it irregular/organic
+          const positions = geometry.attributes.position;
+          for (let i = 0; i < positions.count; i++) {
+            const x = positions.getX(i);
+            const y = positions.getY(i);
+            const z = positions.getZ(i);
+            // Add randomness for organic look
+            const noise = 1 + (Math.random() - 0.5) * 0.3;
+            positions.setX(i, x * noise);
+            positions.setY(i, y * noise);
+            positions.setZ(i, z * noise);
+          }
+          geometry.computeVertexNormals();
+          color = COLORS.enemySquare; // Pink/Hot Pink - Tanky
         } else if (type === 1) {
-          geometry = new THREE.ConeGeometry(0.5, 1, 8); // Triangle
-          color = COLORS.enemyTriangle; // Fast
+          // Water Bug - Elongated with segments
+          geometry = new THREE.CapsuleGeometry(0.3, 0.8, 6, 8);
+          color = COLORS.enemyTriangle; // Gold - Fast
         } else {
-          geometry = new THREE.SphereGeometry(0.5, 12, 12); // Round
-          color = COLORS.enemyRound; // Balanced
+          // Microbe - Round squishy
+          geometry = new THREE.DodecahedronGeometry(0.5, 0);
+          color = COLORS.enemyRound; // Purple - Balanced
         }
 
-        const material = new THREE.MeshToonMaterial({ color: color });
+        const material = new THREE.MeshPhysicalMaterial({ 
+          color: color,
+          transparent: true,
+          opacity: 0.85,
+          metalness: 0.1,
+          roughness: 0.6,
+          transmission: 0.2,
+          thickness: 0.5
+        });
         this.mesh = new THREE.Mesh(geometry, material);
         this.mesh.position.set(x, 0.5, z);
         this.mesh.castShadow = true;
@@ -987,13 +1011,14 @@
         const oldColor = this.mesh.material.color.getHex();
         this.mesh.material.color.setHex(0xFFFFFF);
         
-        // Enhanced blood/stain particles based on critical hit
+        // Enhanced splash particles using enemy's own color
+        const enemyColor = oldColor;
         const particleCount = isCrit ? 8 : 3;
-        spawnParticles(this.mesh.position, 0x880000, particleCount);
+        spawnParticles(this.mesh.position, enemyColor, particleCount);
         
         // Additional impact particles
         if (isCrit) {
-          spawnParticles(this.mesh.position, 0xFF0000, 5);
+          spawnParticles(this.mesh.position, enemyColor, 5);
           spawnParticles(this.mesh.position, 0xFFFFFF, 3);
         }
         
@@ -1014,9 +1039,9 @@
       die() {
         this.isDead = true;
         
-        // Explosion effect on death
-        spawnParticles(this.mesh.position, this.mesh.material.color.getHex(), 15);
-        spawnParticles(this.mesh.position, 0x880000, 10);
+        // Explosion effect on death using enemy's own color
+        const enemyColor = this.mesh.material.color.getHex();
+        spawnParticles(this.mesh.position, enemyColor, 15);
         spawnParticles(this.mesh.position, 0xFFFFFF, 5);
         
         scene.remove(this.mesh);
@@ -1579,9 +1604,7 @@
       const wmBlades2 = wmBlades.clone();
       wmBlades2.rotation.z = Math.PI/2;
       wmGroup.add(wmBlades2);
-      scene.add(wmGroup);
-      // Animate blades later? We can just rotate the group children in animate loop if we track it, but for now static is safer or add to update list.
-      // Let's add a simple rotator script
+      // Store blades reference for rotation animation
       wmGroup.userData = { isWindmill: true, blades: [wmBlades, wmBlades2], hp: 600, maxHp: 600, questActive: false, light: wmLight };
       scene.add(wmGroup);
       
@@ -1596,23 +1619,23 @@
       mineEnt.rotation.y = Math.PI;
       scene.add(mineEnt);
 
-      // Stonehenge - Circle of big rocks
+      // Stonehenge - Circle of big rocks - MADE MORE VISIBLE
       const stonehengeGroup = new THREE.Group();
       stonehengeGroup.position.set(-60, 0, -20);
       
       const stoneMat = new THREE.MeshToonMaterial({ color: 0x808080 }); // Gray stone
       const numStones = 12;
-      const stoneRadius = 8;
+      const stoneRadius = 10; // Increased from 8
       
       for(let i=0; i<numStones; i++) {
         const angle = (i / numStones) * Math.PI * 2;
         const x = Math.cos(angle) * stoneRadius;
         const z = Math.sin(angle) * stoneRadius;
         
-        // Vertical standing stone
-        const stoneGeo = new THREE.BoxGeometry(1.5, 4, 1);
+        // Vertical standing stone - MADE LARGER
+        const stoneGeo = new THREE.BoxGeometry(2, 6, 1.5); // Increased from (1.5, 4, 1)
         const stone = new THREE.Mesh(stoneGeo, stoneMat);
-        stone.position.set(x, 2, z);
+        stone.position.set(x, 3, z); // Raised y from 2 to 3
         stone.rotation.y = angle + Math.PI/2; // Face center
         stone.castShadow = true;
         stonehengeGroup.add(stone);
@@ -1623,34 +1646,34 @@
           const nextX = Math.cos(nextAngle) * stoneRadius;
           const nextZ = Math.sin(nextAngle) * stoneRadius;
           
-          const capGeo = new THREE.BoxGeometry(3, 0.8, 1);
+          const capGeo = new THREE.BoxGeometry(4, 1, 1.5); // Increased from (3, 0.8, 1)
           const cap = new THREE.Mesh(capGeo, stoneMat);
-          cap.position.set((x + nextX)/2, 4.4, (z + nextZ)/2);
+          cap.position.set((x + nextX)/2, 6.5, (z + nextZ)/2); // Raised y from 4.4 to 6.5
           cap.rotation.y = angle + Math.PI/2;
           cap.castShadow = true;
           stonehengeGroup.add(cap);
         }
       }
       
-      // Central altar stone
-      const altarGeo = new THREE.BoxGeometry(3, 1.5, 2);
+      // Central altar stone - MADE LARGER
+      const altarGeo = new THREE.BoxGeometry(4, 2, 3); // Increased from (3, 1.5, 2)
       const altar = new THREE.Mesh(altarGeo, stoneMat);
-      altar.position.set(0, 0.75, 0);
+      altar.position.set(0, 1, 0); // Raised y from 0.75 to 1
       altar.castShadow = true;
       stonehengeGroup.add(altar);
       
       scene.add(stonehengeGroup);
 
-      // Mayan Pyramid - Stepped pyramid
+      // Mayan Pyramid - Stepped pyramid - MADE MORE VISIBLE
       const mayanGroup = new THREE.Group();
       mayanGroup.position.set(50, 0, -50);
       
       const pyramidMat = new THREE.MeshToonMaterial({ color: 0xD2B48C }); // Tan/beige like ancient stone
-      const pyramidSteps = 5;
+      const pyramidSteps = 6; // Increased from 5
       
       for(let i=0; i<pyramidSteps; i++) {
-        const stepSize = 10 - i * 1.5; // Each step smaller
-        const stepHeight = 2;
+        const stepSize = 14 - i * 2; // Increased from (10 - i * 1.5)
+        const stepHeight = 2.5; // Increased from 2
         const stepGeo = new THREE.BoxGeometry(stepSize, stepHeight, stepSize);
         const step = new THREE.Mesh(stepGeo, pyramidMat);
         step.position.set(0, i * stepHeight + stepHeight/2, 0);
@@ -1658,23 +1681,23 @@
         mayanGroup.add(step);
       }
       
-      // Temple on top
-      const templeGeo = new THREE.BoxGeometry(3, 3, 3);
+      // Temple on top - MADE LARGER
+      const templeGeo = new THREE.BoxGeometry(4, 4, 4); // Increased from (3, 3, 3)
       const templeMat = new THREE.MeshToonMaterial({ color: 0x8B7355 }); // Darker brown
       const temple = new THREE.Mesh(templeGeo, templeMat);
-      temple.position.set(0, pyramidSteps * 2 + 1.5, 0);
+      temple.position.set(0, pyramidSteps * 2.5 + 2, 0); // Adjusted for new step height
       temple.castShadow = true;
       mayanGroup.add(temple);
       
-      // Add some decorative blocks on sides
+      // Add some decorative blocks on sides - MADE LARGER
       for(let side=0; side<4; side++) {
         const angle = (side / 4) * Math.PI * 2;
-        const decorGeo = new THREE.BoxGeometry(0.5, 1, 0.5);
+        const decorGeo = new THREE.BoxGeometry(0.8, 1.5, 0.8); // Increased from (0.5, 1, 0.5)
         const decor = new THREE.Mesh(decorGeo, new THREE.MeshToonMaterial({ color: 0xFFD700 })); // Gold
-        const decorDist = 2;
+        const decorDist = 2.5; // Increased from 2
         decor.position.set(
           Math.cos(angle) * decorDist,
-          pyramidSteps * 2 + 2,
+          pyramidSteps * 2.5 + 2.5,
           Math.sin(angle) * decorDist
         );
         decor.castShadow = true;
@@ -1731,18 +1754,32 @@
         
         // Random pos in forest area and spread across map
         let tx, tz;
-        if (i < 80) {
-          // First 80 trees in forest area (Top Left quadrant mostly)
-          tx = (Math.random() * 100) - 90;
-          tz = (Math.random() * 100) - 90;
-        } else {
-          // Remaining 40 trees spread across entire map
-          tx = (Math.random() * 180) - 90;
-          tz = (Math.random() * 180) - 90;
-        }
-        group.position.set(tx, 0, tz);
+        let inLake = true;
+        let attempts = 0;
         
-        scene.add(group);
+        // Lake is at (30, -30) with radius 15 - avoid spawning trees there
+        while (inLake && attempts < 20) {
+          if (i < 80) {
+            // First 80 trees in forest area (Top Left quadrant mostly)
+            tx = (Math.random() * 100) - 90;
+            tz = (Math.random() * 100) - 90;
+          } else {
+            // Remaining 40 trees spread across entire map
+            tx = (Math.random() * 180) - 90;
+            tz = (Math.random() * 180) - 90;
+          }
+          
+          // Check if tree would be in lake (center at 30, -30, radius 15)
+          const distToLake = Math.sqrt((tx - 30) * (tx - 30) + (tz - (-30)) * (tz - (-30)));
+          inLake = distToLake < 18; // Add some buffer (15 + 3)
+          attempts++;
+        }
+        
+        // Only add tree if not in lake
+        if (!inLake) {
+          group.position.set(tx, 0, tz);
+          scene.add(group);
+        }
       }
       
       // Waterfall from cliff into lake
@@ -3041,8 +3078,11 @@
       // Windmill Rotation and Light Animation
       scene.children.forEach(c => {
         if (c.userData.isWindmill) {
-          c.children[1].rotation.z += 0.05;
-          c.children[2].rotation.z += 0.05;
+          // Rotate the blades stored in userData
+          if (c.userData.blades && c.userData.blades.length > 0) {
+            c.userData.blades[0].rotation.z += 0.05;
+            c.userData.blades[1].rotation.z += 0.05;
+          }
           
           // Animate windmill light (pulsing) with null check
           if (c.userData.light && c.userData.light.material) {
