@@ -767,9 +767,8 @@
   <!-- Achievements Screen -->
   <div id="achievements-screen">
     <div class="screen-title">ACHIEVEMENTS</div>
-    <div class="screen-content">
-      <p>Coming Soon!</p>
-      <p>Track your progress and unlock special rewards.</p>
+    <div class="screen-content" id="achievements-content">
+      <!-- Dynamically populated -->
     </div>
     <button class="back-btn" id="achievements-back-btn">BACK TO MENU</button>
   </div>
@@ -1839,6 +1838,7 @@
         
         playerStats.kills++;
         updateHUD();
+        checkAchievements(); // Check for achievements after kill
       }
     }
 
@@ -2355,6 +2355,87 @@
         localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
       } catch (e) {
         console.error('Failed to save data:', e);
+      }
+    }
+
+    // --- ACHIEVEMENTS SYSTEM ---
+    const ACHIEVEMENTS = {
+      kills100: { id: 'kills100', name: '100 Kills', desc: 'Kill 100 enemies', reward: 50, check: () => playerStats.kills >= 100 },
+      level10: { id: 'level10', name: 'Level 10', desc: 'Reach Level 10', reward: 100, check: () => playerStats.lvl >= 10 },
+      level25: { id: 'level25', name: 'Level 25', desc: 'Reach Level 25', reward: 250, check: () => playerStats.lvl >= 25 },
+      level50: { id: 'level50', name: 'Level 50', desc: 'Reach Level 50', reward: 500, check: () => playerStats.lvl >= 50 },
+      level75: { id: 'level75', name: 'Level 75', desc: 'Reach Level 75', reward: 750, check: () => playerStats.lvl >= 75 },
+      level100: { id: 'level100', name: 'Level 100', desc: 'Reach Level 100', reward: 1000, check: () => playerStats.lvl >= 100 }
+    };
+
+    function updateAchievementsScreen() {
+      const content = document.getElementById('achievements-content');
+      if (!content) return;
+      
+      let html = '<div style="display: grid; gap: 15px; width: 100%; max-width: 600px; margin: 0 auto;">';
+      
+      for (const key in ACHIEVEMENTS) {
+        const achievement = ACHIEVEMENTS[key];
+        const isEarned = saveData.achievements && saveData.achievements.includes(achievement.id);
+        
+        html += `
+          <div style="
+            background: linear-gradient(to bottom, ${isEarned ? '#2c5530' : '#3a3a3a'}, ${isEarned ? '#1a3020' : '#2a2a2a'});
+            border: 3px solid ${isEarned ? '#FFD700' : '#5a5a5a'};
+            border-radius: 15px;
+            padding: 15px;
+            text-align: left;
+          ">
+            <div style="color: ${isEarned ? '#FFD700' : '#bbb'}; font-size: 20px; font-weight: bold; margin-bottom: 5px;">
+              ${isEarned ? '✓ ' : ''}${achievement.name}
+            </div>
+            <div style="color: ${isEarned ? '#90ee90' : '#888'}; font-size: 14px; margin-bottom: 8px;">
+              ${achievement.desc}
+            </div>
+            <div style="color: #FFD700; font-size: 16px; font-weight: bold;">
+              Reward: ${achievement.reward} Gold
+            </div>
+          </div>
+        `;
+      }
+      
+      html += '</div>';
+      content.innerHTML = html;
+    }
+
+    function checkAchievements() {
+      for (const key in ACHIEVEMENTS) {
+        const achievement = ACHIEVEMENTS[key];
+        
+        // Skip if already earned
+        if (saveData.achievements && saveData.achievements.includes(achievement.id)) {
+          continue;
+        }
+        
+        // Check if achieved
+        if (achievement.check()) {
+          // Award achievement
+          if (!saveData.achievements) saveData.achievements = [];
+          saveData.achievements.push(achievement.id);
+          
+          // Award gold
+          addGold(achievement.reward);
+          
+          // Show achievement notification
+          createFloatingText(`ACHIEVEMENT: ${achievement.name}`, player.mesh.position);
+          createFloatingText(`+${achievement.reward} GOLD`, player.mesh.position);
+          
+          // Save
+          saveSaveData();
+          
+          // Play sound
+          playSound('levelup');
+          
+          // Visual effect
+          for(let i=0; i<30; i++) {
+            spawnParticles(player.mesh.position, 0xFFD700, 5);
+          }
+        }
       }
     }
 
@@ -3045,6 +3126,7 @@
       document.getElementById('achievements-btn').onclick = () => {
         playSound('levelup');
         hideMainMenu();
+        updateAchievementsScreen();
         document.getElementById('achievements-screen').style.display = 'flex';
       };
       
@@ -3187,6 +3269,9 @@
       const nextKills = [1, 2, 3, 4, 5, 6, 8, 10]; // Even Faster
       const killsNeeded = nextKills[Math.min(playerStats.lvl-1, nextKills.length-1)] || 25;
       playerStats.expReq = killsNeeded * GAME_CONFIG.expValue;
+      
+      // Check for level achievements
+      checkAchievements();
       
       // SLOW MOTION EFFECT - Time slows, sounds pitch down
       createSlowMotionEffect();
