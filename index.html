@@ -1124,8 +1124,9 @@
     let windmillQuest = { active: false, timer: 0, duration: 30, windmill: null, hasCompleted: false };
     let runStartGold = 0;  // Track gold at start of run for end-of-run calculation
 
-    // Input
-    const joystick = { x: 0, y: 0, active: false, id: null, originX: 0, originY: 0 };
+    // Input - Twin-Stick Controls
+    const joystickLeft = { x: 0, y: 0, active: false, id: null, originX: 0, originY: 0 }; // Movement
+    const joystickRight = { x: 0, y: 0, active: false, id: null, originX: 0, originY: 0 }; // Aiming
     
     // Stats
     const playerStats = {
@@ -1285,27 +1286,35 @@
         else {
           const targetVel = new THREE.Vector3(0, 0, 0);
         
-          if (joystick.active) {
-          const speed = GAME_CONFIG.playerSpeedBase * (playerStats.walkSpeed / 25); // Normalize 25 to base
-          targetVel.x = joystick.x * speed;
-          targetVel.z = joystick.y * speed;
+          // Movement with LEFT stick
+          if (joystickLeft.active) {
+            const speed = GAME_CONFIG.playerSpeedBase * (playerStats.walkSpeed / 25); // Normalize 25 to base
+            targetVel.x = joystickLeft.x * speed;
+            targetVel.z = joystickLeft.y * speed;
           
-          this.mesh.position.x += targetVel.x;
-          this.mesh.position.z += targetVel.z;
+            this.mesh.position.x += targetVel.x;
+            this.mesh.position.z += targetVel.z;
 
-          // Water droplet trail when moving
-          this.trailTimer += dt;
-          if (this.trailTimer > 0.15) {
-            this.trailTimer = 0;
-            spawnWaterDroplet(this.mesh.position);
-          }
-
-          // Rotate to face movement
-          const angle = Math.atan2(targetVel.x, targetVel.z);
-          this.mesh.rotation.y = angle;
+            // Water droplet trail when moving
+            this.trailTimer += dt;
+            if (this.trailTimer > 0.15) {
+              this.trailTimer = 0;
+              spawnWaterDroplet(this.mesh.position);
+            }
           } else {
-          // Idle
-          this.trailTimer = 0;
+            // Idle
+            this.trailTimer = 0;
+          }
+          
+          // Rotation/Aiming with RIGHT stick (independent of movement)
+          if (joystickRight.active) {
+            // Turn to face the direction of right stick
+            const angle = Math.atan2(joystickRight.x, joystickRight.y);
+            this.mesh.rotation.y = angle;
+          } else if (joystickLeft.active) {
+            // If no right stick input, rotate to face movement direction
+            const angle = Math.atan2(targetVel.x, targetVel.z);
+            this.mesh.rotation.y = angle;
           }
 
           // Inertia / Squish Effect
@@ -4148,37 +4157,53 @@ Total Gold Earned: ${saveData.totalGoldEarned}
       
       zone.addEventListener('touchstart', (e) => {
         e.preventDefault();
-        const touch = e.changedTouches[0];
         
-        // Only activate joystick if touch is in bottom 40% of screen
-        const screenHeight = window.innerHeight;
-        if (touch.clientY < screenHeight * 0.6) {
-          // Upper part of screen - might be for swipe dash
-          return;
+        for (let i = 0; i < e.changedTouches.length; i++) {
+          const touch = e.changedTouches[i];
+          const screenWidth = window.innerWidth;
+          const screenHeight = window.innerHeight;
+          
+          // Ignore touches in top 40% of screen (for UI elements)
+          if (touch.clientY < screenHeight * 0.6) {
+            continue;
+          }
+          
+          // Left half = movement joystick
+          if (touch.clientX < screenWidth / 2 && !joystickLeft.active) {
+            joystickLeft.id = touch.identifier;
+            joystickLeft.active = true;
+            joystickLeft.originX = touch.clientX;
+            joystickLeft.originY = touch.clientY;
+            
+            // Show dynamic joystick at touch position
+            joystickOuter.style.display = 'block';
+            joystickOuter.style.left = (touch.clientX - 60) + 'px';
+            joystickOuter.style.top = (touch.clientY - 60) + 'px';
+          }
+          // Right half = aiming joystick
+          else if (touch.clientX >= screenWidth / 2 && !joystickRight.active) {
+            joystickRight.id = touch.identifier;
+            joystickRight.active = true;
+            joystickRight.originX = touch.clientX;
+            joystickRight.originY = touch.clientY;
+            
+            // Could add a second visual joystick here if desired
+          }
         }
-        
-        joystick.id = touch.identifier;
-        joystick.active = true;
-        joystick.originX = touch.clientX;
-        joystick.originY = touch.clientY;
-        
-        // Show dynamic joystick at touch position
-        joystickOuter.style.display = 'block';
-        joystickOuter.style.left = (touch.clientX - 60) + 'px';
-        joystickOuter.style.top = (touch.clientY - 60) + 'px';
         
         swipeDetected = false;
       }, { passive: false });
 
       zone.addEventListener('touchmove', (e) => {
         e.preventDefault();
-        if (!joystick.active) return;
         
         for (let i = 0; i < e.changedTouches.length; i++) {
-          if (e.changedTouches[i].identifier === joystick.id) {
-            const touch = e.changedTouches[i];
-            const dx = touch.clientX - joystick.originX;
-            const dy = touch.clientY - joystick.originY;
+          const touch = e.changedTouches[i];
+          
+          // Handle LEFT joystick (movement)
+          if (touch.identifier === joystickLeft.id && joystickLeft.active) {
+            const dx = touch.clientX - joystickLeft.originX;
+            const dy = touch.clientY - joystickLeft.originY;
             
             // Normalize
             const maxDist = 50;
@@ -4186,15 +4211,30 @@ Total Gold Earned: ${saveData.totalGoldEarned}
             const clampedDist = Math.min(dist, maxDist);
             
             if (dist > 0) {
-              joystick.x = (dx / dist) * (clampedDist / maxDist);
-              joystick.y = (dy / dist) * (clampedDist / maxDist);
+              joystickLeft.x = (dx / dist) * (clampedDist / maxDist);
+              joystickLeft.y = (dy / dist) * (clampedDist / maxDist);
               
               // Update inner joystick knob position
               joystickInner.style.left = '50%';
               joystickInner.style.top = '50%';
-              joystickInner.style.transform = `translate(calc(-50% + ${joystick.x * 35}px), calc(-50% + ${joystick.y * 35}px))`;
+              joystickInner.style.transform = `translate(calc(-50% + ${joystickLeft.x * 35}px), calc(-50% + ${joystickLeft.y * 35}px))`;
             }
-            break;
+          }
+          
+          // Handle RIGHT joystick (aiming)
+          if (touch.identifier === joystickRight.id && joystickRight.active) {
+            const dx = touch.clientX - joystickRight.originX;
+            const dy = touch.clientY - joystickRight.originY;
+            
+            // Normalize
+            const maxDist = 50;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            const clampedDist = Math.min(dist, maxDist);
+            
+            if (dist > 0) {
+              joystickRight.x = (dx / dist) * (clampedDist / maxDist);
+              joystickRight.y = (dy / dist) * (clampedDist / maxDist);
+            }
           }
         }
       }, { passive: false });
@@ -4202,15 +4242,22 @@ Total Gold Earned: ${saveData.totalGoldEarned}
       const endJoystick = (e) => {
         e.preventDefault();
         for (let i = 0; i < e.changedTouches.length; i++) {
-          if (e.changedTouches[i].identifier === joystick.id) {
-            joystick.active = false;
-            joystick.x = 0;
-            joystick.y = 0;
+          const touch = e.changedTouches[i];
+          
+          if (touch.identifier === joystickLeft.id) {
+            joystickLeft.active = false;
+            joystickLeft.x = 0;
+            joystickLeft.y = 0;
             
             // Hide joystick
             joystickOuter.style.display = 'none';
             joystickInner.style.transform = 'translate(-50%, -50%)';
-            break;
+          }
+          
+          if (touch.identifier === joystickRight.id) {
+            joystickRight.active = false;
+            joystickRight.x = 0;
+            joystickRight.y = 0;
           }
         }
       };
