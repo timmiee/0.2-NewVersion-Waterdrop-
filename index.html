@@ -41,7 +41,7 @@
   -->
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="screen-orientation" content="portrait">
+  <meta name="screen-orientation" content="landscape">
   <title>Water Drop Survivor</title>
   <style>
     body {
@@ -402,19 +402,20 @@
 
     .loading-bar-container {
       width: 300px;
-      height: 20px;
-      background: #2a2a2a;
-      border-radius: 10px;
+      height: 24px;
+      background: linear-gradient(to bottom, #3a3a3a 0%, #3a3a3a 50%, #6a6a6a 50%, #6a6a6a 100%);
+      border-radius: 12px;
       overflow: hidden;
-      border: 2px solid #5DADE2;
+      border: 3px solid #2a2a2a;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.3), inset 0 2px 4px rgba(0,0,0,0.2), 0 0 15px rgba(0,0,0,0.5);
     }
 
     .loading-bar {
       height: 100%;
-      background: linear-gradient(to right, #5DADE2, #3498DB);
+      background: linear-gradient(to bottom, #CC6600, #993300);
       width: 0%;
       transition: width 0.3s ease;
-      box-shadow: 0 0 10px rgba(93,173,226,0.8);
+      box-shadow: 0 0 10px rgba(204,102,0,0.8), 0 0 20px rgba(204,102,0,0.4), inset 0 2px 4px rgba(255,255,255,0.2);
     }
 
     /* Main Menu */
@@ -424,85 +425,45 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: linear-gradient(to bottom, #1a1a2e, #16213e);
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 50; /* Lower than UI layer buttons */
-    }
-
-    #main-menu::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
       background-image: url('654811F9-1760-4A74-B977-73ECB1A92913.png');
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
-      opacity: 0.6;
-      z-index: -1;
+      display: none;
+      z-index: 50;
     }
 
+    /* Remove the old ::before pseudo-element style */
+    
+    /* Hide title and button container - using image buttons instead */
     .menu-title {
-      font-size: 42px;
-      color: #5DADE2;
-      text-shadow: 0 0 20px rgba(93,173,226,0.8), 0 0 40px rgba(93,173,226,0.5);
-      margin-bottom: 40px;
+      display: none;
     }
 
     .menu-buttons {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
+      display: none;
     }
 
-    .menu-btn {
-      background: linear-gradient(to bottom, #5DADE2, #3498DB);
-      color: white;
-      border: none;
-      padding: 20px 60px;
-      font-size: 24px;
-      border-radius: 50px;
-      font-weight: bold;
-      cursor: pointer;
-      box-shadow: 0 6px 0 #2874A6, 0 0 0 rgba(93,173,226,0);
-      transition: all 0.15s ease;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .menu-btn::before {
-      content: '';
+    /* Invisible clickable hotspots over image buttons */
+    .menu-hotspot {
       position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 0;
-      height: 0;
-      border-radius: 50%;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      background: rgba(255, 255, 255, 0); /* Invisible */
+      border: none;
+      outline: none;
+    }
+    
+    .menu-hotspot:hover {
+      background: rgba(93, 173, 226, 0.3); /* Glow on hover */
+      box-shadow: 0 0 20px rgba(93,173,226,0.6), 0 0 40px rgba(93,173,226,0.3);
+    }
+    
+    .menu-hotspot:active {
       background: rgba(255, 255, 255, 0.5);
-      transform: translate(-50%, -50%);
-      transition: width 0.6s, height 0.6s;
-    }
-
-    .menu-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 0 #2874A6, 0 0 20px rgba(93,173,226,0.6), 0 0 40px rgba(93,173,226,0.3);
-      filter: brightness(1.1);
-    }
-
-    .menu-btn:active {
-      transform: translateY(6px) scale(0.98);
       box-shadow: 0 0 30px rgba(255,255,255,0.8), 0 0 50px rgba(93,173,226,0.8);
       animation: lightning-flash 0.3s ease;
-    }
-
-    .menu-btn:active::before {
-      width: 300px;
-      height: 300px;
+      transform: scale(0.98);
     }
 
     @keyframes lightning-flash {
@@ -727,9 +688,52 @@
       max-width: 600px;
     }
 
+    /* Portrait Mode Warning */
+    #portrait-warning {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.95);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10001;
+      color: white;
+    }
+
+    .rotate-icon {
+      font-size: 80px;
+      margin-bottom: 30px;
+      animation: rotatePhone 2s ease-in-out infinite;
+    }
+
+    @keyframes rotatePhone {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(-90deg); }
+      50% { transform: rotate(-90deg); }
+      75% { transform: rotate(0deg); }
+    }
+
+    .portrait-message {
+      font-size: 24px;
+      font-weight: bold;
+      text-align: center;
+      padding: 0 20px;
+      text-shadow: 0 0 10px rgba(93,173,226,0.8);
+    }
+
   </style>
 </head>
 <body>
+
+  <!-- Portrait Warning -->
+  <div id="portrait-warning">
+    <div class="rotate-icon">📱 ↻</div>
+    <div class="portrait-message">Please rotate your device to landscape mode</div>
+  </div>
 
   <!-- Loading Screen -->
   <div id="loading-screen">
@@ -745,11 +749,42 @@
     <div class="gold-display" id="menu-gold">GOLD: 0</div>
     <div class="menu-title">WATER DROP SURVIVOR</div>
     <div class="menu-buttons">
-      <button class="menu-btn" id="start-game-btn">START GAME</button>
-      <button class="menu-btn" id="progression-btn">PROGRESSION</button>
-      <button class="menu-btn" id="achievements-btn">ACHIEVEMENTS</button>
-      <button class="menu-btn" id="credits-btn">CREDITS</button>
+      <!-- Old buttons hidden, new invisible hotspots over image buttons -->
     </div>
+    
+    <!-- Invisible clickable hotspots positioned over image buttons -->
+    <!-- These positions are estimates - adjust based on actual menu image button locations -->
+    <div class="menu-hotspot" id="start-game-btn" style="
+      left: 50%;
+      top: 45%;
+      transform: translate(-50%, -50%);
+      width: 300px;
+      height: 70px;
+    "></div>
+    
+    <div class="menu-hotspot" id="progression-btn" style="
+      left: 50%;
+      top: 55%;
+      transform: translate(-50%, -50%);
+      width: 300px;
+      height: 70px;
+    "></div>
+    
+    <div class="menu-hotspot" id="achievements-btn" style="
+      left: 50%;
+      top: 65%;
+      transform: translate(-50%, -50%);
+      width: 300px;
+      height: 70px;
+    "></div>
+    
+    <div class="menu-hotspot" id="credits-btn" style="
+      left: 50%;
+      top: 75%;
+      transform: translate(-50%, -50%);
+      width: 300px;
+      height: 70px;
+    "></div>
   </div>
 
   <!-- Progression Shop -->
@@ -2783,6 +2818,9 @@
       setupMenus();
       window.addEventListener('resize', onWindowResize, false);
       
+      // Setup orientation detection
+      setupOrientationDetection();
+      
       // Show loading screen, then main menu
       showLoadingScreen();
 
@@ -3169,8 +3207,7 @@
         particles.push(lightning);
       }
       
-      // Animated "LEVEL UP!" text (large)
-      createFloatingText("LEVEL UP!", player.mesh.position);
+      // Large "LEVEL UP!" text removed - keeping only small one
       
       // Zoom effect
       const originalD = 20;
@@ -4121,6 +4158,43 @@ Total Gold Earned: ${saveData.totalGoldEarned}
            player.dash(dx/dist, dy/dist);
         }
       }, { passive: false });
+    }
+
+    function setupOrientationDetection() {
+      const portraitWarning = document.getElementById('portrait-warning');
+      
+      function checkOrientation() {
+        const isPortrait = window.innerHeight > window.innerWidth;
+        
+        if (isPortrait) {
+          portraitWarning.style.display = 'flex';
+          // Pause game if active
+          if (isGameActive && !isPaused) {
+            isPaused = true;
+          }
+        } else {
+          portraitWarning.style.display = 'none';
+          // Resume game if it was only paused by orientation
+          // Don't resume if level up modal or other modals are open
+          if (isGameActive && isPaused && 
+              document.getElementById('levelup-modal').style.display !== 'flex' &&
+              document.getElementById('stats-modal').style.display !== 'flex' &&
+              !isGameOver) {
+            // Don't auto-resume, let user control
+          }
+        }
+      }
+      
+      // Check on load
+      checkOrientation();
+      
+      // Check on resize and orientation change
+      window.addEventListener('resize', checkOrientation);
+      window.addEventListener('orientationchange', checkOrientation);
+      
+      // Also use matchMedia for more reliable detection
+      const portraitQuery = window.matchMedia('(orientation: portrait)');
+      portraitQuery.addListener(checkOrientation);
     }
 
     function onWindowResize() {
