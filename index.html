@@ -425,11 +425,11 @@
         
         osc.frequency.value = frequencies[currentMusicLevel - 1];
         
-        // Add vibrato for electronic feel
+        // Add vibrato for electronic feel (capped for pleasant sound)
         const lfo = audioCtx.createOscillator();
         const lfoGain = audioCtx.createGain();
         lfo.frequency.value = 5; // 5 Hz vibrato
-        lfoGain.gain.value = currentMusicLevel * 2; // Increase with level
+        lfoGain.gain.value = Math.min(currentMusicLevel * 0.5, 5); // Capped at 5 Hz
         lfo.connect(lfoGain);
         lfoGain.connect(osc.frequency);
         lfo.start();
@@ -451,7 +451,7 @@
           bassGain.gain.value = 0;
           bassGain.gain.linearRampToValueAtTime(0.15, audioCtx.currentTime + 1);
           bass.start();
-          musicOscillators.push({ osc: bass, gain: bassGain });
+          musicOscillators.push({ osc: bass, gain: bassGain, lfo: null });
         }
         
         // Add high frequency sparkle for levels 8+
@@ -465,7 +465,7 @@
           sparkleGain.gain.value = 0;
           sparkleGain.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 1);
           sparkle.start();
-          musicOscillators.push({ osc: sparkle, gain: sparkleGain });
+          musicOscillators.push({ osc: sparkle, gain: sparkleGain, lfo: null });
         }
       }
     }
@@ -1494,17 +1494,18 @@
         group.add(leaves);
         group.add(shadow);
         
-        // Random pos in forest area (Top Left quadrant mostly, but spread more)
-        const tx = (Math.random() * 100) - 90;
-        const tz = (Math.random() * 100) - 90;
-        group.position.set(tx, 0, tz);
-        
-        // Also add some trees in other areas
-        if (i > 80) {
-          const tx2 = (Math.random() * 180) - 90;
-          const tz2 = (Math.random() * 180) - 90;
-          group.position.set(tx2, 0, tz2);
+        // Random pos in forest area and spread across map
+        let tx, tz;
+        if (i < 80) {
+          // First 80 trees in forest area (Top Left quadrant mostly)
+          tx = (Math.random() * 100) - 90;
+          tz = (Math.random() * 100) - 90;
+        } else {
+          // Remaining 40 trees spread across entire map
+          tx = (Math.random() * 180) - 90;
+          tz = (Math.random() * 180) - 90;
         }
+        group.position.set(tx, 0, tz);
         
         scene.add(group);
       }
@@ -2807,8 +2808,8 @@
           c.children[1].rotation.z += 0.05;
           c.children[2].rotation.z += 0.05;
           
-          // Animate windmill light (pulsing)
-          if (c.userData.light) {
+          // Animate windmill light (pulsing) with null check
+          if (c.userData.light && c.userData.light.material) {
             c.userData.light.material.opacity = 0.8 + Math.sin(gameTime * 3) * 0.2;
           }
         }
