@@ -1459,10 +1459,13 @@
     }
 
     class Enemy {
-      constructor(type, x, z) {
-        this.type = type; // 0: Bacteria/Amoeba, 1: Water Bug, 2: Microbe
+      constructor(type, x, z, playerLevel = 1) {
+        this.type = type; // 0: Tank, 1: Fast, 2: Balanced, 3: Slowing, 4: Ranged
         let geometry;
         let color;
+        
+        // Enemy scaling based on player level - NOT SPEED, just HP and DAMAGE
+        const levelScaling = 1 + (playerLevel - 1) * 0.15; // 15% increase per level
         
         if (type === 0) {
           // Bacteria/Amoeba - Squishy organic blob shape
@@ -1487,10 +1490,18 @@
           // Water Bug - Elongated with segments
           geometry = new THREE.CapsuleGeometry(0.3, 0.8, 6, 8);
           color = COLORS.enemyTriangle; // Gold - Fast
-        } else {
+        } else if (type === 2) {
           // Microbe - Round squishy
           geometry = new THREE.DodecahedronGeometry(0.5, 0);
           color = COLORS.enemyRound; // Purple - Balanced
+        } else if (type === 3) {
+          // Slowing Enemy - Spiky/icy appearance
+          geometry = new THREE.IcosahedronGeometry(0.55, 0);
+          color = 0x00FFFF; // Cyan - Slowing
+        } else if (type === 4) {
+          // Ranged Enemy - Different shape, angular
+          geometry = new THREE.TetrahedronGeometry(0.6, 0);
+          color = 0xFF6347; // Tomato red - Ranged
         }
 
         const material = new THREE.MeshPhysicalMaterial({ 
@@ -1507,20 +1518,30 @@
         this.mesh.castShadow = true;
         scene.add(this.mesh);
 
-        // Stats based on type
-        if (type === 0) { // Square (Tank)
-          this.hp = 150;
-          this.speed = GAME_CONFIG.enemySpeedBase * 0.6;
-        } else if (type === 1) { // Triangle (Fast, Low HP)
-          this.hp = 40;
-          this.speed = GAME_CONFIG.enemySpeedBase * 1.6;
-        } else { // Round (Balanced)
-          this.hp = 80;
-          this.speed = GAME_CONFIG.enemySpeedBase;
+        // Stats based on type - SCALED BY LEVEL
+        if (type === 0) { // Tank
+          this.hp = 150 * levelScaling;
+          this.speed = GAME_CONFIG.enemySpeedBase * 0.6; // Speed NOT scaled
+        } else if (type === 1) { // Fast, Low HP
+          this.hp = 40 * levelScaling;
+          this.speed = GAME_CONFIG.enemySpeedBase * 1.6; // Speed NOT scaled
+        } else if (type === 2) { // Balanced
+          this.hp = 80 * levelScaling;
+          this.speed = GAME_CONFIG.enemySpeedBase; // Speed NOT scaled
+        } else if (type === 3) { // Slowing
+          this.hp = 100 * levelScaling;
+          this.speed = GAME_CONFIG.enemySpeedBase * 0.8; // Speed NOT scaled
+          this.slowDuration = 2000; // 2 seconds slow
+          this.slowAmount = 0.5; // 50% slow
+        } else if (type === 4) { // Ranged
+          this.hp = 60 * levelScaling;
+          this.speed = GAME_CONFIG.enemySpeedBase * 0.7; // Speed NOT scaled
+          this.attackRange = 8; // Range for ranged attacks
+          this.projectileSpeed = 0.15;
         }
         
         this.maxHp = this.hp;
-        this.damage = 33;
+        this.damage = 33 * levelScaling; // Damage scaled by level
         this.isDead = false;
         this.isDamaged = false; // Track if enemy has been visually damaged
         this.pulsePhase = Math.random() * Math.PI;
@@ -1543,7 +1564,18 @@
         const dz = targetPos.z - this.mesh.position.z;
         const dist = Math.sqrt(dx*dx + dz*dz);
 
-        if (dist > 0.5) {
+        // Ranged Enemy behavior - stop at range and shoot
+        if (this.type === 4 && dist < this.attackRange) {
+          // Stop moving and attack from range
+          const now = Date.now();
+          if (now - this.lastAttackTime > this.attackCooldown) {
+            // Fire projectile at player
+            this.fireProjectile(targetPos);
+            this.lastAttackTime = now;
+          }
+          this.mesh.lookAt(targetPos);
+        } else if (dist > 0.5) {
+          // Move towards target
           let vx = (dx / dist) * this.speed;
           let vz = (dz / dist) * this.speed;
           
@@ -1578,9 +1610,21 @@
             createFloatingText("WINDMILL DESTROYED!", windmillQuest.windmill.position);
             document.getElementById('windmill-quest-ui').style.display = 'none';
           }
-        } else if (dist < 1.0) {
+        } else if (dist < 1.0 && this.type !== 4) { // Ranged enemies don't melee attack
           // Attack player
           player.takeDamage(this.damage);
+          
+          // Slowing enemy slows player on hit
+          if (this.type === 3) {
+            playerStats.walkSpeed *= this.slowAmount;
+            // Remove slow after duration
+            setTimeout(() => {
+              playerStats.walkSpeed /= this.slowAmount;
+            }, this.slowDuration);
+            // Visual effect for slow
+            spawnParticles(player.mesh.position, 0x00FFFF, 10);
+          }
+          
           // Knockback
           this.mesh.position.x -= (dx / dist) * 2;
           this.mesh.position.z -= (dz / dist) * 2;
@@ -1589,12 +1633,44 @@
         // Squishy idle with more gravity-based wobble
         this.pulsePhase += dt * 6; // Slightly faster
         const squish = Math.sin(this.pulsePhase) * 0.08; // More pronounced from 0.05
-        if (this.type === 0) {
-           // Box breathes more dramatically
+        if (this.type === 0 || this.type === 3) {
+           // Box and Slowing breathe more dramatically
            this.mesh.scale.set(1+squish*1.5, 1-squish*1.5, 1+squish*1.5);
         } else {
            this.mesh.scale.set(1-squish, 1+squish*1.5, 1-squish);
         }
+      }
+
+      fireProjectile(targetPos) {
+        // Create enemy projectile
+        const projectile = {
+          startPos: this.mesh.position.clone(),
+          targetPos: targetPos.clone(),
+          mesh: null,
+          speed: this.projectileSpeed,
+          damage: this.damage,
+          lifetime: 100, // frames
+          isEnemyProjectile: true
+        };
+        
+        // Create visual
+        const geo = new THREE.SphereGeometry(0.2, 8, 8);
+        const mat = new THREE.MeshBasicMaterial({ color: 0xFF6347 });
+        projectile.mesh = new THREE.Mesh(geo, mat);
+        projectile.mesh.position.copy(this.mesh.position);
+        projectile.mesh.position.y = 0.5;
+        scene.add(projectile.mesh);
+        
+        // Direction
+        const dx = targetPos.x - this.mesh.position.x;
+        const dz = targetPos.z - this.mesh.position.z;
+        const dist = Math.sqrt(dx*dx + dz*dz);
+        projectile.direction = new THREE.Vector3(dx/dist, 0, dz/dist);
+        
+        // Add to projectiles array (will be updated in main loop)
+        projectiles.push(projectile);
+        
+        playSound('shoot');
       }
 
       takeDamage(amount, isCrit = false) {
@@ -1789,6 +1865,29 @@
       update() {
         if (!this.active) return;
         
+        // Handle enemy projectiles separately
+        if (this.isEnemyProjectile) {
+          this.mesh.position.add(this.direction.clone().multiplyScalar(this.speed));
+          this.lifetime--;
+          
+          if (this.lifetime <= 0) {
+            this.destroy();
+            return;
+          }
+          
+          // Check collision with player
+          const dx = this.mesh.position.x - player.mesh.position.x;
+          const dz = this.mesh.position.z - player.mesh.position.z;
+          if (dx*dx + dz*dz < 0.8) { // Hit radius
+            player.takeDamage(this.damage);
+            spawnParticles(player.mesh.position, 0xFF6347, 5);
+            this.destroy();
+            playSound('hit');
+          }
+          return;
+        }
+        
+        // Player projectiles
         this.mesh.position.x += this.vx;
         this.mesh.position.z += this.vz;
         this.life--;
@@ -1806,6 +1905,12 @@
           if (dx*dx + dz*dz < 0.6) { // Hit radius
             // Calculate Damage
             let dmg = weapons.gun.damage * playerStats.damage * playerStats.strength;
+            
+            // Double barrel uses its own damage
+            if (weapons.doubleBarrel.active && this.isDoubleBarrel) {
+              dmg = weapons.doubleBarrel.damage * playerStats.damage * playerStats.strength;
+            }
+            
             const isCrit = Math.random() < playerStats.critChance;
             if (isCrit) dmg *= playerStats.critDmg;
             
@@ -2984,7 +3089,10 @@
 
     function spawnWave() {
       waveCount++;
-      const count = 3 + Math.floor(waveCount / 2); // 3, 3, 4, 4, 5...
+      // Scale spawn count with player level for increased difficulty
+      const baseCount = 3 + Math.floor(waveCount / 2); // 3, 3, 4, 4, 5...
+      const levelBonus = Math.floor(playerStats.lvl / 5); // +1 every 5 levels
+      const count = baseCount + levelBonus;
       
       for(let i=0; i<count; i++) {
         // Spawn at edge of camera view approx
@@ -2993,9 +3101,19 @@
         const ex = player.mesh.position.x + Math.cos(angle) * dist;
         const ez = player.mesh.position.z + Math.sin(angle) * dist;
         
-        // Random type
-        const type = Math.floor(Math.random() * 3);
-        enemies.push(new Enemy(type, ex, ez));
+        // Random type - include new enemy types as level increases
+        // 0: Tank, 1: Fast, 2: Balanced, 3: Slowing (lvl 10+), 4: Ranged (lvl 15+)
+        let maxType = 2; // Start with 3 base types
+        if (playerStats.lvl >= 10) maxType = 3; // Add slowing enemies
+        if (playerStats.lvl >= 15) maxType = 4; // Add ranged enemies
+        
+        // Spawn ranged enemies less frequently
+        let type = Math.floor(Math.random() * (maxType + 1));
+        if (type === 4 && Math.random() > 0.2) { // Only 20% chance for ranged
+          type = Math.floor(Math.random() * 3); // Fallback to basic type
+        }
+        
+        enemies.push(new Enemy(type, ex, ez, playerStats.lvl));
       }
     }
 
