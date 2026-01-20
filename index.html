@@ -284,11 +284,12 @@
       <div class="bar-container" id="hp-bar-container">
         <div class="bar-fill" id="hp-fill"></div>
       </div>
-      <div class="stat-text" id="hp-text">HP: 100/100</div>
+      <div class="stat-text" id="hp-text" style="color: #FF4444;">HP: 100/100</div>
       
       <div class="bar-container" id="exp-bar-container" style="border-color: #2a2a2a;">
         <div class="bar-fill" id="exp-fill"></div>
       </div>
+      <div class="stat-text" id="exp-text" style="color: #5DADE2;">EXP: 0%</div>
       <div class="stat-text" id="lvl-text" style="color: #5DADE2;">LVL: 1</div>
       <div class="stat-text" id="score-text" style="color: #8B4513;">KILLS: 0</div>
       
@@ -349,7 +350,7 @@
     // --- CONSTANTS & CONFIG ---
     const COLORS = {
       bg: 0xFFF0F5,
-      player: 0x4ECDC4, // Tiffany Blue / Water
+      player: 0x1E90FF, // Dodger Blue - clearly blue like water
       enemySquare: 0xFF69B4, // Hot Pink
       enemyTriangle: 0xFFD700, // Gold
       enemyRound: 0x9370DB, // Purple
@@ -1255,21 +1256,56 @@
 
     class ExpGem {
       constructor(x, z) {
-        // 8-sided star -> Octahedron (20% bigger)
-        const geometry = new THREE.OctahedronGeometry(0.36, 0);
-        const material = new THREE.MeshToonMaterial({ color: COLORS.exp, emissive: 0x222222 });
+        // Water drop shape (teardrop)
+        const SPHERE_RADIUS = 0.36;
+        const geometry = new THREE.SphereGeometry(SPHERE_RADIUS, 16, 16);
+        
+        // Modify geometry to make it teardrop-shaped
+        const positions = geometry.attributes.position;
+        for (let i = 0; i < positions.count; i++) {
+          const y = positions.getY(i);
+          const x = positions.getX(i);
+          const z = positions.getZ(i);
+          
+          // Stretch top to make teardrop
+          if (y > 0) {
+            positions.setY(i, y * 1.3);
+            const squeeze = 1 - (y / SPHERE_RADIUS) * 0.25;
+            positions.setX(i, x * squeeze);
+            positions.setZ(i, z * squeeze);
+          }
+        }
+        geometry.computeVertexNormals();
+        
+        const material = new THREE.MeshPhysicalMaterial({ 
+          color: COLORS.exp, // Light blue
+          transparent: true,
+          opacity: 0.8,
+          metalness: 0.1,
+          roughness: 0.2,
+          transmission: 0.3,
+          thickness: 0.5,
+          envMapIntensity: 1,
+          clearcoat: 1,
+          clearcoatRoughness: 0.1
+        });
+        
         this.mesh = new THREE.Mesh(geometry, material);
         this.mesh.position.set(x, 0.5, z);
         scene.add(this.mesh);
         this.active = true;
         this.rotSpeed = Math.random() * 0.1 + 0.05;
+        this.bobPhase = Math.random() * Math.PI * 2;
       }
 
       update(playerPos) {
         if (!this.active) return;
 
         this.mesh.rotation.y += this.rotSpeed;
-        this.mesh.rotation.x += this.rotSpeed;
+        
+        // Bob up and down
+        this.bobPhase += 0.05;
+        this.mesh.position.y = 0.5 + Math.sin(this.bobPhase) * 0.1;
 
         // Magnet
         const dx = playerPos.x - this.mesh.position.x;
@@ -1281,7 +1317,7 @@
           this.mesh.position.x += (dx / dist) * 0.3;
           this.mesh.position.z += (dz / dist) * 0.3;
           
-          // Visual Trail when pulled
+          // Visual Trail when pulled - water particles
           if (Math.random() < 0.3) {
              spawnParticles(this.mesh.position, COLORS.exp, 1);
           }
@@ -1294,11 +1330,98 @@
 
       collect() {
         this.active = false;
+        
+        // SPLASH EFFECT when collected
+        const splashPos = this.mesh.position.clone();
+        const SPLASH_PARTICLE_COUNT = 15;
+        const PARTICLE_LIFE_FRAMES = 30;
+        
+        // Water splash particles
+        for(let i=0; i<SPLASH_PARTICLE_COUNT; i++) {
+          const angle = (i / SPLASH_PARTICLE_COUNT) * Math.PI * 2;
+          const speed = 0.1 + Math.random() * 0.15;
+          const particle = new THREE.Mesh(
+            new THREE.SphereGeometry(0.08, 8, 8),
+            new THREE.MeshBasicMaterial({ 
+              color: COLORS.exp, 
+              transparent: true, 
+              opacity: 0.8 
+            })
+          );
+          particle.position.copy(splashPos);
+          scene.add(particle);
+          
+          const vel = new THREE.Vector3(
+            Math.cos(angle) * speed,
+            0.2 + Math.random() * 0.15,
+            Math.sin(angle) * speed
+          );
+          
+          // Animate splash particle
+          let life = PARTICLE_LIFE_FRAMES;
+          const updateSplash = () => {
+            life--;
+            particle.position.add(vel);
+            vel.y -= 0.02; // Gravity
+            particle.material.opacity = life / PARTICLE_LIFE_FRAMES;
+            
+            if (particle.position.y < 0.05) {
+              particle.position.y = 0.05;
+              vel.y = 0;
+              vel.x *= 0.7;
+              vel.z *= 0.7;
+            }
+            
+            if (life <= 0) {
+              scene.remove(particle);
+              particle.geometry.dispose();
+              particle.material.dispose();
+            } else {
+              requestAnimationFrame(updateSplash);
+            }
+          };
+          updateSplash();
+        }
+        
+        // Center splash ring effect
+        const RING_LIFE_FRAMES = 20;
+        const splashRing = new THREE.Mesh(
+          new THREE.RingGeometry(0.2, 0.6, 16),
+          new THREE.MeshBasicMaterial({ 
+            color: 0xFFFFFF, 
+            transparent: true, 
+            opacity: 0.8,
+            side: THREE.DoubleSide
+          })
+        );
+        splashRing.rotation.x = -Math.PI/2;
+        splashRing.position.copy(splashPos);
+        splashRing.position.y = 0.05;
+        scene.add(splashRing);
+        
+        // Animate ring expanding and fading
+        let ringLife = RING_LIFE_FRAMES;
+        const updateRing = () => {
+          ringLife--;
+          splashRing.scale.x += 0.1;
+          splashRing.scale.y += 0.1;
+          splashRing.material.opacity = ringLife / RING_LIFE_FRAMES;
+          
+          if (ringLife <= 0) {
+            scene.remove(splashRing);
+            splashRing.geometry.dispose();
+            splashRing.material.dispose();
+          } else {
+            requestAnimationFrame(updateRing);
+          }
+        };
+        updateRing();
+        
         scene.remove(this.mesh);
         this.mesh.geometry.dispose();
         this.mesh.material.dispose();
         addExp(GAME_CONFIG.expValue);
-        playSound('collect');
+        playSound('splash'); // Play splash sound instead of collect
       }
     }
 
@@ -1330,30 +1453,55 @@
       ripple.userData = { isWaterRipple: true, phase: 0 };
       scene.add(ripple);
 
-      // Gravel roads connecting areas
-      const gravelMat = new THREE.MeshBasicMaterial({ color: 0x8B7355 }); // Brown gravel
-      const roadGeo = new THREE.PlaneGeometry(3, 3);
+      // Smooth nice roads connecting areas
+      const roadMat = new THREE.MeshPhysicalMaterial({ 
+        color: 0xD3D3D3, // Light gray - smooth and polished
+        metalness: 0.05,
+        roughness: 0.3,
+        clearcoat: 0.8, // Makes it look polished
+        clearcoatRoughness: 0.2
+      });
+      const roadGeo = new THREE.PlaneGeometry(4, 4);
       
-      // Road to windmill
+      // Road to windmill - smooth curved path
       for(let i=0; i<30; i++) {
-        const road = new THREE.Mesh(roadGeo, gravelMat);
+        const road = new THREE.Mesh(roadGeo, roadMat);
         road.rotation.x = -Math.PI/2;
         const t = i / 30;
         const x = t * 40;
         const z = t * 40;
-        road.position.set(x, 0.02, z);
+        road.position.set(x, 0.03, z);
+        road.receiveShadow = true;
         scene.add(road);
       }
       
-      // Circular path around center
-      for(let i=0; i<40; i++) {
-        const road = new THREE.Mesh(roadGeo, gravelMat);
+      // Circular path around center - smooth ring road
+      for(let i=0; i<50; i++) {
+        const road = new THREE.Mesh(roadGeo, roadMat);
         road.rotation.x = -Math.PI/2;
-        const angle = (i / 40) * Math.PI * 2;
+        const angle = (i / 50) * Math.PI * 2;
         const x = Math.cos(angle) * 25;
         const z = Math.sin(angle) * 25;
-        road.position.set(x, 0.02, z);
+        road.position.set(x, 0.03, z);
+        road.receiveShadow = true;
         scene.add(road);
+      }
+      
+      // Additional main roads (cross pattern)
+      for(let i=-20; i<20; i++) {
+        // Horizontal road
+        const road1 = new THREE.Mesh(roadGeo, roadMat);
+        road1.rotation.x = -Math.PI/2;
+        road1.position.set(i * 2, 0.03, 0);
+        road1.receiveShadow = true;
+        scene.add(road1);
+        
+        // Vertical road
+        const road2 = new THREE.Mesh(roadGeo, roadMat);
+        road2.rotation.x = -Math.PI/2;
+        road2.position.set(0, 0.03, i * 2);
+        road2.receiveShadow = true;
+        scene.add(road2);
       }
 
       // Wooden fences around play area
@@ -1447,6 +1595,93 @@
       mineEnt.position.set(-40, 2, 44);
       mineEnt.rotation.y = Math.PI;
       scene.add(mineEnt);
+
+      // Stonehenge - Circle of big rocks
+      const stonehengeGroup = new THREE.Group();
+      stonehengeGroup.position.set(-60, 0, -20);
+      
+      const stoneMat = new THREE.MeshToonMaterial({ color: 0x808080 }); // Gray stone
+      const numStones = 12;
+      const stoneRadius = 8;
+      
+      for(let i=0; i<numStones; i++) {
+        const angle = (i / numStones) * Math.PI * 2;
+        const x = Math.cos(angle) * stoneRadius;
+        const z = Math.sin(angle) * stoneRadius;
+        
+        // Vertical standing stone
+        const stoneGeo = new THREE.BoxGeometry(1.5, 4, 1);
+        const stone = new THREE.Mesh(stoneGeo, stoneMat);
+        stone.position.set(x, 2, z);
+        stone.rotation.y = angle + Math.PI/2; // Face center
+        stone.castShadow = true;
+        stonehengeGroup.add(stone);
+        
+        // Horizontal cap stone on top (every other pair)
+        if (i % 2 === 0 && i < numStones - 1) {
+          const nextAngle = ((i + 1) / numStones) * Math.PI * 2;
+          const nextX = Math.cos(nextAngle) * stoneRadius;
+          const nextZ = Math.sin(nextAngle) * stoneRadius;
+          
+          const capGeo = new THREE.BoxGeometry(3, 0.8, 1);
+          const cap = new THREE.Mesh(capGeo, stoneMat);
+          cap.position.set((x + nextX)/2, 4.4, (z + nextZ)/2);
+          cap.rotation.y = angle + Math.PI/2;
+          cap.castShadow = true;
+          stonehengeGroup.add(cap);
+        }
+      }
+      
+      // Central altar stone
+      const altarGeo = new THREE.BoxGeometry(3, 1.5, 2);
+      const altar = new THREE.Mesh(altarGeo, stoneMat);
+      altar.position.set(0, 0.75, 0);
+      altar.castShadow = true;
+      stonehengeGroup.add(altar);
+      
+      scene.add(stonehengeGroup);
+
+      // Mayan Pyramid - Stepped pyramid
+      const mayanGroup = new THREE.Group();
+      mayanGroup.position.set(50, 0, -50);
+      
+      const pyramidMat = new THREE.MeshToonMaterial({ color: 0xD2B48C }); // Tan/beige like ancient stone
+      const pyramidSteps = 5;
+      
+      for(let i=0; i<pyramidSteps; i++) {
+        const stepSize = 10 - i * 1.5; // Each step smaller
+        const stepHeight = 2;
+        const stepGeo = new THREE.BoxGeometry(stepSize, stepHeight, stepSize);
+        const step = new THREE.Mesh(stepGeo, pyramidMat);
+        step.position.set(0, i * stepHeight + stepHeight/2, 0);
+        step.castShadow = true;
+        mayanGroup.add(step);
+      }
+      
+      // Temple on top
+      const templeGeo = new THREE.BoxGeometry(3, 3, 3);
+      const templeMat = new THREE.MeshToonMaterial({ color: 0x8B7355 }); // Darker brown
+      const temple = new THREE.Mesh(templeGeo, templeMat);
+      temple.position.set(0, pyramidSteps * 2 + 1.5, 0);
+      temple.castShadow = true;
+      mayanGroup.add(temple);
+      
+      // Add some decorative blocks on sides
+      for(let side=0; side<4; side++) {
+        const angle = (side / 4) * Math.PI * 2;
+        const decorGeo = new THREE.BoxGeometry(0.5, 1, 0.5);
+        const decor = new THREE.Mesh(decorGeo, new THREE.MeshToonMaterial({ color: 0xFFD700 })); // Gold
+        const decorDist = 2;
+        decor.position.set(
+          Math.cos(angle) * decorDist,
+          pyramidSteps * 2 + 2,
+          Math.sin(angle) * decorDist
+        );
+        decor.castShadow = true;
+        mayanGroup.add(decor);
+      }
+      
+      scene.add(mayanGroup);
 
       // Forest (Various tree types with better shadows)
       const trunkGeo = new THREE.CylinderGeometry(0.5, 0.7, 2, 6);
@@ -2300,10 +2535,11 @@
     function updateHUD() {
       const hpPct = (playerStats.hp / playerStats.maxHp) * 100;
       document.getElementById('hp-fill').style.width = `${Math.max(0, hpPct)}%`;
-      document.getElementById('hp-text').innerText = `HP: ${Math.ceil(playerStats.hp)}/${playerStats.maxHp}`;
+      document.getElementById('hp-text').innerText = `HP: ${Math.max(0, Math.ceil(playerStats.hp))}/${playerStats.maxHp}`;
       
       const expPct = (playerStats.exp / playerStats.expReq) * 100;
       document.getElementById('exp-fill').style.width = `${Math.min(100, expPct)}%`;
+      document.getElementById('exp-text').innerText = `EXP: ${Math.min(100, Math.ceil(expPct))}%`;
       document.getElementById('lvl-text').innerText = `LVL: ${playerStats.lvl}`;
       document.getElementById('score-text').innerText = `KILLS: ${playerStats.kills}`;
     }
