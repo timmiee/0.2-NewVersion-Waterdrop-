@@ -93,7 +93,7 @@
       border: 3px solid #2a2a2a;
       overflow: hidden;
       position: relative;
-      box-shadow: 0 3px 8px rgba(0,0,0,0.3), inset 0 2px 4px rgba(0,0,0,0.2);
+      box-shadow: 0 3px 8px rgba(0,0,0,0.3), inset 0 2px 4px rgba(0,0,0,0.2), 0 0 15px rgba(0,0,0,0.5);
     }
 
     .bar-fill {
@@ -106,16 +106,18 @@
     #hp-bar .bar-fill { 
       background: linear-gradient(to bottom, #FF4444, #CC0000);
       width: 100%;
+      box-shadow: 0 0 10px rgba(255,68,68,0.8), 0 0 20px rgba(255,68,68,0.4), inset 0 2px 4px rgba(255,255,255,0.2);
     }
     #exp-bar .bar-fill { 
       background: linear-gradient(to bottom, #5DADE2, #3498DB);
       width: 0%;
+      box-shadow: 0 0 10px rgba(93,173,226,0.8), 0 0 20px rgba(93,173,226,0.4), inset 0 2px 4px rgba(255,255,255,0.2);
     }
 
     .stat-text {
       color: #8B4513;
       font-weight: bold;
-      text-shadow: 1px 1px 2px rgba(0,0,0,0.5), -1px -1px 1px rgba(255,255,255,0.3);
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.5), -1px -1px 1px rgba(255,255,255,0.3), 0 0 5px rgba(139,69,19,0.3);
       font-size: 14px;
       margin-top: 4px;
     }
@@ -152,18 +154,18 @@
       background: linear-gradient(to bottom, #4a4a4a, #3a3a3a);
       padding: 25px;
       border-radius: 20px;
-      border: 4px solid #2a2a2a;
+      border: 4px solid #5DADE2;
       width: 80%;
       max-width: 400px;
       text-align: center;
-      box-shadow: 0 15px 30px rgba(0,0,0,0.5);
+      box-shadow: 0 15px 30px rgba(0,0,0,0.7), 0 0 40px rgba(93,173,226,0.5), inset 0 0 30px rgba(93,173,226,0.1);
     }
 
     h2 {
       color: #5DADE2;
       margin-top: 0;
       font-size: 32px;
-      text-shadow: 0 0 10px rgba(93,173,226,0.5), 0 0 20px rgba(93,173,226,0.3);
+      text-shadow: 0 0 10px rgba(93,173,226,0.8), 0 0 20px rgba(93,173,226,0.6), 0 0 30px rgba(93,173,226,0.4), 2px 2px 4px rgba(0,0,0,0.8);
     }
 
     .upgrade-card {
@@ -174,11 +176,11 @@
       border: 3px solid #2a2a2a;
       cursor: pointer;
       transition: transform 0.1s, box-shadow 0.1s;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3), 0 0 10px rgba(93,173,226,0.2);
     }
 
     .upgrade-card:hover {
-      box-shadow: 0 6px 12px rgba(93,173,226,0.3);
+      box-shadow: 0 6px 12px rgba(93,173,226,0.5), 0 0 20px rgba(93,173,226,0.4);
     }
 
     .upgrade-card:active {
@@ -187,9 +189,9 @@
 
     .upgrade-title {
       font-weight: bold;
-      color: #8B4513;
+      color: #FFD700;
       font-size: 18px;
-      text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+      text-shadow: 0 0 8px rgba(255,215,0,0.6), 0 0 15px rgba(255,215,0,0.3), 1px 1px 2px rgba(0,0,0,0.8);
     }
 
     .upgrade-desc {
@@ -207,14 +209,14 @@
     }
     
     .damage-number.critical {
-      color: #8B4513;
-      text-shadow: 0 0 5px #FF0000, 0 0 10px #8B0000;
-      font-size: 32px;
+      color: #FFD700;
+      text-shadow: 0 0 10px rgba(255,215,0,0.8), 0 0 20px rgba(255,215,0,0.5), 2px 2px 4px rgba(0,0,0,0.9);
+      font-size: 36px;
     }
     
     .damage-number.normal {
-      color: #E0E0E0;
-      text-shadow: 0 0 3px rgba(0,0,0,0.8);
+      color: #FFFFFF;
+      text-shadow: 0 0 8px rgba(93,173,226,0.6), 0 0 15px rgba(93,173,226,0.3), 2px 2px 3px rgba(0,0,0,0.8);
     }
 
     @keyframes floatUp {
@@ -388,36 +390,83 @@
       if (targetLevel > currentMusicLevel) {
         currentMusicLevel = targetLevel;
         
-        // Add new layer
+        // Add new layer with electronic/synth sounds
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         
         osc.connect(gain);
         gain.connect(musicGain);
         
-        // Different frequencies for different levels
+        // Electronic frequencies - more intense as levels increase
         const baseFreq = 130.81; // C3
         const frequencies = [
-          baseFreq, // Level 1
+          baseFreq, // Level 1 - calm
           baseFreq * 1.25, // Level 2
-          baseFreq * 1.5, // Level 3
+          baseFreq * 1.5, // Level 3 - building
           baseFreq * 1.875, // Level 4
-          baseFreq * 2, // Level 5
+          baseFreq * 2, // Level 5 - more intense
           baseFreq * 2.25, // Level 6
-          baseFreq * 2.5, // Level 7
+          baseFreq * 2.5, // Level 7 - getting epic
           baseFreq * 2.75, // Level 8
-          baseFreq * 3, // Level 9
-          baseFreq * 3.5 // Level 10
+          baseFreq * 3, // Level 9 - very intense
+          baseFreq * 3.5 // Level 10 - maximum
         ];
         
-        osc.type = currentMusicLevel <= 3 ? 'sine' : (currentMusicLevel <= 6 ? 'triangle' : 'sawtooth');
+        // Change waveform for more electronic sound
+        if (currentMusicLevel <= 2) {
+          osc.type = 'sine'; // Calm ambient
+        } else if (currentMusicLevel <= 4) {
+          osc.type = 'triangle'; // Building energy
+        } else if (currentMusicLevel <= 7) {
+          osc.type = 'sawtooth'; // Electronic intense
+        } else {
+          osc.type = 'square'; // Maximum intensity
+        }
+        
         osc.frequency.value = frequencies[currentMusicLevel - 1];
         
+        // Add vibrato for electronic feel
+        const lfo = audioCtx.createOscillator();
+        const lfoGain = audioCtx.createGain();
+        lfo.frequency.value = 5; // 5 Hz vibrato
+        lfoGain.gain.value = currentMusicLevel * 2; // Increase with level
+        lfo.connect(lfoGain);
+        lfoGain.connect(osc.frequency);
+        lfo.start();
+        
         gain.gain.value = 0;
-        gain.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 1);
+        gain.gain.linearRampToValueAtTime(0.2 + currentMusicLevel * 0.02, audioCtx.currentTime + 1);
         
         osc.start();
-        musicOscillators.push({ osc, gain });
+        musicOscillators.push({ osc, gain, lfo });
+        
+        // Add bass layer for levels 5+
+        if (currentMusicLevel >= 5) {
+          const bass = audioCtx.createOscillator();
+          const bassGain = audioCtx.createGain();
+          bass.connect(bassGain);
+          bassGain.connect(musicGain);
+          bass.type = 'sawtooth';
+          bass.frequency.value = frequencies[currentMusicLevel - 1] / 2; // Octave lower
+          bassGain.gain.value = 0;
+          bassGain.gain.linearRampToValueAtTime(0.15, audioCtx.currentTime + 1);
+          bass.start();
+          musicOscillators.push({ osc: bass, gain: bassGain });
+        }
+        
+        // Add high frequency sparkle for levels 8+
+        if (currentMusicLevel >= 8) {
+          const sparkle = audioCtx.createOscillator();
+          const sparkleGain = audioCtx.createGain();
+          sparkle.connect(sparkleGain);
+          sparkleGain.connect(musicGain);
+          sparkle.type = 'sine';
+          sparkle.frequency.value = frequencies[currentMusicLevel - 1] * 4; // Two octaves higher
+          sparkleGain.gain.value = 0;
+          sparkleGain.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 1);
+          sparkle.start();
+          musicOscillators.push({ osc: sparkle, gain: sparkleGain });
+        }
       }
     }
     
@@ -474,6 +523,28 @@
         
         // Update background music
         updateBackgroundMusic();
+      } else if (type === 'splash') {
+        // Water splash sound
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, now);
+        osc.frequency.exponentialRampToValueAtTime(100, now + 0.2);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+        osc.start(now);
+        osc.stop(now + 0.2);
+        
+        // Add bubbles layer
+        const osc2 = audioCtx.createOscillator();
+        const gain2 = audioCtx.createGain();
+        osc2.connect(gain2);
+        gain2.connect(audioCtx.destination);
+        osc2.type = 'triangle';
+        osc2.frequency.setValueAtTime(1500, now);
+        osc2.frequency.exponentialRampToValueAtTime(500, now + 0.15);
+        gain2.gain.setValueAtTime(0.15, now);
+        gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        osc2.start(now);
+        osc2.stop(now + 0.15);
       } else if (type === 'collect') {
         osc.type = 'sine';
         osc.frequency.setValueAtTime(1200, now);
@@ -1318,66 +1389,42 @@
       cabin.position.set(-20, 2.5, -20);
       cabin.castShadow = true;
       scene.add(cabin);
-      
-      // Farm Barn
-      const barnGroup = new THREE.Group();
-      barnGroup.position.set(-60, 0, 20);
-      
-      // Barn base
-      const barnBase = new THREE.Mesh(
-        new THREE.BoxGeometry(10, 8, 12),
-        new THREE.MeshToonMaterial({ color: 0x8B0000 }) // Dark red
-      );
-      barnBase.position.y = 4;
-      barnBase.castShadow = true;
-      barnGroup.add(barnBase);
-      
-      // Barn roof
-      const roofGeo = new THREE.ConeGeometry(8, 4, 4);
-      const roofMat = new THREE.MeshToonMaterial({ color: 0x4a4a4a });
-      const roof = new THREE.Mesh(roofGeo, roofMat);
-      roof.position.y = 10;
-      roof.rotation.y = Math.PI / 4;
-      roof.castShadow = true;
-      barnGroup.add(roof);
-      
-      // Barn door
-      const door = new THREE.Mesh(
-        new THREE.BoxGeometry(3, 4, 0.2),
-        new THREE.MeshToonMaterial({ color: 0x3a2a1a })
-      );
-      door.position.set(0, 2, 6.1);
-      barnGroup.add(door);
-      
-      scene.add(barnGroup);
-      
-      // Second smaller barn
-      const barn2Group = new THREE.Group();
-      barn2Group.position.set(50, 0, -40);
-      
-      const barn2Base = new THREE.Mesh(
-        new THREE.BoxGeometry(8, 6, 8),
-        new THREE.MeshToonMaterial({ color: 0xA0522D }) // Sienna
-      );
-      barn2Base.position.y = 3;
-      barn2Base.castShadow = true;
-      barn2Group.add(barn2Base);
-      
-      const roof2 = new THREE.Mesh(roofGeo, roofMat);
-      roof2.position.y = 7;
-      roof2.rotation.y = Math.PI / 4;
-      roof2.scale.set(0.7, 0.7, 0.7);
-      roof2.castShadow = true;
-      barn2Group.add(roof2);
-      
-      scene.add(barn2Group);
 
-      // Windmill
+      // Windmill with improvements
       const wmGroup = new THREE.Group();
       wmGroup.position.set(40, 0, 40);
       const wmBase = new THREE.Mesh(new THREE.CylinderGeometry(2, 3, 8, 8), new THREE.MeshToonMaterial({color: 0xD2B48C})); // Beige
       wmBase.position.y = 4;
       wmGroup.add(wmBase);
+      
+      // Add door to windmill
+      const wmDoor = new THREE.Mesh(
+        new THREE.BoxGeometry(1.5, 3, 0.3),
+        new THREE.MeshToonMaterial({color: 0x3a2a1a})
+      );
+      wmDoor.position.set(0, 1.5, 2.8);
+      wmGroup.add(wmDoor);
+      
+      // Add light on windmill (glowing sphere)
+      const wmLight = new THREE.Mesh(
+        new THREE.SphereGeometry(0.3, 16, 16),
+        new THREE.MeshBasicMaterial({color: 0xFFFF00})
+      );
+      wmLight.position.set(0, 9, 0);
+      wmGroup.add(wmLight);
+      
+      // Add ground light circle
+      const groundLightGeo = new THREE.CircleGeometry(5, 32);
+      const groundLightMat = new THREE.MeshBasicMaterial({
+        color: 0xFFFFAA,
+        transparent: true,
+        opacity: 0.2
+      });
+      const groundLight = new THREE.Mesh(groundLightGeo, groundLightMat);
+      groundLight.rotation.x = -Math.PI/2;
+      groundLight.position.set(40, 0.05, 40);
+      scene.add(groundLight);
+      
       const wmBlades = new THREE.Mesh(new THREE.BoxGeometry(12, 1, 1), new THREE.MeshBasicMaterial({color: 0x8B4513})); // Brown
       wmBlades.position.set(0, 7, 2);
       wmGroup.add(wmBlades);
@@ -1387,7 +1434,7 @@
       scene.add(wmGroup);
       // Animate blades later? We can just rotate the group children in animate loop if we track it, but for now static is safer or add to update list.
       // Let's add a simple rotator script
-      wmGroup.userData = { isWindmill: true, blades: [wmBlades, wmBlades2], hp: 600, maxHp: 600, questActive: false };
+      wmGroup.userData = { isWindmill: true, blades: [wmBlades, wmBlades2], hp: 600, maxHp: 600, questActive: false, light: wmLight };
       scene.add(wmGroup);
       
       // Mine
@@ -1401,23 +1448,41 @@
       mineEnt.rotation.y = Math.PI;
       scene.add(mineEnt);
 
-      // Forest (Cones with better shadows)
+      // Forest (Various tree types with better shadows)
       const trunkGeo = new THREE.CylinderGeometry(0.5, 0.7, 2, 6);
       const trunkMat = new THREE.MeshToonMaterial({ color: 0x8B4513 });
       const leavesGeo = new THREE.ConeGeometry(2.5, 5, 8);
       const treeMat = new THREE.MeshToonMaterial({ color: COLORS.forest });
       
+      // Additional tree types
+      const leavesGeo2 = new THREE.SphereGeometry(2, 8, 8); // Round tree
+      const treeMat2 = new THREE.MeshToonMaterial({ color: 0x90EE90 }); // Light green
+      const leavesGeo3 = new THREE.ConeGeometry(2, 6, 6); // Tall pine
+      const treeMat3 = new THREE.MeshToonMaterial({ color: 0x228B22 }); // Forest green
+      
       // Shadow circle under trees
       const shadowGeo = new THREE.CircleGeometry(2, 16);
       const shadowMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.3 });
       
-      for (let i = 0; i < 50; i++) {
+      for (let i = 0; i < 120; i++) { // Increased from 50 to 120
         const group = new THREE.Group();
         const trunk = new THREE.Mesh(trunkGeo, trunkMat);
         trunk.position.y = 1;
         trunk.castShadow = true;
-        const leaves = new THREE.Mesh(leavesGeo, treeMat);
-        leaves.position.y = 4; // Raised canopy
+        
+        // Randomly choose tree type
+        const treeType = Math.floor(Math.random() * 3);
+        let leaves;
+        if (treeType === 0) {
+          leaves = new THREE.Mesh(leavesGeo, treeMat);
+          leaves.position.y = 4;
+        } else if (treeType === 1) {
+          leaves = new THREE.Mesh(leavesGeo2, treeMat2);
+          leaves.position.y = 3.5;
+        } else {
+          leaves = new THREE.Mesh(leavesGeo3, treeMat3);
+          leaves.position.y = 5;
+        }
         leaves.castShadow = true;
         
         // Add shadow
@@ -1429,12 +1494,75 @@
         group.add(leaves);
         group.add(shadow);
         
-        // Random pos in forest area (Top Left quadrant mostly)
-        const tx = (Math.random() * 80) - 90;
-        const tz = (Math.random() * 80) - 90;
+        // Random pos in forest area (Top Left quadrant mostly, but spread more)
+        const tx = (Math.random() * 100) - 90;
+        const tz = (Math.random() * 100) - 90;
         group.position.set(tx, 0, tz);
+        
+        // Also add some trees in other areas
+        if (i > 80) {
+          const tx2 = (Math.random() * 180) - 90;
+          const tz2 = (Math.random() * 180) - 90;
+          group.position.set(tx2, 0, tz2);
+        }
+        
         scene.add(group);
       }
+      
+      // Waterfall from cliff into lake
+      const waterfallGroup = new THREE.Group();
+      
+      // Cliff/rock formation
+      const cliffGeo = new THREE.BoxGeometry(8, 12, 6);
+      const cliffMat = new THREE.MeshToonMaterial({ color: 0x696969 }); // Dark gray
+      const cliff = new THREE.Mesh(cliffGeo, cliffMat);
+      cliff.position.set(30, 6, -45); // Above and behind the lake
+      cliff.castShadow = true;
+      waterfallGroup.add(cliff);
+      
+      // Waterfall - multiple planes to simulate water flow
+      const waterfallGeo = new THREE.PlaneGeometry(3, 12);
+      const waterfallMat = new THREE.MeshBasicMaterial({ 
+        color: 0x87CEEB, 
+        transparent: true, 
+        opacity: 0.6,
+        side: THREE.DoubleSide
+      });
+      
+      const waterfall = new THREE.Mesh(waterfallGeo, waterfallMat);
+      waterfall.position.set(30, 6, -39);
+      waterfall.rotation.x = -0.2; // Slight angle
+      waterfall.userData = { isWaterfall: true, phase: 0 };
+      waterfallGroup.add(waterfall);
+      
+      // Add flowing water particles
+      for(let i=0; i<5; i++) {
+        const dropGeo = new THREE.SphereGeometry(0.3, 8, 8);
+        const dropMat = new THREE.MeshBasicMaterial({ 
+          color: 0x4ECDC4, 
+          transparent: true, 
+          opacity: 0.7 
+        });
+        const drop = new THREE.Mesh(dropGeo, dropMat);
+        drop.position.set(30 + (Math.random()-0.5)*2, 12 - i*2, -39);
+        drop.userData = { isWaterDrop: true, speed: 0.1 + Math.random()*0.1, startY: 12 - i*2 };
+        waterfallGroup.add(drop);
+      }
+      
+      // Splash at bottom
+      const splashGeo = new THREE.CircleGeometry(2, 16);
+      const splashMat = new THREE.MeshBasicMaterial({ 
+        color: 0xFFFFFF, 
+        transparent: true, 
+        opacity: 0.4 
+      });
+      const splash = new THREE.Mesh(splashGeo, splashMat);
+      splash.rotation.x = -Math.PI/2;
+      splash.position.set(30, 0.1, -33);
+      splash.userData = { isSplash: true, phase: 0 };
+      waterfallGroup.add(splash);
+      
+      scene.add(waterfallGroup);
       
       // Scatter flowers around environment
       const flowerGeo = new THREE.ConeGeometry(0.2, 0.5, 6);
@@ -2094,6 +2222,7 @@
         card.className = 'upgrade-card';
         card.innerHTML = `<div class="upgrade-title">${u.title}</div><div class="upgrade-desc">${u.desc}</div>`;
         card.onclick = () => {
+          playSound('splash'); // Water splash sound when picking
           u.apply();
           modal.style.display = 'none';
           modal.querySelector('h2').innerText = 'LEVEL UP!';
@@ -2168,7 +2297,7 @@
     function createDamageNumber(amount, pos, isCrit = false) {
       const div = document.createElement('div');
       div.className = isCrit ? 'damage-number critical' : 'damage-number normal';
-      div.innerText = Math.floor(amount);
+      div.innerText = isCrit ? `CRITICAL!\n${Math.floor(amount)}` : Math.floor(amount);
       
       // Project 3D pos to 2D screen
       const vec = pos.clone();
@@ -2180,6 +2309,8 @@
       
       div.style.left = `${x}px`;
       div.style.top = `${y}px`;
+      div.style.whiteSpace = 'pre';
+      div.style.textAlign = 'center';
       
       document.body.appendChild(div);
       setTimeout(() => div.remove(), 1000);
@@ -2527,6 +2658,17 @@
             setTimeout(() => {
               projectiles.push(new Projectile(player.mesh.position.x, player.mesh.position.z, nearest.mesh.position));
               
+              // Muzzle flash light effect
+              const flashLight = new THREE.PointLight(0xFFFF00, 2, 10);
+              flashLight.position.copy(player.mesh.position);
+              flashLight.position.y += 1;
+              scene.add(flashLight);
+              
+              // Remove flash after short time
+              setTimeout(() => {
+                scene.remove(flashLight);
+              }, 50);
+              
               // Lightning effect from gun
               const lightning = new LightningBolt(
                 player.mesh.position.clone(),
@@ -2534,9 +2676,10 @@
               );
               particles.push(lightning);
               
-              // Muzzle flash particles
-              spawnParticles(player.mesh.position, 0x5DADE2, 3);
-              spawnParticles(player.mesh.position, 0xFFFFFF, 2);
+              // Muzzle flash particles (bright and intense)
+              spawnParticles(player.mesh.position, 0xFFFF00, 5);
+              spawnParticles(player.mesh.position, 0xFFFFFF, 3);
+              spawnParticles(player.mesh.position, 0xFFA500, 3);
             }, i * 100);
           }
           weapons.gun.lastShot = time;
@@ -2598,11 +2741,16 @@
       expGems.forEach(g => g.update(player.mesh.position));
       particles = particles.filter(p => p.update() !== false);
       
-      // Windmill Rotation
+      // Windmill Rotation and Light Animation
       scene.children.forEach(c => {
         if (c.userData.isWindmill) {
           c.children[1].rotation.z += 0.05;
           c.children[2].rotation.z += 0.05;
+          
+          // Animate windmill light (pulsing)
+          if (c.userData.light) {
+            c.userData.light.material.opacity = 0.8 + Math.sin(gameTime * 3) * 0.2;
+          }
         }
         // Water ripple animation
         if (c.userData.isWaterRipple) {
@@ -2610,6 +2758,26 @@
           const scale = 1 + Math.sin(c.userData.phase) * 0.1;
           c.scale.set(scale, 1, scale);
           c.material.opacity = 0.3 + Math.sin(c.userData.phase) * 0.2;
+        }
+      });
+      
+      // Waterfall animation
+      scene.traverse(obj => {
+        if (obj.userData.isWaterfall) {
+          obj.userData.phase += 0.05;
+          obj.material.opacity = 0.6 + Math.sin(obj.userData.phase) * 0.1;
+        }
+        if (obj.userData.isWaterDrop) {
+          obj.position.y -= obj.userData.speed;
+          if (obj.position.y < 0) {
+            obj.position.y = obj.userData.startY;
+          }
+        }
+        if (obj.userData.isSplash) {
+          obj.userData.phase += 0.1;
+          const scale = 1 + Math.sin(obj.userData.phase) * 0.3;
+          obj.scale.set(scale, 1, scale);
+          obj.material.opacity = 0.4 + Math.sin(obj.userData.phase) * 0.2;
         }
       });
 
