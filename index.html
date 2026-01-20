@@ -1152,8 +1152,13 @@
       gun: { active: true, level: 1, damage: 15, cooldown: 1000, lastShot: 0, range: 12, barrels: 1 },
       sword: { active: false, level: 0, damage: 30, cooldown: 1500, lastShot: 0, range: 3.5 },
       aura: { active: false, level: 0, damage: 5, cooldown: 500, lastShot: 0, range: 4 },
-      meteor: { active: false, level: 0, damage: 60, cooldown: 2500, lastShot: 0, area: 5 }
+      meteor: { active: false, level: 0, damage: 60, cooldown: 2500, lastShot: 0, area: 5 },
+      lightning: { active: false, level: 0, damage: 25, cooldown: 3000, lastShot: 0, targets: 4 },
+      doubleBarrel: { active: false, level: 0, damage: 25, cooldown: 1200, lastShot: 0, range: 12, spread: 0.3 }
     };
+
+    // Magnet range for XP collection
+    let magnetRange = 2; // Base range for XP magnet
 
     // Upgrade Config
     const UPGRADES = {
@@ -1227,6 +1232,20 @@
         this.highlight = new THREE.Mesh(highlightGeo, highlightMat);
         this.highlight.position.set(-0.2, 0.3, 0.2);
         this.mesh.add(this.highlight);
+        
+        // Aura Circle (visible when aura weapon is active)
+        const auraGeo = new THREE.RingGeometry(3.5, 4, 32);
+        const auraMat = new THREE.MeshBasicMaterial({ 
+          color: 0x5DADE2, 
+          transparent: true, 
+          opacity: 0.3,
+          side: THREE.DoubleSide
+        });
+        this.auraCircle = new THREE.Mesh(auraGeo, auraMat);
+        this.auraCircle.rotation.x = -Math.PI / 2; // Lay flat on ground
+        this.auraCircle.position.y = 0.1;
+        this.auraCircle.visible = false;
+        scene.add(this.auraCircle);
         
         // Physics/Visuals
         this.velocity = new THREE.Vector3(0, 0, 0);
@@ -1319,6 +1338,24 @@
         
         // Pulse highlight
         this.highlight.material.opacity = 0.6 + Math.sin(gameTime * 3) * 0.2;
+        
+        // Update aura circle
+        if (weapons.aura.active) {
+          this.auraCircle.visible = true;
+          this.auraCircle.position.x = this.mesh.position.x;
+          this.auraCircle.position.z = this.mesh.position.z;
+          
+          // Scale based on aura range
+          const scale = weapons.aura.range * 2;
+          this.auraCircle.geometry.dispose();
+          this.auraCircle.geometry = new THREE.RingGeometry(scale - 0.5, scale, 32);
+          
+          // Rotate and pulse
+          this.auraCircle.rotation.z += 0.02;
+          this.auraCircle.material.opacity = 0.25 + Math.sin(gameTime * 4) * 0.15;
+        } else {
+          this.auraCircle.visible = false;
+        }
 
         // Camera Follow
         camera.position.x = this.mesh.position.x;
@@ -2020,8 +2057,7 @@
         const dz = playerPos.z - this.mesh.position.z;
         const dist = Math.sqrt(dx*dx + dz*dz);
         
-        const magnetRange = 3.0;
-        if (dist < magnetRange) { // Magnet range
+        if (dist < magnetRange) { // Use magnetRange variable
           this.mesh.position.x += (dx / dist) * 0.3;
           this.mesh.position.z += (dz / dist) * 0.3;
           
@@ -3030,9 +3066,6 @@
       const killsNeeded = nextKills[Math.min(playerStats.lvl-1, nextKills.length-1)] || 25;
       playerStats.expReq = killsNeeded * GAME_CONFIG.expValue;
       
-      // Show small "LVL UP!" text floating up from player BEFORE modal
-      createSmallFloatingText("LVL UP!", player.mesh.position);
-      
       // SLOW MOTION EFFECT - Time slows, sounds pitch down
       createSlowMotionEffect();
       
@@ -3040,12 +3073,12 @@
       setTimeout(() => {
         createLevelUpEffects();
         playSound('levelup');
-      }, 500);
+      }, 300);
       
-      // Show upgrade modal with dramatic entrance after effects
+      // Show upgrade modal with dramatic entrance after effects - FASTER
       setTimeout(() => {
         showUpgradeModal();
-      }, 2000);
+      }, 800);
     }
     
     function createSmallFloatingText(text, pos) {
@@ -3168,9 +3201,6 @@
         );
         particles.push(lightning);
       }
-      
-      // Animated "LEVEL UP!" text (large)
-      createFloatingText("LEVEL UP!", player.mesh.position);
       
       // Zoom effect
       const originalD = 20;
@@ -3424,6 +3454,7 @@
           apply: () => { 
             playerStats.atkSpeed += 0.1; 
             weapons.gun.cooldown *= 0.9; 
+            weapons.doubleBarrel.cooldown *= 0.9;
             showStatChange('+10% Attack Speed');
           } 
         },
@@ -3481,52 +3512,138 @@
             playerStats.critDmg += 0.2; 
             showStatChange('+20% Crit Damage');
           } 
+        },
+        { 
+          id: 'magnet', 
+          title: 'XP MAGNET', 
+          desc: 'Magnet Range +1', 
+          apply: () => { 
+            magnetRange += 1; 
+            showStatChange('+1 Magnet Range');
+          } 
+        },
+        { 
+          id: 'cooldown', 
+          title: 'COOLDOWN MASTER', 
+          desc: 'All Weapon CD -5%', 
+          apply: () => { 
+            weapons.gun.cooldown *= 0.95;
+            weapons.sword.cooldown *= 0.95;
+            weapons.aura.cooldown *= 0.95;
+            weapons.meteor.cooldown *= 0.95;
+            weapons.lightning.cooldown *= 0.95;
+            weapons.doubleBarrel.cooldown *= 0.95;
+            showStatChange('-5% All Weapon Cooldowns');
+          } 
         }
       ];
 
-      // Weapon Upgrades (Only if active)
-      if (weapons.gun.active) commonUpgrades.push({ 
-        id: 'gun_up', 
-        title: 'BIG BULLETS', 
-        desc: 'Gun Damage +5', 
-        apply: () => { 
-          weapons.gun.damage += 5; 
-          showStatChange('+5 Gun Damage');
-        } 
-      });
-      if (weapons.sword.active) commonUpgrades.push({ 
-        id: 'sword_up', 
-        title: 'SHARP EDGE', 
-        desc: 'Sword Damage +10', 
-        apply: () => { 
-          weapons.sword.damage += 10; 
-          showStatChange('+10 Sword Damage');
-        } 
-      });
-      if (weapons.aura.active) commonUpgrades.push({ 
-        id: 'aura_up', 
-        title: 'BIGGER AURA', 
-        desc: 'Aura Range +1', 
-        apply: () => { 
-          weapons.aura.range += 1; 
-          showStatChange('+1 Aura Range');
-        } 
-      });
-      if (weapons.meteor.active) commonUpgrades.push({ 
-        id: 'meteor_up', 
-        title: 'FASTER METEORS', 
-        desc: 'Meteor CD -0.5s', 
-        apply: () => { 
-          weapons.meteor.cooldown = Math.max(500, weapons.meteor.cooldown - 500); 
-          showStatChange('-0.5s Meteor Cooldown');
-        } 
-      });
-
       // --- SPECIAL LEVELS ---
       
-      // Levels 4, 8, 12, 16, 20: Weapon/Passive Choices
-      if ([4, 8, 12, 16, 20].includes(playerStats.lvl)) {
-        choices = commonUpgrades.sort(() => 0.5 - Math.random()).slice(0, 4);
+      // Levels 4, 9, 17: WEAPON UPGRADE LEVELS
+      if ([4, 9, 17].includes(playerStats.lvl)) {
+        modal.querySelector('h2').innerText = 'WEAPON UPGRADE!';
+        modal.querySelector('h2').style.fontSize = '36px';
+        
+        choices = [];
+        
+        // Offer weapon upgrades for active weapons
+        if (weapons.gun.active && weapons.gun.level < 4) {
+          const nextLevel = weapons.gun.level + 1;
+          choices.push({ 
+            id: 'gun_upgrade', 
+            title: `GUN Level ${nextLevel}`, 
+            desc: `Damage +10, Fire Rate +15%`, 
+            apply: () => { 
+              weapons.gun.level++;
+              weapons.gun.damage += 10;
+              weapons.gun.cooldown *= 0.85;
+              showStatChange(`Gun Level ${weapons.gun.level}`);
+            } 
+          });
+        }
+        
+        if (weapons.sword.active && weapons.sword.level < 4) {
+          const nextLevel = weapons.sword.level + 1;
+          choices.push({ 
+            id: 'sword_upgrade', 
+            title: `SWORD Level ${nextLevel}`, 
+            desc: `Damage +15, Range +0.5`, 
+            apply: () => { 
+              weapons.sword.level++;
+              weapons.sword.damage += 15;
+              weapons.sword.range += 0.5;
+              showStatChange(`Sword Level ${weapons.sword.level}`);
+            } 
+          });
+        }
+        
+        if (weapons.aura.active && weapons.aura.level < 4) {
+          const nextLevel = weapons.aura.level + 1;
+          choices.push({ 
+            id: 'aura_upgrade', 
+            title: `AURA Level ${nextLevel}`, 
+            desc: `Damage +3, Range +0.5`, 
+            apply: () => { 
+              weapons.aura.level++;
+              weapons.aura.damage += 3;
+              weapons.aura.range += 0.5;
+              showStatChange(`Aura Level ${weapons.aura.level}`);
+            } 
+          });
+        }
+        
+        if (weapons.meteor.active && weapons.meteor.level < 4) {
+          const nextLevel = weapons.meteor.level + 1;
+          choices.push({ 
+            id: 'meteor_upgrade', 
+            title: `METEOR Level ${nextLevel}`, 
+            desc: `Damage +20, Area +1`, 
+            apply: () => { 
+              weapons.meteor.level++;
+              weapons.meteor.damage += 20;
+              weapons.meteor.area += 1;
+              showStatChange(`Meteor Level ${weapons.meteor.level}`);
+            } 
+          });
+        }
+        
+        if (weapons.lightning.active && weapons.lightning.level < 4) {
+          const nextLevel = weapons.lightning.level + 1;
+          const targetIncrease = nextLevel === 2 ? 3 : (nextLevel === 3 ? 2 : 1);
+          choices.push({ 
+            id: 'lightning_upgrade', 
+            title: `LIGHTNING Level ${nextLevel}`, 
+            desc: `Damage +10, Targets +${targetIncrease}`, 
+            apply: () => { 
+              weapons.lightning.level++;
+              weapons.lightning.damage += 10;
+              weapons.lightning.targets += targetIncrease;
+              showStatChange(`Lightning Level ${weapons.lightning.level}`);
+            } 
+          });
+        }
+        
+        if (weapons.doubleBarrel.active && weapons.doubleBarrel.level < 4) {
+          const nextLevel = weapons.doubleBarrel.level + 1;
+          choices.push({ 
+            id: 'doublebarrel_upgrade', 
+            title: `DOUBLE BARREL Level ${nextLevel}`, 
+            desc: `Damage +12, Fire Rate +10%`, 
+            apply: () => { 
+              weapons.doubleBarrel.level++;
+              weapons.doubleBarrel.damage += 12;
+              weapons.doubleBarrel.cooldown *= 0.9;
+              showStatChange(`Double Barrel Level ${weapons.doubleBarrel.level}`);
+            } 
+          });
+        }
+        
+        // Add some stat upgrades too
+        choices.push(...commonUpgrades.sort(() => 0.5 - Math.random()).slice(0, 2));
+        
+        // Shuffle and limit to 3 choices
+        choices = choices.sort(() => 0.5 - Math.random()).slice(0, 3);
       }
       // Level 5: Choose Secondary Weapon
       else if (playerStats.lvl === 5) {
@@ -3536,7 +3653,8 @@
             title: 'SLASHY SLASH', 
             desc: 'Slash enemies in front', 
             apply: () => { 
-              weapons.sword.active = true; 
+              weapons.sword.active = true;
+              weapons.sword.level = 1;
               showStatChange('New Weapon: Sword');
             } 
           },
@@ -3545,7 +3663,8 @@
             title: 'ZAP ZONE', 
             desc: 'Damage aura around you', 
             apply: () => { 
-              weapons.aura.active = true; 
+              weapons.aura.active = true;
+              weapons.aura.level = 1;
               showStatChange('New Weapon: Aura');
             } 
           },
@@ -3554,8 +3673,29 @@
             title: 'SPACE ROCKS', 
             desc: 'Call meteors from sky', 
             apply: () => { 
-              weapons.meteor.active = true; 
+              weapons.meteor.active = true;
+              weapons.meteor.level = 1;
               showStatChange('New Weapon: Meteor');
+            } 
+          },
+          { 
+            id: 'lightning', 
+            title: 'LIGHTNING STRIKES', 
+            desc: 'Random lightning hits 4 enemies', 
+            apply: () => { 
+              weapons.lightning.active = true;
+              weapons.lightning.level = 1;
+              showStatChange('New Weapon: Lightning');
+            } 
+          },
+          { 
+            id: 'doublebarrel', 
+            title: 'DOUBLE BARREL', 
+            desc: 'Powerful shotgun spread', 
+            apply: () => { 
+              weapons.doubleBarrel.active = true;
+              weapons.doubleBarrel.level = 1;
+              showStatChange('New Weapon: Double Barrel');
             } 
           }
         ];
@@ -4290,6 +4430,107 @@ Total Gold Earned: ${saveData.totalGoldEarned}
         
         meteors.push(new Meteor(targetX, targetZ));
         weapons.meteor.lastShot = time;
+      }
+
+      // 5. LIGHTNING STRIKES
+      if (weapons.lightning.active && time - weapons.lightning.lastShot > weapons.lightning.cooldown) {
+        // Hit random enemies
+        const targets = [];
+        const aliveEnemies = enemies.filter(e => !e.isDead);
+        
+        // Select random enemies up to target count
+        const targetCount = Math.min(weapons.lightning.targets, aliveEnemies.length);
+        const shuffled = [...aliveEnemies].sort(() => 0.5 - Math.random());
+        
+        for(let i = 0; i < targetCount; i++) {
+          const enemy = shuffled[i];
+          targets.push(enemy);
+          
+          // Create lightning bolt from sky
+          const lightning = new LightningBolt(
+            new THREE.Vector3(enemy.mesh.position.x, 15, enemy.mesh.position.z),
+            enemy.mesh.position.clone()
+          );
+          particles.push(lightning);
+          
+          // Flash effect
+          const flashLight = new THREE.PointLight(0x5DADE2, 3, 15);
+          flashLight.position.copy(enemy.mesh.position);
+          flashLight.position.y += 2;
+          scene.add(flashLight);
+          setTimeout(() => scene.remove(flashLight), 100);
+          
+          // Damage enemy
+          const dmg = weapons.lightning.damage * playerStats.strength;
+          const isCrit = Math.random() < playerStats.critChance;
+          const finalDmg = isCrit ? dmg * playerStats.critDmg : dmg;
+          enemy.takeDamage(finalDmg);
+          createDamageNumber(finalDmg, enemy.mesh.position, isCrit);
+          
+          // Particles
+          spawnParticles(enemy.mesh.position, 0x5DADE2, 10);
+        }
+        
+        weapons.lightning.lastShot = time;
+        if (targets.length > 0) {
+          playSound('shoot');
+        }
+      }
+
+      // 6. DOUBLE BARREL
+      if (weapons.doubleBarrel.active && time - weapons.doubleBarrel.lastShot > weapons.doubleBarrel.cooldown) {
+        // Find nearest enemy
+        let nearest = null;
+        let minDst = Infinity;
+        
+        for (let e of enemies) {
+          if (e.isDead) continue;
+          const d = player.mesh.position.distanceTo(e.mesh.position);
+          if (d < weapons.doubleBarrel.range && d < minDst) {
+            minDst = d;
+            nearest = e;
+          }
+        }
+
+        if (nearest) {
+          // Fire two shots with spread
+          const baseDir = new THREE.Vector3(
+            nearest.mesh.position.x - player.mesh.position.x,
+            0,
+            nearest.mesh.position.z - player.mesh.position.z
+          ).normalize();
+          
+          // Left barrel
+          const leftAngle = Math.atan2(baseDir.z, baseDir.x) - weapons.doubleBarrel.spread;
+          const leftTarget = new THREE.Vector3(
+            player.mesh.position.x + Math.cos(leftAngle) * weapons.doubleBarrel.range,
+            0,
+            player.mesh.position.z + Math.sin(leftAngle) * weapons.doubleBarrel.range
+          );
+          projectiles.push(new Projectile(player.mesh.position.x, player.mesh.position.z, leftTarget));
+          
+          // Right barrel
+          const rightAngle = Math.atan2(baseDir.z, baseDir.x) + weapons.doubleBarrel.spread;
+          const rightTarget = new THREE.Vector3(
+            player.mesh.position.x + Math.cos(rightAngle) * weapons.doubleBarrel.range,
+            0,
+            player.mesh.position.z + Math.sin(rightAngle) * weapons.doubleBarrel.range
+          );
+          projectiles.push(new Projectile(player.mesh.position.x, player.mesh.position.z, rightTarget));
+          
+          // Effects
+          const flashLight = new THREE.PointLight(0xFFFF00, 3, 12);
+          flashLight.position.copy(player.mesh.position);
+          flashLight.position.y += 1;
+          scene.add(flashLight);
+          setTimeout(() => scene.remove(flashLight), 80);
+          
+          spawnParticles(player.mesh.position, 0xFFFF00, 8);
+          spawnParticles(player.mesh.position, 0xFFFFFF, 5);
+          
+          weapons.doubleBarrel.lastShot = time;
+          playSound('shoot');
+        }
       }
 
       // Entities Update
