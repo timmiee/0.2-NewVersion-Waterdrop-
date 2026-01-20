@@ -87,29 +87,37 @@
 
     .bar-container {
       width: 200px;
-      height: 20px;
-      background: rgba(0, 0, 0, 0.2);
-      border-radius: 10px;
-      border: 2px solid #fff;
+      height: 24px;
+      background: linear-gradient(to bottom, #3a3a3a 0%, #3a3a3a 50%, #6a6a6a 50%, #6a6a6a 100%);
+      border-radius: 12px;
+      border: 3px solid #2a2a2a;
       overflow: hidden;
       position: relative;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      box-shadow: 0 3px 8px rgba(0,0,0,0.3), inset 0 2px 4px rgba(0,0,0,0.2);
     }
 
     .bar-fill {
       height: 100%;
       width: 100%;
-      transition: width 0.2s;
+      transition: width 0.3s ease-out;
+      box-shadow: inset 0 2px 4px rgba(255,255,255,0.2);
     }
 
-    #hp-bar .bar-fill { background: #FF4444; width: 100%; }
-    #exp-bar .bar-fill { background: #3366FF; width: 0%; }
+    #hp-bar .bar-fill { 
+      background: linear-gradient(to bottom, #FF4444, #CC0000);
+      width: 100%;
+    }
+    #exp-bar .bar-fill { 
+      background: linear-gradient(to bottom, #5DADE2, #3498DB);
+      width: 0%;
+    }
 
     .stat-text {
-      color: #5A3A31;
+      color: #8B4513;
       font-weight: bold;
-      text-shadow: 1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.5), -1px -1px 1px rgba(255,255,255,0.3);
       font-size: 14px;
+      margin-top: 4px;
     }
 
     /* Joystick */
@@ -141,29 +149,36 @@
     }
 
     .modal-content {
-      background: #3a3a3a;
-      padding: 20px;
+      background: linear-gradient(to bottom, #4a4a4a, #3a3a3a);
+      padding: 25px;
       border-radius: 20px;
-      border: 4px solid #5A3A31;
+      border: 4px solid #2a2a2a;
       width: 80%;
       max-width: 400px;
       text-align: center;
-      box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+      box-shadow: 0 15px 30px rgba(0,0,0,0.5);
     }
 
     h2 {
-      color: #8B5A3C;
+      color: #5DADE2;
       margin-top: 0;
+      font-size: 32px;
+      text-shadow: 0 0 10px rgba(93,173,226,0.5), 0 0 20px rgba(93,173,226,0.3);
     }
 
     .upgrade-card {
-      background: #4a4a4a;
+      background: linear-gradient(to bottom, #5a5a5a, #4a4a4a);
       margin: 10px 0;
       padding: 15px;
       border-radius: 15px;
-      border: 2px solid #5A3A31;
+      border: 3px solid #2a2a2a;
       cursor: pointer;
-      transition: transform 0.1s;
+      transition: transform 0.1s, box-shadow 0.1s;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+
+    .upgrade-card:hover {
+      box-shadow: 0 6px 12px rgba(93,173,226,0.3);
     }
 
     .upgrade-card:active {
@@ -172,8 +187,9 @@
 
     .upgrade-title {
       font-weight: bold;
-      color: #8B5A3C;
+      color: #8B4513;
       font-size: 18px;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
     }
 
     .upgrade-desc {
@@ -184,17 +200,26 @@
     /* Damage Numbers */
     .damage-number {
       position: absolute;
-      color: #fff;
       font-weight: bold;
-      font-size: 20px;
+      font-size: 24px;
       pointer-events: none;
-      text-shadow: 0 0 3px #FF0000;
       animation: floatUp 1s forwards;
+    }
+    
+    .damage-number.critical {
+      color: #8B4513;
+      text-shadow: 0 0 5px #FF0000, 0 0 10px #8B0000;
+      font-size: 32px;
+    }
+    
+    .damage-number.normal {
+      color: #E0E0E0;
+      text-shadow: 0 0 3px rgba(0,0,0,0.8);
     }
 
     @keyframes floatUp {
       0% { transform: translateY(0) scale(1); opacity: 1; }
-      100% { transform: translateY(-50px) scale(1.5); opacity: 0; }
+      100% { transform: translateY(-60px) scale(1.3); opacity: 0; }
     }
 
     /* Game Over Screen */
@@ -259,11 +284,11 @@
       </div>
       <div class="stat-text" id="hp-text">HP: 100/100</div>
       
-      <div class="bar-container" id="exp-bar-container" style="border-color: #3366FF;">
+      <div class="bar-container" id="exp-bar-container" style="border-color: #2a2a2a;">
         <div class="bar-fill" id="exp-fill"></div>
       </div>
-      <div class="stat-text" id="lvl-text" style="color: #3366FF;">LVL: 1</div>
-      <div class="stat-text" id="score-text" style="color: #5A3A31;">KILLS: 0</div>
+      <div class="stat-text" id="lvl-text" style="color: #5DADE2;">LVL: 1</div>
+      <div class="stat-text" id="score-text" style="color: #8B4513;">KILLS: 0</div>
       
       <!-- Windmill Quest UI -->
       <div id="windmill-quest-ui" style="display: none; margin-top: 10px;">
@@ -331,7 +356,7 @@
       lake: 0x1E90FF, // Dodger Blue (More water-like)
       cabin: 0xDEB887, // Burlywood
       farmland: 0xF0E68C, // Khaki
-      exp: 0x00FFFF, // Cyan
+      exp: 0x5DADE2, // Light Blue (Matching EXP bar)
     };
 
     const GAME_CONFIG = {
@@ -530,34 +555,71 @@
 
     class Player {
       constructor() {
-        const geometry = new THREE.SphereGeometry(0.5, 16, 16);
-        const material = new THREE.MeshToonMaterial({ 
+        // Create water droplet shape (teardrop)
+        const geometry = new THREE.SphereGeometry(0.5, 32, 32);
+        
+        // Modify geometry to make it more teardrop-shaped
+        const positions = geometry.attributes.position;
+        for (let i = 0; i < positions.count; i++) {
+          const y = positions.getY(i);
+          const x = positions.getX(i);
+          const z = positions.getZ(i);
+          
+          // Stretch top to make teardrop
+          if (y > 0) {
+            positions.setY(i, y * 1.2);
+            const squeeze = 1 - (y / 0.5) * 0.3;
+            positions.setX(i, x * squeeze);
+            positions.setZ(i, z * squeeze);
+          }
+        }
+        geometry.computeVertexNormals();
+        
+        const material = new THREE.MeshPhysicalMaterial({ 
           color: COLORS.player,
           transparent: true,
-          opacity: 0.85,
-          emissive: 0x2288BB,
-          emissiveIntensity: 0.2
+          opacity: 0.75,
+          metalness: 0.1,
+          roughness: 0.2,
+          transmission: 0.3,
+          thickness: 0.5,
+          envMapIntensity: 1,
+          clearcoat: 1,
+          clearcoatRoughness: 0.1
         });
+        
         this.mesh = new THREE.Mesh(geometry, material);
         this.mesh.position.y = 0.5;
         this.mesh.castShadow = true;
         scene.add(this.mesh);
         
-        // Add water shine effect
+        // Add water shine effect (multiple layers)
         const shineGeo = new THREE.SphereGeometry(0.52, 16, 16);
         const shineMat = new THREE.MeshBasicMaterial({ 
           color: 0xFFFFFF, 
           transparent: true, 
-          opacity: 0.2,
+          opacity: 0.25,
           side: THREE.BackSide
         });
         this.shine = new THREE.Mesh(shineGeo, shineMat);
         this.mesh.add(this.shine);
         
+        // Add reflection highlight
+        const highlightGeo = new THREE.SphereGeometry(0.15, 16, 16);
+        const highlightMat = new THREE.MeshBasicMaterial({ 
+          color: 0xFFFFFF, 
+          transparent: true, 
+          opacity: 0.8
+        });
+        this.highlight = new THREE.Mesh(highlightGeo, highlightMat);
+        this.highlight.position.set(-0.2, 0.3, 0.2);
+        this.mesh.add(this.highlight);
+        
         // Physics/Visuals
         this.velocity = new THREE.Vector3(0, 0, 0);
         this.targetScale = new THREE.Vector3(1, 1, 1);
         this.trailTimer = 0;
+        this.wobblePhase = 0;
         
         // Dash
         this.isDashing = false;
@@ -578,6 +640,7 @@
           // Splash effect trail during dash
           if (Math.random() < 0.5) {
             spawnParticles(this.mesh.position, COLORS.player, 2);
+            spawnWaterDroplet(this.mesh.position);
           }
           
           if (this.dashTime <= 0) {
@@ -598,7 +661,7 @@
 
           // Water droplet trail when moving
           this.trailTimer += dt;
-          if (this.trailTimer > 0.1) {
+          if (this.trailTimer > 0.15) {
             this.trailTimer = 0;
             spawnWaterDroplet(this.mesh.position);
           }
@@ -617,23 +680,30 @@
         }
         
         const speedMag = this.velocity.length();
-        // Stretch in Y when moving fast? No, flatten like a drop on ground
-        // Actually, cartoon drops stretch in direction of motion
-        // Let's do a wobble
-        const wobble = Math.sin(gameTime * 15) * speedMag * 2;
         
-        // Base squish based on speed
-        const stretch = 1 + (speedMag * 2);
-        const squash = 1 / Math.sqrt(stretch);
+        // Realistic water droplet physics
+        // Wobble increases with speed
+        this.wobblePhase += dt * (8 + speedMag * 30);
+        const wobble = Math.sin(this.wobblePhase) * (0.05 + speedMag * 0.15);
         
-        // Apply to mesh (local axis)
-        // We want to stretch along Z (forward) if we rotated mesh
-        // But we rotated mesh Y. So Z is forward.
-        this.mesh.scale.set(squash, squash - wobble*0.2, stretch + wobble*0.2);
+        // Squish effect: stretch in direction of movement
+        const stretchX = 1 + Math.abs(this.velocity.x) * 1.5;
+        const stretchZ = 1 + Math.abs(this.velocity.z) * 1.5;
+        const squishY = 1 / Math.sqrt(stretchX * stretchZ);
+        
+        // Apply deformation with wobble
+        this.mesh.scale.set(
+          stretchX * (1 + wobble * 0.3),
+          squishY * (1 - wobble * 0.2),
+          stretchZ * (1 + wobble * 0.3)
+        );
         
         // Animate water shine
         this.shine.rotation.y += 0.05;
         this.shine.rotation.x += 0.03;
+        
+        // Pulse highlight
+        this.highlight.material.opacity = 0.6 + Math.sin(gameTime * 3) * 0.2;
 
         // Camera Follow
         camera.position.x = this.mesh.position.x;
@@ -651,7 +721,10 @@
         this.dashTime = this.dashDuration;
         
         // Splash effect on dash start
-        spawnParticles(this.mesh.position, COLORS.player, 8);
+        spawnParticles(this.mesh.position, COLORS.player, 12);
+        for(let i=0; i<5; i++) {
+          spawnWaterDroplet(this.mesh.position);
+        }
         
         // Convert Screen Swipe (dx, dy) to Isometric World Direction
         // Screen Right (dx+) -> World (-1, 0, 1)
@@ -676,8 +749,45 @@
           this.mesh.material.color.setHex(COLORS.player);
         }, 100);
         
-        // Drop water particles
-        spawnParticles(this.mesh.position, COLORS.player, 5);
+        // Drop water particles and squishy deformation
+        spawnParticles(this.mesh.position, COLORS.player, 8);
+        for(let i=0; i<3; i++) {
+          spawnWaterDroplet(this.mesh.position);
+        }
+        
+        // Squishy deformation animation
+        this.mesh.scale.set(1.3, 0.7, 1.3);
+        setTimeout(() => {
+          this.mesh.scale.set(0.8, 1.2, 0.8);
+          setTimeout(() => {
+            this.mesh.scale.set(1, 1, 1);
+          }, 50);
+        }, 50);
+        
+        // Screen shake on damage
+        const originalCameraPos = { 
+          x: camera.position.x, 
+          y: camera.position.y, 
+          z: camera.position.z 
+        };
+        let shakeTime = 0;
+        const shakeDuration = 0.2;
+        
+        const shakeAnim = () => {
+          shakeTime += 0.016;
+          if (shakeTime < shakeDuration) {
+            const intensity = (1 - shakeTime / shakeDuration) * 0.5;
+            camera.position.x = originalCameraPos.x + (Math.random() - 0.5) * intensity;
+            camera.position.y = originalCameraPos.y + (Math.random() - 0.5) * intensity;
+            camera.position.z = originalCameraPos.z + (Math.random() - 0.5) * intensity;
+            requestAnimationFrame(shakeAnim);
+          } else {
+            camera.position.x = originalCameraPos.x;
+            camera.position.y = originalCameraPos.y;
+            camera.position.z = originalCameraPos.z;
+          }
+        };
+        shakeAnim();
 
         if (playerStats.hp <= 0) {
           gameOver();
@@ -797,16 +907,30 @@
         }
       }
 
-      takeDamage(amount) {
+      takeDamage(amount, isCrit = false) {
         this.hp -= amount;
-        createDamageNumber(amount, this.mesh.position);
+        createDamageNumber(amount, this.mesh.position, isCrit);
         
         // Flash
         const oldColor = this.mesh.material.color.getHex();
         this.mesh.material.color.setHex(0xFFFFFF);
         
-        // Blood/Stain particles
-        spawnParticles(this.mesh.position, 0x880000, 3);
+        // Enhanced blood/stain particles based on critical hit
+        const particleCount = isCrit ? 8 : 3;
+        spawnParticles(this.mesh.position, 0x880000, particleCount);
+        
+        // Additional impact particles
+        if (isCrit) {
+          spawnParticles(this.mesh.position, 0xFF0000, 5);
+          spawnParticles(this.mesh.position, 0xFFFFFF, 3);
+        }
+        
+        // Enhanced squishy deformation on hit
+        const squishScale = isCrit ? 0.7 : 0.85;
+        this.mesh.scale.set(squishScale, 1.3, squishScale);
+        setTimeout(() => {
+          this.mesh.scale.set(1, 1, 1);
+        }, 100);
         
         setTimeout(() => this.mesh.material.color.setHex(oldColor), 50);
 
@@ -817,6 +941,12 @@
 
       die() {
         this.isDead = true;
+        
+        // Explosion effect on death
+        spawnParticles(this.mesh.position, this.mesh.material.color.getHex(), 15);
+        spawnParticles(this.mesh.position, 0x880000, 10);
+        spawnParticles(this.mesh.position, 0xFFFFFF, 5);
+        
         scene.remove(this.mesh);
         this.mesh.geometry.dispose();
         this.mesh.material.dispose();
@@ -872,7 +1002,7 @@
             const isCrit = Math.random() < playerStats.critChance;
             if (isCrit) dmg *= playerStats.critDmg;
             
-            enemy.takeDamage(Math.floor(dmg));
+            enemy.takeDamage(Math.floor(dmg), isCrit);
             
             // Knockback effect
             const knockbackForce = 0.5;
@@ -1188,6 +1318,59 @@
       cabin.position.set(-20, 2.5, -20);
       cabin.castShadow = true;
       scene.add(cabin);
+      
+      // Farm Barn
+      const barnGroup = new THREE.Group();
+      barnGroup.position.set(-60, 0, 20);
+      
+      // Barn base
+      const barnBase = new THREE.Mesh(
+        new THREE.BoxGeometry(10, 8, 12),
+        new THREE.MeshToonMaterial({ color: 0x8B0000 }) // Dark red
+      );
+      barnBase.position.y = 4;
+      barnBase.castShadow = true;
+      barnGroup.add(barnBase);
+      
+      // Barn roof
+      const roofGeo = new THREE.ConeGeometry(8, 4, 4);
+      const roofMat = new THREE.MeshToonMaterial({ color: 0x4a4a4a });
+      const roof = new THREE.Mesh(roofGeo, roofMat);
+      roof.position.y = 10;
+      roof.rotation.y = Math.PI / 4;
+      roof.castShadow = true;
+      barnGroup.add(roof);
+      
+      // Barn door
+      const door = new THREE.Mesh(
+        new THREE.BoxGeometry(3, 4, 0.2),
+        new THREE.MeshToonMaterial({ color: 0x3a2a1a })
+      );
+      door.position.set(0, 2, 6.1);
+      barnGroup.add(door);
+      
+      scene.add(barnGroup);
+      
+      // Second smaller barn
+      const barn2Group = new THREE.Group();
+      barn2Group.position.set(50, 0, -40);
+      
+      const barn2Base = new THREE.Mesh(
+        new THREE.BoxGeometry(8, 6, 8),
+        new THREE.MeshToonMaterial({ color: 0xA0522D }) // Sienna
+      );
+      barn2Base.position.y = 3;
+      barn2Base.castShadow = true;
+      barn2Group.add(barn2Base);
+      
+      const roof2 = new THREE.Mesh(roofGeo, roofMat);
+      roof2.position.y = 7;
+      roof2.rotation.y = Math.PI / 4;
+      roof2.scale.set(0.7, 0.7, 0.7);
+      roof2.castShadow = true;
+      barn2Group.add(roof2);
+      
+      scene.add(barn2Group);
 
       // Windmill
       const wmGroup = new THREE.Group();
@@ -1403,7 +1586,27 @@
     }
     
     function createLevelUpEffects() {
-      // Fountain/explosion of particles from player's head
+      // Fountain/explosion of "LEVEL UP" text particles from player's head
+      const texts = ["L", "E", "V", "E", "L", " ", "U", "P", "!"];
+      
+      for(let i=0; i<40; i++) {
+        const angle = (i / 40) * Math.PI * 2;
+        const speed = 0.15 + Math.random() * 0.35;
+        const text = texts[i % texts.length];
+        
+        const particle = new LevelUpTextParticle(
+          player.mesh.position.clone(),
+          new THREE.Vector3(
+            Math.cos(angle) * speed,
+            0.4 + Math.random() * 0.6,
+            Math.sin(angle) * speed
+          ),
+          text
+        );
+        particles.push(particle);
+      }
+      
+      // Add regular colored particles
       for(let i=0; i<30; i++) {
         const angle = (i / 30) * Math.PI * 2;
         const speed = 0.2 + Math.random() * 0.3;
@@ -1418,7 +1621,21 @@
         particles.push(particle);
       }
       
-      // Animated "LEVEL UP" text
+      // Lightning bolts
+      for(let i=0; i<8; i++) {
+        const angle = (i / 8) * Math.PI * 2;
+        const lightning = new LightningBolt(
+          player.mesh.position.clone(),
+          new THREE.Vector3(
+            Math.cos(angle) * 5,
+            8,
+            Math.sin(angle) * 5
+          )
+        );
+        particles.push(lightning);
+      }
+      
+      // Animated "LEVEL UP!" text (large)
       createFloatingText("LEVEL UP!", player.mesh.position);
       
       // Zoom effect
@@ -1446,7 +1663,118 @@
       };
       zoomAnim();
       
-      // Slow-motion effect (managed by time scale in game loop would be complex, skip for now)
+      // Screen shake
+      const originalCameraPos = camera.position.clone();
+      let shakeTime = 0;
+      const shakeDuration = 0.5;
+      
+      const shakeAnim = () => {
+        shakeTime += 0.016;
+        if (shakeTime < shakeDuration) {
+          const intensity = (1 - shakeTime / shakeDuration) * 2;
+          camera.position.x = originalCameraPos.x + (Math.random() - 0.5) * intensity;
+          camera.position.y = originalCameraPos.y + (Math.random() - 0.5) * intensity;
+          camera.position.z = originalCameraPos.z + (Math.random() - 0.5) * intensity;
+          requestAnimationFrame(shakeAnim);
+        } else {
+          camera.position.copy(originalCameraPos);
+        }
+      };
+      shakeAnim();
+    }
+    
+    class LevelUpTextParticle {
+      constructor(pos, vel, text) {
+        // Create sprite with text
+        const canvas = document.createElement('canvas');
+        canvas.width = 64;
+        canvas.height = 64;
+        const ctx = canvas.getContext('2d');
+        ctx.font = 'bold 48px Arial';
+        ctx.fillStyle = '#5DADE2';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = '#FFF';
+        ctx.shadowBlur = 10;
+        ctx.fillText(text, 32, 32);
+        
+        const texture = new THREE.CanvasTexture(canvas);
+        const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true });
+        this.mesh = new THREE.Sprite(spriteMat);
+        this.mesh.scale.set(0.5, 0.5, 0.5);
+        this.mesh.position.copy(pos);
+        this.mesh.position.y += 1;
+        this.vel = vel;
+        scene.add(this.mesh);
+        this.life = 80;
+        this.rotSpeed = (Math.random() - 0.5) * 0.2;
+      }
+      
+      update() {
+        this.life--;
+        this.mesh.position.add(this.vel);
+        this.vel.y -= 0.02; // Gravity
+        this.mesh.rotation.z += this.rotSpeed;
+        
+        // Fade out
+        this.mesh.material.opacity = this.life / 80;
+        
+        if (this.mesh.position.y < 0.1) {
+          this.mesh.position.y = 0.1;
+          this.vel.y *= -0.5; // Bounce
+          this.vel.x *= 0.7;
+          this.vel.z *= 0.7;
+        }
+        
+        if (this.life <= 0) {
+          scene.remove(this.mesh);
+          this.mesh.material.map.dispose();
+          this.mesh.material.dispose();
+          return false;
+        }
+        return true;
+      }
+    }
+    
+    class LightningBolt {
+      constructor(start, end) {
+        const points = [];
+        const segments = 8;
+        
+        for(let i=0; i<=segments; i++) {
+          const t = i / segments;
+          const x = start.x + (end.x - start.x) * t + (Math.random() - 0.5) * 1.5;
+          const y = start.y + (end.y - start.y) * t + (Math.random() - 0.5) * 1.5;
+          const z = start.z + (end.z - start.z) * t + (Math.random() - 0.5) * 1.5;
+          points.push(new THREE.Vector3(x, y, z));
+        }
+        
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        const material = new THREE.LineBasicMaterial({ 
+          color: 0x5DADE2, 
+          transparent: true, 
+          opacity: 1,
+          linewidth: 3
+        });
+        
+        this.mesh = new THREE.Line(geometry, material);
+        scene.add(this.mesh);
+        this.life = 20;
+        this.maxLife = 20;
+      }
+      
+      update() {
+        this.life--;
+        this.mesh.material.opacity = this.life / this.maxLife;
+        
+        if (this.life <= 0) {
+          scene.remove(this.mesh);
+          this.mesh.geometry.dispose();
+          this.mesh.material.dispose();
+          return false;
+        }
+        return true;
+      }
     }
     
     class LevelUpParticle {
@@ -1488,10 +1816,10 @@
     function createFloatingText(text, pos) {
       const div = document.createElement('div');
       div.style.position = 'absolute';
-      div.style.color = '#FFD700';
+      div.style.color = '#5DADE2';
       div.style.fontSize = '48px';
       div.style.fontWeight = 'bold';
-      div.style.textShadow = '2px 2px 4px #000';
+      div.style.textShadow = '0 0 15px rgba(93,173,226,0.8), 0 0 30px rgba(93,173,226,0.5), 2px 2px 4px #000';
       div.style.pointerEvents = 'none';
       div.style.zIndex = '100';
       div.innerText = text;
@@ -1545,37 +1873,215 @@
 
       // --- POOL OF UPGRADES ---
       const commonUpgrades = [
-        { id: 'str', title: 'STRENGTH', desc: 'Damage +10%', apply: () => { playerStats.strength += 0.1; } },
-        { id: 'aspd', title: 'HASTE', desc: 'Atk Speed +10%', apply: () => { playerStats.atkSpeed += 0.1; weapons.gun.cooldown *= 0.9; } },
-        { id: 'armor', title: 'ARMOR', desc: 'Damage Taken -10%', apply: () => { playerStats.armor = Math.min(80, playerStats.armor + 10); } },
-        { id: 'hp', title: 'VITALITY', desc: 'Max HP +20', apply: () => { playerStats.maxHp += 20; playerStats.hp += 20; } },
-        { id: 'crit', title: 'CRITICAL', desc: 'Crit Chance +5%', apply: () => { playerStats.critChance += 0.05; } },
-        { id: 'regen', title: 'REGENERATION', desc: 'HP Regen +1/sec', apply: () => { playerStats.hpRegen += 1; } },
-        { id: 'speed', title: 'AGILITY', desc: 'Move Speed +10%', apply: () => { playerStats.walkSpeed += 2.5; } }
+        { 
+          id: 'str', 
+          title: 'MUSCLE JUICE', 
+          desc: 'Damage +10%', 
+          apply: () => { 
+            playerStats.strength += 0.1; 
+            showStatChange('+10% Damage');
+          } 
+        },
+        { 
+          id: 'aspd', 
+          title: 'SPEEDY TRIGGER', 
+          desc: 'Atk Speed +10%', 
+          apply: () => { 
+            playerStats.atkSpeed += 0.1; 
+            weapons.gun.cooldown *= 0.9; 
+            showStatChange('+10% Attack Speed');
+          } 
+        },
+        { 
+          id: 'armor', 
+          title: 'THICC ARMOR', 
+          desc: 'Damage Taken -10%', 
+          apply: () => { 
+            playerStats.armor = Math.min(80, playerStats.armor + 10); 
+            showStatChange('+10% Armor');
+          } 
+        },
+        { 
+          id: 'hp', 
+          title: 'CHONKY BODY', 
+          desc: 'Max HP +20', 
+          apply: () => { 
+            playerStats.maxHp += 20; 
+            playerStats.hp += 20; 
+            showStatChange('+20 Max HP');
+          } 
+        },
+        { 
+          id: 'crit', 
+          title: 'CRIT MACHINE', 
+          desc: 'Crit Chance +5%', 
+          apply: () => { 
+            playerStats.critChance += 0.05; 
+            showStatChange('+5% Crit Chance');
+          } 
+        },
+        { 
+          id: 'regen', 
+          title: 'HEALING VIBES', 
+          desc: 'HP Regen +1/sec', 
+          apply: () => { 
+            playerStats.hpRegen += 1; 
+            showStatChange('+1 HP/sec Regen');
+          } 
+        },
+        { 
+          id: 'speed', 
+          title: 'SPEEDY BOI', 
+          desc: 'Move Speed +10%', 
+          apply: () => { 
+            playerStats.walkSpeed += 2.5; 
+            showStatChange('+10% Move Speed');
+          } 
+        },
+        { 
+          id: 'critdmg', 
+          title: 'GLASS CANNON', 
+          desc: 'Crit Damage +20%', 
+          apply: () => { 
+            playerStats.critDmg += 0.2; 
+            showStatChange('+20% Crit Damage');
+          } 
+        }
       ];
 
       // Weapon Upgrades (Only if active)
-      if (weapons.gun.active) commonUpgrades.push({ id: 'gun_up', title: 'GUN UPGRADE', desc: 'Damage +5', apply: () => { weapons.gun.damage += 5; } });
-      if (weapons.sword.active) commonUpgrades.push({ id: 'sword_up', title: 'SWORD UPGRADE', desc: 'Damage +10', apply: () => { weapons.sword.damage += 10; } });
-      if (weapons.aura.active) commonUpgrades.push({ id: 'aura_up', title: 'AURA UPGRADE', desc: 'Range +1', apply: () => { weapons.aura.range += 1; } });
-      if (weapons.meteor.active) commonUpgrades.push({ id: 'meteor_up', title: 'METEOR UPGRADE', desc: 'Cooldown -0.5s', apply: () => { weapons.meteor.cooldown = Math.max(500, weapons.meteor.cooldown - 500); } });
+      if (weapons.gun.active) commonUpgrades.push({ 
+        id: 'gun_up', 
+        title: 'BIG BULLETS', 
+        desc: 'Gun Damage +5', 
+        apply: () => { 
+          weapons.gun.damage += 5; 
+          showStatChange('+5 Gun Damage');
+        } 
+      });
+      if (weapons.sword.active) commonUpgrades.push({ 
+        id: 'sword_up', 
+        title: 'SHARP EDGE', 
+        desc: 'Sword Damage +10', 
+        apply: () => { 
+          weapons.sword.damage += 10; 
+          showStatChange('+10 Sword Damage');
+        } 
+      });
+      if (weapons.aura.active) commonUpgrades.push({ 
+        id: 'aura_up', 
+        title: 'BIGGER AURA', 
+        desc: 'Aura Range +1', 
+        apply: () => { 
+          weapons.aura.range += 1; 
+          showStatChange('+1 Aura Range');
+        } 
+      });
+      if (weapons.meteor.active) commonUpgrades.push({ 
+        id: 'meteor_up', 
+        title: 'FASTER METEORS', 
+        desc: 'Meteor CD -0.5s', 
+        apply: () => { 
+          weapons.meteor.cooldown = Math.max(500, weapons.meteor.cooldown - 500); 
+          showStatChange('-0.5s Meteor Cooldown');
+        } 
+      });
 
       // --- SPECIAL LEVELS ---
       
-      // Level 5: Choose Secondary Weapon (Changed from Level 2)
-      if (playerStats.lvl === 5) {
+      // Levels 4, 8, 12, 16, 20: Weapon/Passive Choices
+      if ([4, 8, 12, 16, 20].includes(playerStats.lvl)) {
+        choices = commonUpgrades.sort(() => 0.5 - Math.random()).slice(0, 4);
+      }
+      // Level 5: Choose Secondary Weapon
+      else if (playerStats.lvl === 5) {
         choices = [
-          { id: 'sword', title: 'NEW: BLADE', desc: 'Slash enemies in front', apply: () => { weapons.sword.active = true; } },
-          { id: 'aura', title: 'NEW: ENERGY FIELD', desc: 'Damage aura around you', apply: () => { weapons.aura.active = true; } },
-          { id: 'meteor', title: 'NEW: METEOR', desc: 'Call meteors from sky', apply: () => { weapons.meteor.active = true; } }
+          { 
+            id: 'sword', 
+            title: 'SLASHY SLASH', 
+            desc: 'Slash enemies in front', 
+            apply: () => { 
+              weapons.sword.active = true; 
+              showStatChange('New Weapon: Sword');
+            } 
+          },
+          { 
+            id: 'aura', 
+            title: 'ZAP ZONE', 
+            desc: 'Damage aura around you', 
+            apply: () => { 
+              weapons.aura.active = true; 
+              showStatChange('New Weapon: Aura');
+            } 
+          },
+          { 
+            id: 'meteor', 
+            title: 'SPACE ROCKS', 
+            desc: 'Call meteors from sky', 
+            apply: () => { 
+              weapons.meteor.active = true; 
+              showStatChange('New Weapon: Meteor');
+            } 
+          }
         ];
       }
-      // Level 10: Major Upgrade (Skill + Weapon + Perk)
+      // Level 10: CLASS SELECTION
       else if (playerStats.lvl === 10) {
+        modal.querySelector('h2').innerText = 'CHOOSE YOUR CLASS';
+        modal.querySelector('h2').style.fontSize = '42px';
+        
         choices = [
-          { id: 'major_tank', title: 'TANK SET', desc: 'HP+50, Regen+2, Armor+20%', apply: () => { playerStats.maxHp+=50; playerStats.hp+=50; playerStats.hpRegen+=2; playerStats.armor+=20; } },
-          { id: 'major_dps', title: 'BERSERKER SET', desc: 'Str+30%, Crit+10%, Gun Dmg+10', apply: () => { playerStats.strength+=0.3; playerStats.critChance+=0.1; weapons.gun.damage+=10; } },
-          { id: 'major_mage', title: 'MAGE SET', desc: 'Aura Range+2, Meteor CD-1s, Exp+20%', apply: () => { weapons.aura.range+=2; weapons.meteor.cooldown-=1000; GAME_CONFIG.expValue+=2; } }
+          { 
+            id: 'class_tank', 
+            title: 'TANK', 
+            desc: 'HP+50, Regen+2, Armor+20%, Speed-15%', 
+            apply: () => { 
+              playerStats.maxHp+=50; 
+              playerStats.hp+=50; 
+              playerStats.hpRegen+=2; 
+              playerStats.armor+=20;
+              playerStats.walkSpeed *= 0.85;
+              showStatChange('Class: TANK');
+            } 
+          },
+          { 
+            id: 'class_berserker', 
+            title: 'BERSERKER', 
+            desc: 'Str+30%, Crit+10%, Attack Speed+20%, Armor-10%', 
+            apply: () => { 
+              playerStats.strength+=0.3; 
+              playerStats.critChance+=0.1; 
+              playerStats.atkSpeed+=0.2;
+              weapons.gun.cooldown *= 0.8;
+              playerStats.armor = Math.max(0, playerStats.armor-10);
+              showStatChange('Class: BERSERKER');
+            } 
+          },
+          { 
+            id: 'class_rogue', 
+            title: 'ROGUE', 
+            desc: 'Speed+25%, Crit+15%, Crit Dmg+30%, HP-20', 
+            apply: () => { 
+              playerStats.walkSpeed *= 1.25; 
+              playerStats.critChance+=0.15; 
+              playerStats.critDmg+=0.3;
+              playerStats.maxHp = Math.max(50, playerStats.maxHp-20);
+              playerStats.hp = Math.min(playerStats.hp, playerStats.maxHp);
+              showStatChange('Class: ROGUE');
+            } 
+          },
+          { 
+            id: 'class_mage', 
+            title: 'MAGE', 
+            desc: 'Aura Range+2, Meteor CD-1s, Regen+3, Move Speed+10%', 
+            apply: () => { 
+              weapons.aura.range+=2; 
+              weapons.meteor.cooldown = Math.max(500, weapons.meteor.cooldown-1000);
+              playerStats.hpRegen+=3;
+              playerStats.walkSpeed *= 1.1;
+              showStatChange('Class: MAGE');
+            } 
+          }
         ];
       } 
       else {
@@ -1590,6 +2096,8 @@
         card.onclick = () => {
           u.apply();
           modal.style.display = 'none';
+          modal.querySelector('h2').innerText = 'LEVEL UP!';
+          modal.querySelector('h2').style.fontSize = '32px';
           isPaused = false;
           updateHUD();
         };
@@ -1657,10 +2165,10 @@
       updateHUD();
     }
 
-    function createDamageNumber(amount, pos) {
+    function createDamageNumber(amount, pos, isCrit = false) {
       const div = document.createElement('div');
-      div.className = 'damage-number';
-      div.innerText = amount;
+      div.className = isCrit ? 'damage-number critical' : 'damage-number normal';
+      div.innerText = Math.floor(amount);
       
       // Project 3D pos to 2D screen
       const vec = pos.clone();
@@ -1675,6 +2183,41 @@
       
       document.body.appendChild(div);
       setTimeout(() => div.remove(), 1000);
+    }
+    
+    function showStatChange(text) {
+      const div = document.createElement('div');
+      div.style.position = 'fixed';
+      div.style.bottom = '100px';
+      div.style.left = '20px';
+      div.style.color = '#5DADE2';
+      div.style.fontSize = '20px';
+      div.style.fontWeight = 'bold';
+      div.style.textShadow = '0 0 10px rgba(93,173,226,0.8), 2px 2px 4px rgba(0,0,0,0.8)';
+      div.style.padding = '10px 15px';
+      div.style.background = 'rgba(30,30,30,0.8)';
+      div.style.borderRadius = '10px';
+      div.style.border = '2px solid #2a2a2a';
+      div.style.zIndex = '100';
+      div.innerText = text;
+      
+      document.body.appendChild(div);
+      
+      // Animate in
+      div.style.opacity = '0';
+      div.style.transform = 'translateY(20px)';
+      setTimeout(() => {
+        div.style.transition = 'all 0.3s ease-out';
+        div.style.opacity = '1';
+        div.style.transform = 'translateY(0)';
+      }, 10);
+      
+      // Remove after 2 seconds
+      setTimeout(() => {
+        div.style.opacity = '0';
+        div.style.transform = 'translateY(-20px)';
+        setTimeout(() => div.remove(), 300);
+      }, 2000);
     }
 
     function gameOver() {
@@ -1907,6 +2450,7 @@
 
       const dt = (time - lastTime) / 1000;
       lastTime = time;
+      gameTime = time / 1000; // Update game time in seconds
 
       if (isPaused || isGameOver || !isGameActive) return;
 
@@ -1982,6 +2526,17 @@
           for(let i=0; i<weapons.gun.barrels; i++) {
             setTimeout(() => {
               projectiles.push(new Projectile(player.mesh.position.x, player.mesh.position.z, nearest.mesh.position));
+              
+              // Lightning effect from gun
+              const lightning = new LightningBolt(
+                player.mesh.position.clone(),
+                nearest.mesh.position.clone()
+              );
+              particles.push(lightning);
+              
+              // Muzzle flash particles
+              spawnParticles(player.mesh.position, 0x5DADE2, 3);
+              spawnParticles(player.mesh.position, 0xFFFFFF, 2);
             }, i * 100);
           }
           weapons.gun.lastShot = time;
