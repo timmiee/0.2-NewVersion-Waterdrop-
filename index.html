@@ -763,6 +763,31 @@
             this.mesh.scale.set(1, 1, 1);
           }, 50);
         }, 50);
+        
+        // Screen shake on damage
+        const originalCameraPos = { 
+          x: camera.position.x, 
+          y: camera.position.y, 
+          z: camera.position.z 
+        };
+        let shakeTime = 0;
+        const shakeDuration = 0.2;
+        
+        const shakeAnim = () => {
+          shakeTime += 0.016;
+          if (shakeTime < shakeDuration) {
+            const intensity = (1 - shakeTime / shakeDuration) * 0.5;
+            camera.position.x = originalCameraPos.x + (Math.random() - 0.5) * intensity;
+            camera.position.y = originalCameraPos.y + (Math.random() - 0.5) * intensity;
+            camera.position.z = originalCameraPos.z + (Math.random() - 0.5) * intensity;
+            requestAnimationFrame(shakeAnim);
+          } else {
+            camera.position.x = originalCameraPos.x;
+            camera.position.y = originalCameraPos.y;
+            camera.position.z = originalCameraPos.z;
+          }
+        };
+        shakeAnim();
 
         if (playerStats.hp <= 0) {
           gameOver();
@@ -890,8 +915,22 @@
         const oldColor = this.mesh.material.color.getHex();
         this.mesh.material.color.setHex(0xFFFFFF);
         
-        // Blood/Stain particles
-        spawnParticles(this.mesh.position, 0x880000, 3);
+        // Enhanced blood/stain particles based on critical hit
+        const particleCount = isCrit ? 8 : 3;
+        spawnParticles(this.mesh.position, 0x880000, particleCount);
+        
+        // Additional impact particles
+        if (isCrit) {
+          spawnParticles(this.mesh.position, 0xFF0000, 5);
+          spawnParticles(this.mesh.position, 0xFFFFFF, 3);
+        }
+        
+        // Enhanced squishy deformation on hit
+        const squishScale = isCrit ? 0.7 : 0.85;
+        this.mesh.scale.set(squishScale, 1.3, squishScale);
+        setTimeout(() => {
+          this.mesh.scale.set(1, 1, 1);
+        }, 100);
         
         setTimeout(() => this.mesh.material.color.setHex(oldColor), 50);
 
@@ -902,6 +941,12 @@
 
       die() {
         this.isDead = true;
+        
+        // Explosion effect on death
+        spawnParticles(this.mesh.position, this.mesh.material.color.getHex(), 15);
+        spawnParticles(this.mesh.position, 0x880000, 10);
+        spawnParticles(this.mesh.position, 0xFFFFFF, 5);
+        
         scene.remove(this.mesh);
         this.mesh.geometry.dispose();
         this.mesh.material.dispose();
