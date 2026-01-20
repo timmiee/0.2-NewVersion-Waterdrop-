@@ -103,12 +103,12 @@
       box-shadow: inset 0 2px 4px rgba(255,255,255,0.2);
     }
 
-    #hp-bar .bar-fill { 
+    #hp-fill { 
       background: linear-gradient(to bottom, #FF4444, #CC0000);
       width: 100%;
       box-shadow: 0 0 10px rgba(255,68,68,0.8), 0 0 20px rgba(255,68,68,0.4), inset 0 2px 4px rgba(255,255,255,0.2);
     }
-    #exp-bar .bar-fill { 
+    #exp-fill { 
       background: linear-gradient(to bottom, #5DADE2, #3498DB);
       width: 0%;
       box-shadow: 0 0 10px rgba(93,173,226,0.8), 0 0 20px rgba(93,173,226,0.4), inset 0 2px 4px rgba(255,255,255,0.2);
@@ -2649,8 +2649,10 @@
       const x = (vec.x * .5 + .5) * window.innerWidth;
       const y = (-(vec.y * .5) + .5) * window.innerHeight;
       
+      div.style.position = 'absolute';
       div.style.left = `${x}px`;
       div.style.top = `${y}px`;
+      div.style.transform = 'translate(-50%, -50%)';
       div.style.whiteSpace = 'pre';
       div.style.textAlign = 'center';
       
