@@ -2284,24 +2284,19 @@
         this.wobblePhase += 0.1;
         this.mesh.position.y = 0.3 + Math.sin(this.wobblePhase) * 0.1;
         
-        // Magnet pull
+        // NO MAGNET - player must walk over gold to collect it
         const dx = playerPos.x - this.mesh.position.x;
         const dz = playerPos.z - this.mesh.position.z;
         const dist = Math.sqrt(dx*dx + dz*dz);
         
-        if (dist < this.magnetRange) {
-          this.vx += (dx / dist) * 0.01;
-          this.vz += (dz / dist) * 0.01;
-        }
-        
-        this.mesh.position.x += this.vx;
-        this.mesh.position.z += this.vz;
-        
-        // Collect
+        // Collect ONLY when player is very close
         if (dist < this.collectRange) {
           addGold(this.amount);
           this.destroy();
           playSound('coin');
+          
+          // Gold collect particles
+          spawnParticles(this.mesh.position, 0xFFD700, 15);
         }
       }
       
