@@ -102,11 +102,11 @@
       transition: width 0.2s;
     }
 
-    #hp-bar .bar-fill { background: #FF69B4; width: 100%; }
-    #exp-bar .bar-fill { background: #4ECDC4; width: 0%; }
+    #hp-bar .bar-fill { background: #FF4444; width: 100%; }
+    #exp-bar .bar-fill { background: #3366FF; width: 0%; }
 
     .stat-text {
-      color: #FF69B4;
+      color: #5A3A31;
       font-weight: bold;
       text-shadow: 1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff;
       font-size: 14px;
@@ -131,7 +131,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(255, 240, 245, 0.9);
+      background: rgba(40, 40, 40, 0.9);
       display: none; /* Flex when active */
       flex-direction: column;
       align-items: center;
@@ -141,27 +141,27 @@
     }
 
     .modal-content {
-      background: #fff;
+      background: #3a3a3a;
       padding: 20px;
       border-radius: 20px;
-      border: 4px solid #FF69B4;
+      border: 4px solid #5A3A31;
       width: 80%;
       max-width: 400px;
       text-align: center;
-      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.3);
     }
 
     h2 {
-      color: #FF69B4;
+      color: #8B5A3C;
       margin-top: 0;
     }
 
     .upgrade-card {
-      background: #E6E6FA;
+      background: #4a4a4a;
       margin: 10px 0;
       padding: 15px;
       border-radius: 15px;
-      border: 2px solid #9370DB;
+      border: 2px solid #5A3A31;
       cursor: pointer;
       transition: transform 0.1s;
     }
@@ -172,13 +172,13 @@
 
     .upgrade-title {
       font-weight: bold;
-      color: #9370DB;
+      color: #8B5A3C;
       font-size: 18px;
     }
 
     .upgrade-desc {
       font-size: 12px;
-      color: #555;
+      color: #bbb;
     }
 
     /* Damage Numbers */
@@ -215,7 +215,7 @@
     }
 
     .btn {
-      background: #FF69B4;
+      background: #5A3A31;
       color: white;
       border: none;
       padding: 15px 30px;
@@ -223,7 +223,7 @@
       border-radius: 50px;
       margin-top: 20px;
       font-weight: bold;
-      box-shadow: 0 4px 0 #C71585;
+      box-shadow: 0 4px 0 #3a2a21;
     }
     .btn:active {
       transform: translateY(4px);
@@ -231,14 +231,14 @@
     }
 
     .btn-small {
-      background: #4ECDC4;
+      background: #5A3A31;
       color: white;
       border: none;
       padding: 10px 20px;
       font-size: 16px;
       border-radius: 30px;
       font-weight: bold;
-      box-shadow: 0 3px 0 #2F4F4F;
+      box-shadow: 0 3px 0 #3a2a21;
       cursor: pointer;
     }
     .btn-small:active {
@@ -259,11 +259,20 @@
       </div>
       <div class="stat-text" id="hp-text">HP: 100/100</div>
       
-      <div class="bar-container" id="exp-bar-container" style="border-color: #4ECDC4;">
+      <div class="bar-container" id="exp-bar-container" style="border-color: #3366FF;">
         <div class="bar-fill" id="exp-fill"></div>
       </div>
-      <div class="stat-text" id="lvl-text" style="color: #4ECDC4;">LVL: 1</div>
-      <div class="stat-text" id="score-text" style="color: #9370DB;">KILLS: 0</div>
+      <div class="stat-text" id="lvl-text" style="color: #3366FF;">LVL: 1</div>
+      <div class="stat-text" id="score-text" style="color: #5A3A31;">KILLS: 0</div>
+      
+      <!-- Windmill Quest UI -->
+      <div id="windmill-quest-ui" style="display: none; margin-top: 10px;">
+        <div class="bar-container" style="border-color: #8B4513;">
+          <div class="bar-fill" id="windmill-hp-fill" style="background: #8B4513; width: 100%;"></div>
+        </div>
+        <div class="stat-text" id="windmill-hp-text" style="color: #8B4513;">WINDMILL: 600/600</div>
+        <div class="stat-text" id="windmill-timer-text" style="color: #FFD700; font-size: 18px;">DEFEND: 30s</div>
+      </div>
     </div>
     <button id="stats-btn" class="btn-small" style="position: absolute; top: 20px; right: 20px; pointer-events: auto;">STATS</button>
 
@@ -291,7 +300,7 @@
 
   <!-- Game Over Screen -->
   <div id="gameover-screen">
-    <h1 style="color: #FF69B4; font-size: 40px; text-shadow: 2px 2px 0 #fff;">GAME OVER</h1>
+    <h1 style="color: #8B5A3C; font-size: 40px; text-shadow: 2px 2px 0 #fff;">GAME OVER</h1>
     <p id="final-score">Survived: 0s</p>
     <button class="btn" id="restart-btn">TRY AGAIN</button>
   </div>
@@ -335,6 +344,57 @@
 
     // --- AUDIO SYSTEM (Oscillators) ---
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    let musicOscillators = [];
+    let musicGain = null;
+    let currentMusicLevel = 0;
+    
+    function initMusic() {
+      if (!musicGain) {
+        musicGain = audioCtx.createGain();
+        musicGain.gain.value = 0.05;
+        musicGain.connect(audioCtx.destination);
+      }
+    }
+    
+    function updateBackgroundMusic() {
+      initMusic();
+      const targetLevel = Math.min(playerStats.lvl, 10);
+      
+      if (targetLevel > currentMusicLevel) {
+        currentMusicLevel = targetLevel;
+        
+        // Add new layer
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        
+        osc.connect(gain);
+        gain.connect(musicGain);
+        
+        // Different frequencies for different levels
+        const baseFreq = 130.81; // C3
+        const frequencies = [
+          baseFreq, // Level 1
+          baseFreq * 1.25, // Level 2
+          baseFreq * 1.5, // Level 3
+          baseFreq * 1.875, // Level 4
+          baseFreq * 2, // Level 5
+          baseFreq * 2.25, // Level 6
+          baseFreq * 2.5, // Level 7
+          baseFreq * 2.75, // Level 8
+          baseFreq * 3, // Level 9
+          baseFreq * 3.5 // Level 10
+        ];
+        
+        osc.type = currentMusicLevel <= 3 ? 'sine' : (currentMusicLevel <= 6 ? 'triangle' : 'sawtooth');
+        osc.frequency.value = frequencies[currentMusicLevel - 1];
+        
+        gain.gain.value = 0;
+        gain.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 1);
+        
+        osc.start();
+        musicOscillators.push({ osc, gain });
+      }
+    }
     
     function playSound(type) {
       if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -346,28 +406,49 @@
       const now = audioCtx.currentTime;
       
       if (type === 'shoot') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(800, now);
-        osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
-        gain.gain.setValueAtTime(0.1, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        // Realistic gun sound
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(100, now);
+        osc.frequency.exponentialRampToValueAtTime(50, now + 0.05);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
         osc.start(now);
-        osc.stop(now + 0.1);
+        osc.stop(now + 0.15);
       } else if (type === 'hit') {
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(150, now);
-        gain.gain.setValueAtTime(0.1, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-        osc.start(now);
-        osc.stop(now + 0.1);
-      } else if (type === 'levelup') {
+        // Satisfying hit sound
         osc.type = 'triangle';
-        osc.frequency.setValueAtTime(400, now);
-        osc.frequency.linearRampToValueAtTime(800, now + 0.2);
-        gain.gain.setValueAtTime(0.1, now);
-        gain.gain.linearRampToValueAtTime(0, now + 0.5);
+        osc.frequency.setValueAtTime(200, now);
+        osc.frequency.exponentialRampToValueAtTime(50, now + 0.15);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
         osc.start(now);
-        osc.stop(now + 0.5);
+        osc.stop(now + 0.15);
+        
+        // Add impact layer
+        const osc2 = audioCtx.createOscillator();
+        const gain2 = audioCtx.createGain();
+        osc2.connect(gain2);
+        gain2.connect(audioCtx.destination);
+        osc2.type = 'square';
+        osc2.frequency.setValueAtTime(80, now);
+        gain2.gain.setValueAtTime(0.1, now);
+        gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        osc2.start(now);
+        osc2.stop(now + 0.1);
+      } else if (type === 'levelup') {
+        // Epic level up sound
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(400, now);
+        osc.frequency.linearRampToValueAtTime(800, now + 0.1);
+        osc.frequency.linearRampToValueAtTime(1200, now + 0.3);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.linearRampToValueAtTime(0.15, now + 0.2);
+        gain.gain.linearRampToValueAtTime(0, now + 0.6);
+        osc.start(now);
+        osc.stop(now + 0.6);
+        
+        // Update background music
+        updateBackgroundMusic();
       } else if (type === 'collect') {
         osc.type = 'sine';
         osc.frequency.setValueAtTime(1200, now);
@@ -403,6 +484,7 @@
     let isGameActive = true;
     let gameTime = 0;
     let waveCount = 0;
+    let windmillQuest = { active: false, timer: 0, duration: 30, windmill: null, hasCompleted: false };
 
     // Input
     const joystick = { x: 0, y: 0, active: false, id: null, originX: 0, originY: 0 };
@@ -449,15 +531,33 @@
     class Player {
       constructor() {
         const geometry = new THREE.SphereGeometry(0.5, 16, 16);
-        const material = new THREE.MeshToonMaterial({ color: COLORS.player });
+        const material = new THREE.MeshToonMaterial({ 
+          color: COLORS.player,
+          transparent: true,
+          opacity: 0.85,
+          emissive: 0x2288BB,
+          emissiveIntensity: 0.2
+        });
         this.mesh = new THREE.Mesh(geometry, material);
         this.mesh.position.y = 0.5;
         this.mesh.castShadow = true;
         scene.add(this.mesh);
         
+        // Add water shine effect
+        const shineGeo = new THREE.SphereGeometry(0.52, 16, 16);
+        const shineMat = new THREE.MeshBasicMaterial({ 
+          color: 0xFFFFFF, 
+          transparent: true, 
+          opacity: 0.2,
+          side: THREE.BackSide
+        });
+        this.shine = new THREE.Mesh(shineGeo, shineMat);
+        this.mesh.add(this.shine);
+        
         // Physics/Visuals
         this.velocity = new THREE.Vector3(0, 0, 0);
         this.targetScale = new THREE.Vector3(1, 1, 1);
+        this.trailTimer = 0;
         
         // Dash
         this.isDashing = false;
@@ -475,10 +575,14 @@
           this.mesh.position.x += this.dashVec.x * speed * dt;
           this.mesh.position.z += this.dashVec.z * speed * dt;
           
+          // Splash effect trail during dash
+          if (Math.random() < 0.5) {
+            spawnParticles(this.mesh.position, COLORS.player, 2);
+          }
+          
           if (this.dashTime <= 0) {
             this.isDashing = false;
           }
-          // Trail effect could go here
         }
         // Movement
         else {
@@ -492,11 +596,19 @@
           this.mesh.position.x += targetVel.x;
           this.mesh.position.z += targetVel.z;
 
+          // Water droplet trail when moving
+          this.trailTimer += dt;
+          if (this.trailTimer > 0.1) {
+            this.trailTimer = 0;
+            spawnWaterDroplet(this.mesh.position);
+          }
+
           // Rotate to face movement
           const angle = Math.atan2(targetVel.x, targetVel.z);
           this.mesh.rotation.y = angle;
           } else {
           // Idle
+          this.trailTimer = 0;
           }
 
           // Inertia / Squish Effect
@@ -518,6 +630,10 @@
         // We want to stretch along Z (forward) if we rotated mesh
         // But we rotated mesh Y. So Z is forward.
         this.mesh.scale.set(squash, squash - wobble*0.2, stretch + wobble*0.2);
+        
+        // Animate water shine
+        this.shine.rotation.y += 0.05;
+        this.shine.rotation.x += 0.03;
 
         // Camera Follow
         camera.position.x = this.mesh.position.x;
@@ -533,6 +649,9 @@
         if (this.isDashing) return;
         this.isDashing = true;
         this.dashTime = this.dashDuration;
+        
+        // Splash effect on dash start
+        spawnParticles(this.mesh.position, COLORS.player, 8);
         
         // Convert Screen Swipe (dx, dy) to Isometric World Direction
         // Screen Right (dx+) -> World (-1, 0, 1)
@@ -606,14 +725,22 @@
         this.isDead = false;
         this.pulsePhase = Math.random() * Math.PI;
         this.wobbleOffset = Math.random() * 100;
+        this.lastAttackTime = 0;
+        this.attackCooldown = 1000; // 1 second cooldown
       }
 
       update(dt, playerPos) {
         if (this.isDead) return;
 
-        // Move towards player
-        const dx = playerPos.x - this.mesh.position.x;
-        const dz = playerPos.z - this.mesh.position.z;
+        // Windmill Quest: Attack windmill instead of player
+        let targetPos = playerPos;
+        if (windmillQuest.active && windmillQuest.windmill) {
+          targetPos = windmillQuest.windmill.position;
+        }
+
+        // Move towards target
+        const dx = targetPos.x - this.mesh.position.x;
+        const dz = targetPos.z - this.mesh.position.z;
         const dist = Math.sqrt(dx*dx + dz*dz);
 
         if (dist > 0.5) {
@@ -629,11 +756,30 @@
           
           this.mesh.position.x += vx;
           this.mesh.position.z += vz;
-          this.mesh.lookAt(playerPos);
+          this.mesh.lookAt(targetPos);
         }
 
-        // Collision with player
-        if (dist < 1.0) {
+        // Collision with target
+        if (windmillQuest.active && windmillQuest.windmill && dist < 3.0) {
+          // Attack windmill with cooldown
+          const now = Date.now();
+          if (now - this.lastAttackTime > this.attackCooldown) {
+            windmillQuest.windmill.userData.hp -= this.damage;
+            updateWindmillQuestUI();
+            this.lastAttackTime = now;
+            playSound('hit');
+          }
+          // Knockback
+          this.mesh.position.x -= (dx / dist) * 2;
+          this.mesh.position.z -= (dz / dist) * 2;
+          
+          if (windmillQuest.windmill.userData.hp <= 0) {
+            windmillQuest.active = false;
+            createFloatingText("WINDMILL DESTROYED!", windmillQuest.windmill.position);
+            document.getElementById('windmill-quest-ui').style.display = 'none';
+          }
+        } else if (dist < 1.0) {
+          // Attack player
           player.takeDamage(this.damage);
           // Knockback
           this.mesh.position.x -= (dx / dist) * 2;
@@ -727,6 +873,16 @@
             if (isCrit) dmg *= playerStats.critDmg;
             
             enemy.takeDamage(Math.floor(dmg));
+            
+            // Knockback effect
+            const knockbackForce = 0.5;
+            enemy.mesh.position.x += this.vx * knockbackForce;
+            enemy.mesh.position.z += this.vz * knockbackForce;
+            
+            // Water splash effect on hit
+            spawnParticles(enemy.mesh.position, COLORS.player, 5);
+            spawnParticles(enemy.mesh.position, 0xFFFFFF, 3);
+            
             this.destroy();
             playSound('hit');
             break;
@@ -898,8 +1054,8 @@
 
     class ExpGem {
       constructor(x, z) {
-        // 8-sided star -> Octahedron
-        const geometry = new THREE.OctahedronGeometry(0.3, 0);
+        // 8-sided star -> Octahedron (20% bigger)
+        const geometry = new THREE.OctahedronGeometry(0.36, 0);
         const material = new THREE.MeshToonMaterial({ color: COLORS.exp, emissive: 0x222222 });
         this.mesh = new THREE.Mesh(geometry, material);
         this.mesh.position.set(x, 0.5, z);
@@ -956,27 +1112,73 @@
       scene.add(ground);
 
       // Features
-      // Lake (Blue Plane)
+      // Lake (Blue Plane) with water effect
       const lakeGeo = new THREE.CircleGeometry(15, 32);
-      const lakeMat = new THREE.MeshBasicMaterial({ color: COLORS.lake });
+      const lakeMat = new THREE.MeshBasicMaterial({ color: COLORS.lake, transparent: true, opacity: 0.8 });
       const lake = new THREE.Mesh(lakeGeo, lakeMat);
       lake.rotation.x = -Math.PI / 2;
       lake.position.set(30, 0.01, -30);
       scene.add(lake);
+      
+      // Add water ripple effect
+      const rippleGeo = new THREE.RingGeometry(14, 15, 32);
+      const rippleMat = new THREE.MeshBasicMaterial({ color: 0x3399FF, transparent: true, opacity: 0.5 });
+      const ripple = new THREE.Mesh(rippleGeo, rippleMat);
+      ripple.rotation.x = -Math.PI / 2;
+      ripple.position.set(30, 0.02, -30);
+      ripple.userData = { isWaterRipple: true, phase: 0 };
+      scene.add(ripple);
 
-      // Roads (Curves)
-      const roadMat = new THREE.MeshBasicMaterial({ color: 0xD8BFD8 }); // Thistle
-      const roadGeo = new THREE.PlaneGeometry(2, 2);
-      // Simple grid of paths
-      for(let i=0; i<40; i++) {
-        const road = new THREE.Mesh(roadGeo, roadMat);
+      // Gravel roads connecting areas
+      const gravelMat = new THREE.MeshBasicMaterial({ color: 0x8B7355 }); // Brown gravel
+      const roadGeo = new THREE.PlaneGeometry(3, 3);
+      
+      // Road to windmill
+      for(let i=0; i<30; i++) {
+        const road = new THREE.Mesh(roadGeo, gravelMat);
         road.rotation.x = -Math.PI/2;
-        // Create a winding path
-        const t = i / 40 * Math.PI * 4;
-        const x = Math.sin(t) * 40;
-        const z = Math.cos(t) * 40 - i*2 + 40;
+        const t = i / 30;
+        const x = t * 40;
+        const z = t * 40;
         road.position.set(x, 0.02, z);
         scene.add(road);
+      }
+      
+      // Circular path around center
+      for(let i=0; i<40; i++) {
+        const road = new THREE.Mesh(roadGeo, gravelMat);
+        road.rotation.x = -Math.PI/2;
+        const angle = (i / 40) * Math.PI * 2;
+        const x = Math.cos(angle) * 25;
+        const z = Math.sin(angle) * 25;
+        road.position.set(x, 0.02, z);
+        scene.add(road);
+      }
+
+      // Wooden fences around play area
+      const fenceMat = new THREE.MeshToonMaterial({ color: 0x8B4513 });
+      const postGeo = new THREE.BoxGeometry(0.3, 2, 0.3);
+      const railGeo = new THREE.BoxGeometry(4, 0.2, 0.2);
+      
+      // Create fence segments around perimeter
+      for(let i=0; i<40; i++) {
+        const angle = (i / 40) * Math.PI * 2;
+        const x = Math.cos(angle) * 85;
+        const z = Math.sin(angle) * 85;
+        
+        // Fence post
+        const post = new THREE.Mesh(postGeo, fenceMat);
+        post.position.set(x, 1, z);
+        post.castShadow = true;
+        scene.add(post);
+        
+        // Fence rail
+        if (i % 2 === 0) {
+          const rail = new THREE.Mesh(railGeo, fenceMat);
+          rail.position.set(x, 1, z);
+          rail.rotation.y = angle;
+          scene.add(rail);
+        }
       }
 
       // Cabin (Box)
@@ -1002,7 +1204,7 @@
       scene.add(wmGroup);
       // Animate blades later? We can just rotate the group children in animate loop if we track it, but for now static is safer or add to update list.
       // Let's add a simple rotator script
-      wmGroup.userData = { isWindmill: true, blades: [wmBlades, wmBlades2] };
+      wmGroup.userData = { isWindmill: true, blades: [wmBlades, wmBlades2], hp: 600, maxHp: 600, questActive: false };
       scene.add(wmGroup);
       
       // Mine
@@ -1016,28 +1218,56 @@
       mineEnt.rotation.y = Math.PI;
       scene.add(mineEnt);
 
-      // Forest (Cones)
-      // Trees with trunks so you can walk under
+      // Forest (Cones with better shadows)
       const trunkGeo = new THREE.CylinderGeometry(0.5, 0.7, 2, 6);
       const trunkMat = new THREE.MeshToonMaterial({ color: 0x8B4513 });
       const leavesGeo = new THREE.ConeGeometry(2.5, 5, 8);
       const treeMat = new THREE.MeshToonMaterial({ color: COLORS.forest });
       
+      // Shadow circle under trees
+      const shadowGeo = new THREE.CircleGeometry(2, 16);
+      const shadowMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.3 });
+      
       for (let i = 0; i < 50; i++) {
         const group = new THREE.Group();
         const trunk = new THREE.Mesh(trunkGeo, trunkMat);
         trunk.position.y = 1;
+        trunk.castShadow = true;
         const leaves = new THREE.Mesh(leavesGeo, treeMat);
         leaves.position.y = 4; // Raised canopy
         leaves.castShadow = true;
+        
+        // Add shadow
+        const shadow = new THREE.Mesh(shadowGeo, shadowMat);
+        shadow.rotation.x = -Math.PI/2;
+        shadow.position.y = 0.01;
+        
         group.add(trunk);
         group.add(leaves);
+        group.add(shadow);
         
         // Random pos in forest area (Top Left quadrant mostly)
         const tx = (Math.random() * 80) - 90;
         const tz = (Math.random() * 80) - 90;
         group.position.set(tx, 0, tz);
         scene.add(group);
+      }
+      
+      // Scatter flowers around environment
+      const flowerGeo = new THREE.ConeGeometry(0.2, 0.5, 6);
+      const flowerColors = [0xFF69B4, 0xFFFF00, 0xFF0000, 0xFFA500, 0xFFFFFF];
+      
+      for(let i=0; i<100; i++) {
+        const flower = new THREE.Mesh(flowerGeo, new THREE.MeshBasicMaterial({ 
+          color: flowerColors[Math.floor(Math.random() * flowerColors.length)] 
+        }));
+        flower.position.set(
+          (Math.random() - 0.5) * 160,
+          0.25,
+          (Math.random() - 0.5) * 160
+        );
+        flower.rotation.x = -Math.PI/2;
+        scene.add(flower);
       }
     }
 
@@ -1083,6 +1313,9 @@
       createWorld();
       player = new Player();
       
+      // Initialize background music
+      updateBackgroundMusic();
+      
       // Listeners
       setupInputs();
       window.addEventListener('resize', onWindowResize, false);
@@ -1116,6 +1349,32 @@
     function spawnExp(x, z) {
       expGems.push(new ExpGem(x, z));
     }
+    
+    function spawnWaterDroplet(pos) {
+      // Create small water droplet that falls and disappears
+      const geo = new THREE.SphereGeometry(0.1, 8, 8);
+      const mat = new THREE.MeshBasicMaterial({ color: COLORS.player, transparent: true, opacity: 0.6 });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.copy(pos);
+      mesh.position.y = 0.3;
+      scene.add(mesh);
+      
+      // Animate falling
+      let life = 20;
+      const update = () => {
+        life--;
+        mesh.position.y -= 0.02;
+        mat.opacity = life / 20;
+        if (life <= 0 || mesh.position.y <= 0.05) {
+          scene.remove(mesh);
+          mesh.geometry.dispose();
+          mesh.material.dispose();
+        } else {
+          requestAnimationFrame(update);
+        }
+      };
+      update();
+    }
 
     function addExp(amount) {
       playerStats.exp += amount;
@@ -1136,8 +1395,145 @@
       const killsNeeded = nextKills[Math.min(playerStats.lvl-1, nextKills.length-1)] || 25;
       playerStats.expReq = killsNeeded * GAME_CONFIG.expValue;
       
+      // Level up visual effects
+      createLevelUpEffects();
+      
       playSound('levelup');
       showUpgradeModal();
+    }
+    
+    function createLevelUpEffects() {
+      // Fountain/explosion of particles from player's head
+      for(let i=0; i<30; i++) {
+        const angle = (i / 30) * Math.PI * 2;
+        const speed = 0.2 + Math.random() * 0.3;
+        const particle = new LevelUpParticle(
+          player.mesh.position.clone(),
+          new THREE.Vector3(
+            Math.cos(angle) * speed,
+            0.5 + Math.random() * 0.5,
+            Math.sin(angle) * speed
+          )
+        );
+        particles.push(particle);
+      }
+      
+      // Animated "LEVEL UP" text
+      createFloatingText("LEVEL UP!", player.mesh.position);
+      
+      // Zoom effect
+      const originalD = 20;
+      const zoomD = 15;
+      const zoomDuration = 1000; // ms
+      const startTime = Date.now();
+      
+      const zoomAnim = () => {
+        const elapsed = Date.now() - startTime;
+        const t = Math.min(elapsed / zoomDuration, 1);
+        const eased = 1 - Math.pow(1 - t, 3); // Ease out cubic
+        
+        const d = originalD - (originalD - zoomD) * Math.sin(eased * Math.PI);
+        const aspect = window.innerWidth / window.innerHeight;
+        camera.left = -d * aspect;
+        camera.right = d * aspect;
+        camera.top = d;
+        camera.bottom = -d;
+        camera.updateProjectionMatrix();
+        
+        if (t < 1) {
+          requestAnimationFrame(zoomAnim);
+        }
+      };
+      zoomAnim();
+      
+      // Slow-motion effect (managed by time scale in game loop would be complex, skip for now)
+    }
+    
+    class LevelUpParticle {
+      constructor(pos, vel) {
+        const geo = new THREE.OctahedronGeometry(0.15);
+        const mat = new THREE.MeshBasicMaterial({ color: 0xFFD700 });
+        this.mesh = new THREE.Mesh(geo, mat);
+        this.mesh.position.copy(pos);
+        this.mesh.position.y += 1;
+        this.vel = vel;
+        scene.add(this.mesh);
+        this.life = 60;
+      }
+      
+      update() {
+        this.life--;
+        this.mesh.position.add(this.vel);
+        this.vel.y -= 0.015; // Gravity
+        this.mesh.rotation.x += 0.1;
+        this.mesh.rotation.y += 0.1;
+        
+        if (this.mesh.position.y < 0) {
+          this.mesh.position.y = 0;
+          this.vel.y = 0;
+          this.vel.x *= 0.8;
+          this.vel.z *= 0.8;
+        }
+        
+        if (this.life <= 0) {
+          scene.remove(this.mesh);
+          this.mesh.geometry.dispose();
+          this.mesh.material.dispose();
+          return false;
+        }
+        return true;
+      }
+    }
+    
+    function createFloatingText(text, pos) {
+      const div = document.createElement('div');
+      div.style.position = 'absolute';
+      div.style.color = '#FFD700';
+      div.style.fontSize = '48px';
+      div.style.fontWeight = 'bold';
+      div.style.textShadow = '2px 2px 4px #000';
+      div.style.pointerEvents = 'none';
+      div.style.zIndex = '100';
+      div.innerText = text;
+      
+      const vec = pos.clone();
+      vec.y += 1;
+      vec.project(camera);
+      
+      const x = (vec.x * .5 + .5) * window.innerWidth;
+      const y = (-(vec.y * .5) + .5) * window.innerHeight;
+      
+      div.style.left = `${x}px`;
+      div.style.top = `${y}px`;
+      div.style.transform = 'translate(-50%, -50%)';
+      
+      document.body.appendChild(div);
+      
+      // Animate upward
+      let offsetY = 0;
+      const animateDuration = 2000;
+      const startTime = Date.now();
+      
+      const animate = () => {
+        const elapsed = Date.now() - startTime;
+        const t = elapsed / animateDuration;
+        
+        if (t >= 1) {
+          div.remove();
+          return;
+        }
+        
+        offsetY = -100 * t;
+        const opacity = 1 - t;
+        const scale = 1 + t * 0.5;
+        
+        div.style.top = `${y + offsetY}px`;
+        div.style.opacity = opacity;
+        div.style.transform = `translate(-50%, -50%) scale(${scale})`;
+        
+        requestAnimationFrame(animate);
+      };
+      animate();
     }
 
     function showUpgradeModal() {
@@ -1200,15 +1596,6 @@
         list.appendChild(card);
       });
 
-      // --- NEW: Apply custom color scheme to upgrade cards ---
-      const colors = ['#000000', '#FF0000', '#FFFF00', '#808080']; // Black, Red, Yellow, Gray
-      const cards = document.querySelectorAll('.upgrade-card');
-      cards.forEach((card, index) => {
-        card.style.backgroundColor = colors[index % colors.length];
-        card.style.color = '#FFFFFF';
-        card.querySelector('.upgrade-title').style.color = '#FFFFFF';
-      });
-
       modal.style.display = 'flex';
     }
 
@@ -1221,6 +1608,53 @@
       document.getElementById('exp-fill').style.width = `${Math.min(100, expPct)}%`;
       document.getElementById('lvl-text').innerText = `LVL: ${playerStats.lvl}`;
       document.getElementById('score-text').innerText = `KILLS: ${playerStats.kills}`;
+    }
+    
+    function updateWindmillQuestUI() {
+      if (!windmillQuest.active || !windmillQuest.windmill) return;
+      
+      const hp = windmillQuest.windmill.userData.hp;
+      const maxHp = windmillQuest.windmill.userData.maxHp;
+      const hpPct = (hp / maxHp) * 100;
+      
+      document.getElementById('windmill-hp-fill').style.width = `${Math.max(0, hpPct)}%`;
+      document.getElementById('windmill-hp-text').innerText = `WINDMILL: ${Math.max(0, Math.ceil(hp))}/${maxHp}`;
+      document.getElementById('windmill-timer-text').innerText = `DEFEND: ${Math.ceil(windmillQuest.timer)}s`;
+    }
+    
+    function startWindmillQuest(windmill) {
+      if (windmillQuest.hasCompleted) return;
+      
+      windmillQuest.active = true;
+      windmillQuest.timer = windmillQuest.duration;
+      windmillQuest.windmill = windmill;
+      windmill.userData.hp = 600;
+      windmill.userData.maxHp = 600;
+      
+      document.getElementById('windmill-quest-ui').style.display = 'block';
+      updateWindmillQuestUI();
+      
+      createFloatingText("DEFEND THE WINDMILL!", windmill.position);
+    }
+    
+    function completeWindmillQuest() {
+      windmillQuest.active = false;
+      windmillQuest.hasCompleted = true;
+      document.getElementById('windmill-quest-ui').style.display = 'none';
+      
+      createFloatingText("QUEST COMPLETE!", windmillQuest.windmill.position);
+      
+      // Grant passive level up
+      playerStats.lvl++;
+      playerStats.expReq = (playerStats.lvl * 2) * GAME_CONFIG.expValue;
+      
+      // Unlock Double Barrel Gun
+      weapons.gun.barrels = 2;
+      weapons.gun.damage += 10;
+      
+      createFloatingText("DOUBLE BARREL UNLOCKED!", player.mesh.position);
+      playSound('levelup');
+      updateHUD();
     }
 
     function createDamageNumber(amount, pos) {
@@ -1270,6 +1704,25 @@
       weapons.sword.active = false;
       weapons.aura.active = false;
       weapons.meteor.active = false;
+      
+      windmillQuest = { active: false, timer: 0, duration: 30, windmill: null, hasCompleted: false };
+      document.getElementById('windmill-quest-ui').style.display = 'none';
+      
+      // Reset windmill HP
+      scene.children.forEach(c => {
+        if (c.userData.isWindmill) {
+          c.userData.hp = 600;
+          c.userData.maxHp = 600;
+        }
+      });
+      
+      // Reset music
+      musicOscillators.forEach(m => {
+        m.osc.stop();
+      });
+      musicOscillators = [];
+      currentMusicLevel = 0;
+      updateBackgroundMusic();
 
       // Clear Entities
       enemies.forEach(e => {
@@ -1473,6 +1926,39 @@
 
       // Player Update
       player.update(dt);
+      
+      // Check windmill quest trigger
+      if (!windmillQuest.active && !windmillQuest.hasCompleted) {
+        scene.children.forEach(child => {
+          if (child.userData && child.userData.isWindmill) {
+            const dist = player.mesh.position.distanceTo(child.position);
+            // Check if player is in front of windmill (90 degree arc)
+            const dx = player.mesh.position.x - child.position.x;
+            const dz = player.mesh.position.z - child.position.z;
+            const angle = Math.atan2(dz, dx);
+            const isFront = Math.abs(angle) < Math.PI / 2; // Front 180 degree arc
+            
+            if (dist < 8 && isFront) {
+              startWindmillQuest(child);
+            }
+          }
+        });
+      }
+      
+      // Update windmill quest
+      if (windmillQuest.active) {
+        windmillQuest.timer -= dt;
+        updateWindmillQuestUI();
+        
+        if (windmillQuest.timer <= 0) {
+          // Quest completed successfully
+          completeWindmillQuest();
+        } else if (windmillQuest.windmill && windmillQuest.windmill.userData.hp <= 0) {
+          // Quest failed
+          windmillQuest.active = false;
+          document.getElementById('windmill-quest-ui').style.display = 'none';
+        }
+      }
 
       // --- WEAPONS ---
       
@@ -1562,6 +2048,13 @@
         if (c.userData.isWindmill) {
           c.children[1].rotation.z += 0.05;
           c.children[2].rotation.z += 0.05;
+        }
+        // Water ripple animation
+        if (c.userData.isWaterRipple) {
+          c.userData.phase += 0.05;
+          const scale = 1 + Math.sin(c.userData.phase) * 0.1;
+          c.scale.set(scale, 1, scale);
+          c.material.opacity = 0.3 + Math.sin(c.userData.phase) * 0.2;
         }
       });
 
