@@ -407,7 +407,7 @@
       
       if (type === 'shoot') {
         // Realistic gun sound
-        osc.type = 'white noise' in osc ? 'white noise' : 'sawtooth';
+        osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(100, now);
         osc.frequency.exponentialRampToValueAtTime(50, now + 0.05);
         gain.gain.setValueAtTime(0.15, now);
@@ -725,6 +725,8 @@
         this.isDead = false;
         this.pulsePhase = Math.random() * Math.PI;
         this.wobbleOffset = Math.random() * 100;
+        this.lastAttackTime = 0;
+        this.attackCooldown = 1000; // 1 second cooldown
       }
 
       update(dt, playerPos) {
@@ -759,9 +761,14 @@
 
         // Collision with target
         if (windmillQuest.active && windmillQuest.windmill && dist < 3.0) {
-          // Attack windmill
-          windmillQuest.windmill.userData.hp -= this.damage;
-          updateWindmillQuestUI();
+          // Attack windmill with cooldown
+          const now = Date.now();
+          if (now - this.lastAttackTime > this.attackCooldown) {
+            windmillQuest.windmill.userData.hp -= this.damage;
+            updateWindmillQuestUI();
+            this.lastAttackTime = now;
+            playSound('hit');
+          }
           // Knockback
           this.mesh.position.x -= (dx / dist) * 2;
           this.mesh.position.z -= (dz / dist) * 2;
@@ -1925,11 +1932,11 @@
         scene.children.forEach(child => {
           if (child.userData && child.userData.isWindmill) {
             const dist = player.mesh.position.distanceTo(child.position);
-            // Check if player is in front of windmill
+            // Check if player is in front of windmill (90 degree arc)
             const dx = player.mesh.position.x - child.position.x;
             const dz = player.mesh.position.z - child.position.z;
             const angle = Math.atan2(dz, dx);
-            const isFront = Math.abs(angle) < Math.PI / 4; // Front 90 degree arc
+            const isFront = Math.abs(angle) < Math.PI / 2; // Front 180 degree arc
             
             if (dist < 8 && isFront) {
               startWindmillQuest(child);
