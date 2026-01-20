@@ -767,9 +767,8 @@
   <!-- Achievements Screen -->
   <div id="achievements-screen">
     <div class="screen-title">ACHIEVEMENTS</div>
-    <div class="screen-content">
-      <p>Coming Soon!</p>
-      <p>Track your progress and unlock special rewards.</p>
+    <div class="screen-content" id="achievements-content">
+      <!-- Dynamically populated -->
     </div>
     <button class="back-btn" id="achievements-back-btn">BACK TO MENU</button>
   </div>
@@ -1124,8 +1123,9 @@
     let windmillQuest = { active: false, timer: 0, duration: 30, windmill: null, hasCompleted: false };
     let runStartGold = 0;  // Track gold at start of run for end-of-run calculation
 
-    // Input
-    const joystick = { x: 0, y: 0, active: false, id: null, originX: 0, originY: 0 };
+    // Input - Twin-Stick Controls
+    const joystickLeft = { x: 0, y: 0, active: false, id: null, originX: 0, originY: 0 }; // Movement
+    const joystickRight = { x: 0, y: 0, active: false, id: null, originX: 0, originY: 0 }; // Aiming
     
     // Stats
     const playerStats = {
@@ -1152,8 +1152,13 @@
       gun: { active: true, level: 1, damage: 15, cooldown: 1000, lastShot: 0, range: 12, barrels: 1 },
       sword: { active: false, level: 0, damage: 30, cooldown: 1500, lastShot: 0, range: 3.5 },
       aura: { active: false, level: 0, damage: 5, cooldown: 500, lastShot: 0, range: 4 },
-      meteor: { active: false, level: 0, damage: 60, cooldown: 2500, lastShot: 0, area: 5 }
+      meteor: { active: false, level: 0, damage: 60, cooldown: 2500, lastShot: 0, area: 5 },
+      lightning: { active: false, level: 0, damage: 25, cooldown: 3000, lastShot: 0, targets: 4 },
+      doubleBarrel: { active: false, level: 0, damage: 25, cooldown: 1200, lastShot: 0, range: 12, spread: 0.3 }
     };
+
+    // Magnet range for XP collection
+    let magnetRange = 2; // Base range for XP magnet
 
     // Upgrade Config
     const UPGRADES = {
@@ -1228,6 +1233,20 @@
         this.highlight.position.set(-0.2, 0.3, 0.2);
         this.mesh.add(this.highlight);
         
+        // Aura Circle (visible when aura weapon is active)
+        const auraGeo = new THREE.RingGeometry(3.5, 4, 32);
+        const auraMat = new THREE.MeshBasicMaterial({ 
+          color: 0x5DADE2, 
+          transparent: true, 
+          opacity: 0.3,
+          side: THREE.DoubleSide
+        });
+        this.auraCircle = new THREE.Mesh(auraGeo, auraMat);
+        this.auraCircle.rotation.x = -Math.PI / 2; // Lay flat on ground
+        this.auraCircle.position.y = 0.1;
+        this.auraCircle.visible = false;
+        scene.add(this.auraCircle);
+        
         // Physics/Visuals
         this.velocity = new THREE.Vector3(0, 0, 0);
         this.targetScale = new THREE.Vector3(1, 1, 1);
@@ -1266,27 +1285,35 @@
         else {
           const targetVel = new THREE.Vector3(0, 0, 0);
         
-          if (joystick.active) {
-          const speed = GAME_CONFIG.playerSpeedBase * (playerStats.walkSpeed / 25); // Normalize 25 to base
-          targetVel.x = joystick.x * speed;
-          targetVel.z = joystick.y * speed;
+          // Movement with LEFT stick
+          if (joystickLeft.active) {
+            const speed = GAME_CONFIG.playerSpeedBase * (playerStats.walkSpeed / 25); // Normalize 25 to base
+            targetVel.x = joystickLeft.x * speed;
+            targetVel.z = joystickLeft.y * speed;
           
-          this.mesh.position.x += targetVel.x;
-          this.mesh.position.z += targetVel.z;
+            this.mesh.position.x += targetVel.x;
+            this.mesh.position.z += targetVel.z;
 
-          // Water droplet trail when moving
-          this.trailTimer += dt;
-          if (this.trailTimer > 0.15) {
-            this.trailTimer = 0;
-            spawnWaterDroplet(this.mesh.position);
-          }
-
-          // Rotate to face movement
-          const angle = Math.atan2(targetVel.x, targetVel.z);
-          this.mesh.rotation.y = angle;
+            // Water droplet trail when moving
+            this.trailTimer += dt;
+            if (this.trailTimer > 0.15) {
+              this.trailTimer = 0;
+              spawnWaterDroplet(this.mesh.position);
+            }
           } else {
-          // Idle
-          this.trailTimer = 0;
+            // Idle
+            this.trailTimer = 0;
+          }
+          
+          // Rotation/Aiming with RIGHT stick (independent of movement)
+          if (joystickRight.active) {
+            // Turn to face the direction of right stick
+            const angle = Math.atan2(joystickRight.x, joystickRight.y);
+            this.mesh.rotation.y = angle;
+          } else if (joystickLeft.active) {
+            // If no right stick input, rotate to face movement direction
+            const angle = Math.atan2(targetVel.x, targetVel.z);
+            this.mesh.rotation.y = angle;
           }
 
           // Inertia / Squish Effect
@@ -1319,6 +1346,24 @@
         
         // Pulse highlight
         this.highlight.material.opacity = 0.6 + Math.sin(gameTime * 3) * 0.2;
+        
+        // Update aura circle
+        if (weapons.aura.active) {
+          this.auraCircle.visible = true;
+          this.auraCircle.position.x = this.mesh.position.x;
+          this.auraCircle.position.z = this.mesh.position.z;
+          
+          // Scale based on aura range
+          const scale = weapons.aura.range * 2;
+          this.auraCircle.geometry.dispose();
+          this.auraCircle.geometry = new THREE.RingGeometry(scale - 0.5, scale, 32);
+          
+          // Rotate and pulse
+          this.auraCircle.rotation.z += 0.02;
+          this.auraCircle.material.opacity = 0.25 + Math.sin(gameTime * 4) * 0.15;
+        } else {
+          this.auraCircle.visible = false;
+        }
 
         // Camera Follow
         camera.position.x = this.mesh.position.x;
@@ -1413,10 +1458,13 @@
     }
 
     class Enemy {
-      constructor(type, x, z) {
-        this.type = type; // 0: Bacteria/Amoeba, 1: Water Bug, 2: Microbe
+      constructor(type, x, z, playerLevel = 1) {
+        this.type = type; // 0: Tank, 1: Fast, 2: Balanced, 3: Slowing, 4: Ranged
         let geometry;
         let color;
+        
+        // Enemy scaling based on player level - NOT SPEED, just HP and DAMAGE
+        const levelScaling = 1 + (playerLevel - 1) * 0.15; // 15% increase per level
         
         if (type === 0) {
           // Bacteria/Amoeba - Squishy organic blob shape
@@ -1441,10 +1489,18 @@
           // Water Bug - Elongated with segments
           geometry = new THREE.CapsuleGeometry(0.3, 0.8, 6, 8);
           color = COLORS.enemyTriangle; // Gold - Fast
-        } else {
+        } else if (type === 2) {
           // Microbe - Round squishy
           geometry = new THREE.DodecahedronGeometry(0.5, 0);
           color = COLORS.enemyRound; // Purple - Balanced
+        } else if (type === 3) {
+          // Slowing Enemy - Spiky/icy appearance
+          geometry = new THREE.IcosahedronGeometry(0.55, 0);
+          color = 0x00FFFF; // Cyan - Slowing
+        } else if (type === 4) {
+          // Ranged Enemy - Different shape, angular
+          geometry = new THREE.TetrahedronGeometry(0.6, 0);
+          color = 0xFF6347; // Tomato red - Ranged
         }
 
         const material = new THREE.MeshPhysicalMaterial({ 
@@ -1461,20 +1517,30 @@
         this.mesh.castShadow = true;
         scene.add(this.mesh);
 
-        // Stats based on type
-        if (type === 0) { // Square (Tank)
-          this.hp = 150;
-          this.speed = GAME_CONFIG.enemySpeedBase * 0.6;
-        } else if (type === 1) { // Triangle (Fast, Low HP)
-          this.hp = 40;
-          this.speed = GAME_CONFIG.enemySpeedBase * 1.6;
-        } else { // Round (Balanced)
-          this.hp = 80;
-          this.speed = GAME_CONFIG.enemySpeedBase;
+        // Stats based on type - SCALED BY LEVEL
+        if (type === 0) { // Tank
+          this.hp = 150 * levelScaling;
+          this.speed = GAME_CONFIG.enemySpeedBase * 0.6; // Speed NOT scaled
+        } else if (type === 1) { // Fast, Low HP
+          this.hp = 40 * levelScaling;
+          this.speed = GAME_CONFIG.enemySpeedBase * 1.6; // Speed NOT scaled
+        } else if (type === 2) { // Balanced
+          this.hp = 80 * levelScaling;
+          this.speed = GAME_CONFIG.enemySpeedBase; // Speed NOT scaled
+        } else if (type === 3) { // Slowing
+          this.hp = 100 * levelScaling;
+          this.speed = GAME_CONFIG.enemySpeedBase * 0.8; // Speed NOT scaled
+          this.slowDuration = 2000; // 2 seconds slow
+          this.slowAmount = 0.5; // 50% slow
+        } else if (type === 4) { // Ranged
+          this.hp = 60 * levelScaling;
+          this.speed = GAME_CONFIG.enemySpeedBase * 0.7; // Speed NOT scaled
+          this.attackRange = 8; // Range for ranged attacks
+          this.projectileSpeed = 0.15;
         }
         
         this.maxHp = this.hp;
-        this.damage = 33;
+        this.damage = 33 * levelScaling; // Damage scaled by level
         this.isDead = false;
         this.isDamaged = false; // Track if enemy has been visually damaged
         this.pulsePhase = Math.random() * Math.PI;
@@ -1497,7 +1563,18 @@
         const dz = targetPos.z - this.mesh.position.z;
         const dist = Math.sqrt(dx*dx + dz*dz);
 
-        if (dist > 0.5) {
+        // Ranged Enemy behavior - stop at range and shoot
+        if (this.type === 4 && dist < this.attackRange) {
+          // Stop moving and attack from range
+          const now = Date.now();
+          if (now - this.lastAttackTime > this.attackCooldown) {
+            // Fire projectile at player
+            this.fireProjectile(targetPos);
+            this.lastAttackTime = now;
+          }
+          this.mesh.lookAt(targetPos);
+        } else if (dist > 0.5) {
+          // Move towards target
           let vx = (dx / dist) * this.speed;
           let vz = (dz / dist) * this.speed;
           
@@ -1532,9 +1609,21 @@
             createFloatingText("WINDMILL DESTROYED!", windmillQuest.windmill.position);
             document.getElementById('windmill-quest-ui').style.display = 'none';
           }
-        } else if (dist < 1.0) {
+        } else if (dist < 1.0 && this.type !== 4) { // Ranged enemies don't melee attack
           // Attack player
           player.takeDamage(this.damage);
+          
+          // Slowing enemy slows player on hit
+          if (this.type === 3) {
+            playerStats.walkSpeed *= this.slowAmount;
+            // Remove slow after duration
+            setTimeout(() => {
+              playerStats.walkSpeed /= this.slowAmount;
+            }, this.slowDuration);
+            // Visual effect for slow
+            spawnParticles(player.mesh.position, 0x00FFFF, 10);
+          }
+          
           // Knockback
           this.mesh.position.x -= (dx / dist) * 2;
           this.mesh.position.z -= (dz / dist) * 2;
@@ -1543,12 +1632,44 @@
         // Squishy idle with more gravity-based wobble
         this.pulsePhase += dt * 6; // Slightly faster
         const squish = Math.sin(this.pulsePhase) * 0.08; // More pronounced from 0.05
-        if (this.type === 0) {
-           // Box breathes more dramatically
+        if (this.type === 0 || this.type === 3) {
+           // Box and Slowing breathe more dramatically
            this.mesh.scale.set(1+squish*1.5, 1-squish*1.5, 1+squish*1.5);
         } else {
            this.mesh.scale.set(1-squish, 1+squish*1.5, 1-squish);
         }
+      }
+
+      fireProjectile(targetPos) {
+        // Create enemy projectile
+        const projectile = {
+          startPos: this.mesh.position.clone(),
+          targetPos: targetPos.clone(),
+          mesh: null,
+          speed: this.projectileSpeed,
+          damage: this.damage,
+          lifetime: 100, // frames
+          isEnemyProjectile: true
+        };
+        
+        // Create visual
+        const geo = new THREE.SphereGeometry(0.2, 8, 8);
+        const mat = new THREE.MeshBasicMaterial({ color: 0xFF6347 });
+        projectile.mesh = new THREE.Mesh(geo, mat);
+        projectile.mesh.position.copy(this.mesh.position);
+        projectile.mesh.position.y = 0.5;
+        scene.add(projectile.mesh);
+        
+        // Direction
+        const dx = targetPos.x - this.mesh.position.x;
+        const dz = targetPos.z - this.mesh.position.z;
+        const dist = Math.sqrt(dx*dx + dz*dz);
+        projectile.direction = new THREE.Vector3(dx/dist, 0, dz/dist);
+        
+        // Add to projectiles array (will be updated in main loop)
+        projectiles.push(projectile);
+        
+        playSound('shoot');
       }
 
       takeDamage(amount, isCrit = false) {
@@ -1717,6 +1838,7 @@
         
         playerStats.kills++;
         updateHUD();
+        checkAchievements(); // Check for achievements after kill
       }
     }
 
@@ -1743,6 +1865,29 @@
       update() {
         if (!this.active) return;
         
+        // Handle enemy projectiles separately
+        if (this.isEnemyProjectile) {
+          this.mesh.position.add(this.direction.clone().multiplyScalar(this.speed));
+          this.lifetime--;
+          
+          if (this.lifetime <= 0) {
+            this.destroy();
+            return;
+          }
+          
+          // Check collision with player
+          const dx = this.mesh.position.x - player.mesh.position.x;
+          const dz = this.mesh.position.z - player.mesh.position.z;
+          if (dx*dx + dz*dz < 0.8) { // Hit radius
+            player.takeDamage(this.damage);
+            spawnParticles(player.mesh.position, 0xFF6347, 5);
+            this.destroy();
+            playSound('hit');
+          }
+          return;
+        }
+        
+        // Player projectiles
         this.mesh.position.x += this.vx;
         this.mesh.position.z += this.vz;
         this.life--;
@@ -1760,6 +1905,12 @@
           if (dx*dx + dz*dz < 0.6) { // Hit radius
             // Calculate Damage
             let dmg = weapons.gun.damage * playerStats.damage * playerStats.strength;
+            
+            // Double barrel uses its own damage
+            if (weapons.doubleBarrel.active && this.isDoubleBarrel) {
+              dmg = weapons.doubleBarrel.damage * playerStats.damage * playerStats.strength;
+            }
+            
             const isCrit = Math.random() < playerStats.critChance;
             if (isCrit) dmg *= playerStats.critDmg;
             
@@ -2020,8 +2171,7 @@
         const dz = playerPos.z - this.mesh.position.z;
         const dist = Math.sqrt(dx*dx + dz*dz);
         
-        const magnetRange = 3.0;
-        if (dist < magnetRange) { // Magnet range
+        if (dist < magnetRange) { // Use magnetRange variable
           this.mesh.position.x += (dx / dist) * 0.3;
           this.mesh.position.z += (dz / dist) * 0.3;
           
@@ -2134,24 +2284,19 @@
         this.wobblePhase += 0.1;
         this.mesh.position.y = 0.3 + Math.sin(this.wobblePhase) * 0.1;
         
-        // Magnet pull
+        // NO MAGNET - player must walk over gold to collect it
         const dx = playerPos.x - this.mesh.position.x;
         const dz = playerPos.z - this.mesh.position.z;
         const dist = Math.sqrt(dx*dx + dz*dz);
         
-        if (dist < this.magnetRange) {
-          this.vx += (dx / dist) * 0.01;
-          this.vz += (dz / dist) * 0.01;
-        }
-        
-        this.mesh.position.x += this.vx;
-        this.mesh.position.z += this.vz;
-        
-        // Collect
+        // Collect ONLY when player is very close
         if (dist < this.collectRange) {
           addGold(this.amount);
           this.destroy();
           playSound('coin');
+          
+          // Gold collect particles
+          spawnParticles(this.mesh.position, 0xFFD700, 15);
         }
       }
       
@@ -2210,6 +2355,87 @@
         localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
       } catch (e) {
         console.error('Failed to save data:', e);
+      }
+    }
+
+    // --- ACHIEVEMENTS SYSTEM ---
+    const ACHIEVEMENTS = {
+      kills100: { id: 'kills100', name: '100 Kills', desc: 'Kill 100 enemies', reward: 50, check: () => playerStats.kills >= 100 },
+      level10: { id: 'level10', name: 'Level 10', desc: 'Reach Level 10', reward: 100, check: () => playerStats.lvl >= 10 },
+      level25: { id: 'level25', name: 'Level 25', desc: 'Reach Level 25', reward: 250, check: () => playerStats.lvl >= 25 },
+      level50: { id: 'level50', name: 'Level 50', desc: 'Reach Level 50', reward: 500, check: () => playerStats.lvl >= 50 },
+      level75: { id: 'level75', name: 'Level 75', desc: 'Reach Level 75', reward: 750, check: () => playerStats.lvl >= 75 },
+      level100: { id: 'level100', name: 'Level 100', desc: 'Reach Level 100', reward: 1000, check: () => playerStats.lvl >= 100 }
+    };
+
+    function updateAchievementsScreen() {
+      const content = document.getElementById('achievements-content');
+      if (!content) return;
+      
+      let html = '<div style="display: grid; gap: 15px; width: 100%; max-width: 600px; margin: 0 auto;">';
+      
+      for (const key in ACHIEVEMENTS) {
+        const achievement = ACHIEVEMENTS[key];
+        const isEarned = saveData.achievements && saveData.achievements.includes(achievement.id);
+        
+        html += `
+          <div style="
+            background: linear-gradient(to bottom, ${isEarned ? '#2c5530' : '#3a3a3a'}, ${isEarned ? '#1a3020' : '#2a2a2a'});
+            border: 3px solid ${isEarned ? '#FFD700' : '#5a5a5a'};
+            border-radius: 15px;
+            padding: 15px;
+            text-align: left;
+          ">
+            <div style="color: ${isEarned ? '#FFD700' : '#bbb'}; font-size: 20px; font-weight: bold; margin-bottom: 5px;">
+              ${isEarned ? '✓ ' : ''}${achievement.name}
+            </div>
+            <div style="color: ${isEarned ? '#90ee90' : '#888'}; font-size: 14px; margin-bottom: 8px;">
+              ${achievement.desc}
+            </div>
+            <div style="color: #FFD700; font-size: 16px; font-weight: bold;">
+              Reward: ${achievement.reward} Gold
+            </div>
+          </div>
+        `;
+      }
+      
+      html += '</div>';
+      content.innerHTML = html;
+    }
+
+    function checkAchievements() {
+      for (const key in ACHIEVEMENTS) {
+        const achievement = ACHIEVEMENTS[key];
+        
+        // Skip if already earned
+        if (saveData.achievements && saveData.achievements.includes(achievement.id)) {
+          continue;
+        }
+        
+        // Check if achieved
+        if (achievement.check()) {
+          // Award achievement
+          if (!saveData.achievements) saveData.achievements = [];
+          saveData.achievements.push(achievement.id);
+          
+          // Award gold
+          addGold(achievement.reward);
+          
+          // Show achievement notification
+          createFloatingText(`ACHIEVEMENT: ${achievement.name}`, player.mesh.position);
+          createFloatingText(`+${achievement.reward} GOLD`, player.mesh.position);
+          
+          // Save
+          saveSaveData();
+          
+          // Play sound
+          playSound('levelup');
+          
+          // Visual effect
+          for(let i=0; i<30; i++) {
+            spawnParticles(player.mesh.position, 0xFFD700, 5);
+          }
+        }
       }
     }
 
@@ -2900,6 +3126,7 @@
       document.getElementById('achievements-btn').onclick = () => {
         playSound('levelup');
         hideMainMenu();
+        updateAchievementsScreen();
         document.getElementById('achievements-screen').style.display = 'flex';
       };
       
@@ -2939,7 +3166,10 @@
 
     function spawnWave() {
       waveCount++;
-      const count = 3 + Math.floor(waveCount / 2); // 3, 3, 4, 4, 5...
+      // Scale spawn count with player level for increased difficulty
+      const baseCount = 3 + Math.floor(waveCount / 2); // 3, 3, 4, 4, 5...
+      const levelBonus = Math.floor(playerStats.lvl / 5); // +1 every 5 levels
+      const count = baseCount + levelBonus;
       
       for(let i=0; i<count; i++) {
         // Spawn at edge of camera view approx
@@ -2948,9 +3178,19 @@
         const ex = player.mesh.position.x + Math.cos(angle) * dist;
         const ez = player.mesh.position.z + Math.sin(angle) * dist;
         
-        // Random type
-        const type = Math.floor(Math.random() * 3);
-        enemies.push(new Enemy(type, ex, ez));
+        // Random type - include new enemy types as level increases
+        // 0: Tank, 1: Fast, 2: Balanced, 3: Slowing (lvl 10+), 4: Ranged (lvl 15+)
+        let maxType = 2; // Start with 3 base types
+        if (playerStats.lvl >= 10) maxType = 3; // Add slowing enemies
+        if (playerStats.lvl >= 15) maxType = 4; // Add ranged enemies
+        
+        // Spawn ranged enemies less frequently
+        let type = Math.floor(Math.random() * (maxType + 1));
+        if (type === 4 && Math.random() > 0.2) { // Only 20% chance for ranged
+          type = Math.floor(Math.random() * 3); // Fallback to basic type
+        }
+        
+        enemies.push(new Enemy(type, ex, ez, playerStats.lvl));
       }
     }
 
@@ -3030,8 +3270,8 @@
       const killsNeeded = nextKills[Math.min(playerStats.lvl-1, nextKills.length-1)] || 25;
       playerStats.expReq = killsNeeded * GAME_CONFIG.expValue;
       
-      // Show small "LVL UP!" text floating up from player BEFORE modal
-      createSmallFloatingText("LVL UP!", player.mesh.position);
+      // Check for level achievements
+      checkAchievements();
       
       // SLOW MOTION EFFECT - Time slows, sounds pitch down
       createSlowMotionEffect();
@@ -3040,12 +3280,12 @@
       setTimeout(() => {
         createLevelUpEffects();
         playSound('levelup');
-      }, 500);
+      }, 300);
       
-      // Show upgrade modal with dramatic entrance after effects
+      // Show upgrade modal with dramatic entrance after effects - FASTER
       setTimeout(() => {
         showUpgradeModal();
-      }, 2000);
+      }, 800);
     }
     
     function createSmallFloatingText(text, pos) {
@@ -3168,9 +3408,6 @@
         );
         particles.push(lightning);
       }
-      
-      // Animated "LEVEL UP!" text (large)
-      createFloatingText("LEVEL UP!", player.mesh.position);
       
       // Zoom effect
       const originalD = 20;
@@ -3424,6 +3661,7 @@
           apply: () => { 
             playerStats.atkSpeed += 0.1; 
             weapons.gun.cooldown *= 0.9; 
+            weapons.doubleBarrel.cooldown *= 0.9;
             showStatChange('+10% Attack Speed');
           } 
         },
@@ -3481,52 +3719,138 @@
             playerStats.critDmg += 0.2; 
             showStatChange('+20% Crit Damage');
           } 
+        },
+        { 
+          id: 'magnet', 
+          title: 'XP MAGNET', 
+          desc: 'Magnet Range +1', 
+          apply: () => { 
+            magnetRange += 1; 
+            showStatChange('+1 Magnet Range');
+          } 
+        },
+        { 
+          id: 'cooldown', 
+          title: 'COOLDOWN MASTER', 
+          desc: 'All Weapon CD -5%', 
+          apply: () => { 
+            weapons.gun.cooldown *= 0.95;
+            weapons.sword.cooldown *= 0.95;
+            weapons.aura.cooldown *= 0.95;
+            weapons.meteor.cooldown *= 0.95;
+            weapons.lightning.cooldown *= 0.95;
+            weapons.doubleBarrel.cooldown *= 0.95;
+            showStatChange('-5% All Weapon Cooldowns');
+          } 
         }
       ];
 
-      // Weapon Upgrades (Only if active)
-      if (weapons.gun.active) commonUpgrades.push({ 
-        id: 'gun_up', 
-        title: 'BIG BULLETS', 
-        desc: 'Gun Damage +5', 
-        apply: () => { 
-          weapons.gun.damage += 5; 
-          showStatChange('+5 Gun Damage');
-        } 
-      });
-      if (weapons.sword.active) commonUpgrades.push({ 
-        id: 'sword_up', 
-        title: 'SHARP EDGE', 
-        desc: 'Sword Damage +10', 
-        apply: () => { 
-          weapons.sword.damage += 10; 
-          showStatChange('+10 Sword Damage');
-        } 
-      });
-      if (weapons.aura.active) commonUpgrades.push({ 
-        id: 'aura_up', 
-        title: 'BIGGER AURA', 
-        desc: 'Aura Range +1', 
-        apply: () => { 
-          weapons.aura.range += 1; 
-          showStatChange('+1 Aura Range');
-        } 
-      });
-      if (weapons.meteor.active) commonUpgrades.push({ 
-        id: 'meteor_up', 
-        title: 'FASTER METEORS', 
-        desc: 'Meteor CD -0.5s', 
-        apply: () => { 
-          weapons.meteor.cooldown = Math.max(500, weapons.meteor.cooldown - 500); 
-          showStatChange('-0.5s Meteor Cooldown');
-        } 
-      });
-
       // --- SPECIAL LEVELS ---
       
-      // Levels 4, 8, 12, 16, 20: Weapon/Passive Choices
-      if ([4, 8, 12, 16, 20].includes(playerStats.lvl)) {
-        choices = commonUpgrades.sort(() => 0.5 - Math.random()).slice(0, 4);
+      // Levels 4, 9, 17: WEAPON UPGRADE LEVELS
+      if ([4, 9, 17].includes(playerStats.lvl)) {
+        modal.querySelector('h2').innerText = 'WEAPON UPGRADE!';
+        modal.querySelector('h2').style.fontSize = '36px';
+        
+        choices = [];
+        
+        // Offer weapon upgrades for active weapons
+        if (weapons.gun.active && weapons.gun.level < 4) {
+          const nextLevel = weapons.gun.level + 1;
+          choices.push({ 
+            id: 'gun_upgrade', 
+            title: `GUN Level ${nextLevel}`, 
+            desc: `Damage +10, Fire Rate +15%`, 
+            apply: () => { 
+              weapons.gun.level++;
+              weapons.gun.damage += 10;
+              weapons.gun.cooldown *= 0.85;
+              showStatChange(`Gun Level ${weapons.gun.level}`);
+            } 
+          });
+        }
+        
+        if (weapons.sword.active && weapons.sword.level < 4) {
+          const nextLevel = weapons.sword.level + 1;
+          choices.push({ 
+            id: 'sword_upgrade', 
+            title: `SWORD Level ${nextLevel}`, 
+            desc: `Damage +15, Range +0.5`, 
+            apply: () => { 
+              weapons.sword.level++;
+              weapons.sword.damage += 15;
+              weapons.sword.range += 0.5;
+              showStatChange(`Sword Level ${weapons.sword.level}`);
+            } 
+          });
+        }
+        
+        if (weapons.aura.active && weapons.aura.level < 4) {
+          const nextLevel = weapons.aura.level + 1;
+          choices.push({ 
+            id: 'aura_upgrade', 
+            title: `AURA Level ${nextLevel}`, 
+            desc: `Damage +3, Range +0.5`, 
+            apply: () => { 
+              weapons.aura.level++;
+              weapons.aura.damage += 3;
+              weapons.aura.range += 0.5;
+              showStatChange(`Aura Level ${weapons.aura.level}`);
+            } 
+          });
+        }
+        
+        if (weapons.meteor.active && weapons.meteor.level < 4) {
+          const nextLevel = weapons.meteor.level + 1;
+          choices.push({ 
+            id: 'meteor_upgrade', 
+            title: `METEOR Level ${nextLevel}`, 
+            desc: `Damage +20, Area +1`, 
+            apply: () => { 
+              weapons.meteor.level++;
+              weapons.meteor.damage += 20;
+              weapons.meteor.area += 1;
+              showStatChange(`Meteor Level ${weapons.meteor.level}`);
+            } 
+          });
+        }
+        
+        if (weapons.lightning.active && weapons.lightning.level < 4) {
+          const nextLevel = weapons.lightning.level + 1;
+          const targetIncrease = nextLevel === 2 ? 3 : (nextLevel === 3 ? 2 : 1);
+          choices.push({ 
+            id: 'lightning_upgrade', 
+            title: `LIGHTNING Level ${nextLevel}`, 
+            desc: `Damage +10, Targets +${targetIncrease}`, 
+            apply: () => { 
+              weapons.lightning.level++;
+              weapons.lightning.damage += 10;
+              weapons.lightning.targets += targetIncrease;
+              showStatChange(`Lightning Level ${weapons.lightning.level}`);
+            } 
+          });
+        }
+        
+        if (weapons.doubleBarrel.active && weapons.doubleBarrel.level < 4) {
+          const nextLevel = weapons.doubleBarrel.level + 1;
+          choices.push({ 
+            id: 'doublebarrel_upgrade', 
+            title: `DOUBLE BARREL Level ${nextLevel}`, 
+            desc: `Damage +12, Fire Rate +10%`, 
+            apply: () => { 
+              weapons.doubleBarrel.level++;
+              weapons.doubleBarrel.damage += 12;
+              weapons.doubleBarrel.cooldown *= 0.9;
+              showStatChange(`Double Barrel Level ${weapons.doubleBarrel.level}`);
+            } 
+          });
+        }
+        
+        // Add some stat upgrades too
+        choices.push(...commonUpgrades.sort(() => 0.5 - Math.random()).slice(0, 2));
+        
+        // Shuffle and limit to 3 choices
+        choices = choices.sort(() => 0.5 - Math.random()).slice(0, 3);
       }
       // Level 5: Choose Secondary Weapon
       else if (playerStats.lvl === 5) {
@@ -3536,7 +3860,8 @@
             title: 'SLASHY SLASH', 
             desc: 'Slash enemies in front', 
             apply: () => { 
-              weapons.sword.active = true; 
+              weapons.sword.active = true;
+              weapons.sword.level = 1;
               showStatChange('New Weapon: Sword');
             } 
           },
@@ -3545,7 +3870,8 @@
             title: 'ZAP ZONE', 
             desc: 'Damage aura around you', 
             apply: () => { 
-              weapons.aura.active = true; 
+              weapons.aura.active = true;
+              weapons.aura.level = 1;
               showStatChange('New Weapon: Aura');
             } 
           },
@@ -3554,8 +3880,29 @@
             title: 'SPACE ROCKS', 
             desc: 'Call meteors from sky', 
             apply: () => { 
-              weapons.meteor.active = true; 
+              weapons.meteor.active = true;
+              weapons.meteor.level = 1;
               showStatChange('New Weapon: Meteor');
+            } 
+          },
+          { 
+            id: 'lightning', 
+            title: 'LIGHTNING STRIKES', 
+            desc: 'Random lightning hits 4 enemies', 
+            apply: () => { 
+              weapons.lightning.active = true;
+              weapons.lightning.level = 1;
+              showStatChange('New Weapon: Lightning');
+            } 
+          },
+          { 
+            id: 'doublebarrel', 
+            title: 'DOUBLE BARREL', 
+            desc: 'Powerful shotgun spread', 
+            apply: () => { 
+              weapons.doubleBarrel.active = true;
+              weapons.doubleBarrel.level = 1;
+              showStatChange('New Weapon: Double Barrel');
             } 
           }
         ];
@@ -4008,37 +4355,53 @@ Total Gold Earned: ${saveData.totalGoldEarned}
       
       zone.addEventListener('touchstart', (e) => {
         e.preventDefault();
-        const touch = e.changedTouches[0];
         
-        // Only activate joystick if touch is in bottom 40% of screen
-        const screenHeight = window.innerHeight;
-        if (touch.clientY < screenHeight * 0.6) {
-          // Upper part of screen - might be for swipe dash
-          return;
+        for (let i = 0; i < e.changedTouches.length; i++) {
+          const touch = e.changedTouches[i];
+          const screenWidth = window.innerWidth;
+          const screenHeight = window.innerHeight;
+          
+          // Ignore touches in top 40% of screen (for UI elements)
+          if (touch.clientY < screenHeight * 0.6) {
+            continue;
+          }
+          
+          // Left half = movement joystick
+          if (touch.clientX < screenWidth / 2 && !joystickLeft.active) {
+            joystickLeft.id = touch.identifier;
+            joystickLeft.active = true;
+            joystickLeft.originX = touch.clientX;
+            joystickLeft.originY = touch.clientY;
+            
+            // Show dynamic joystick at touch position
+            joystickOuter.style.display = 'block';
+            joystickOuter.style.left = (touch.clientX - 60) + 'px';
+            joystickOuter.style.top = (touch.clientY - 60) + 'px';
+          }
+          // Right half = aiming joystick
+          else if (touch.clientX >= screenWidth / 2 && !joystickRight.active) {
+            joystickRight.id = touch.identifier;
+            joystickRight.active = true;
+            joystickRight.originX = touch.clientX;
+            joystickRight.originY = touch.clientY;
+            
+            // Could add a second visual joystick here if desired
+          }
         }
-        
-        joystick.id = touch.identifier;
-        joystick.active = true;
-        joystick.originX = touch.clientX;
-        joystick.originY = touch.clientY;
-        
-        // Show dynamic joystick at touch position
-        joystickOuter.style.display = 'block';
-        joystickOuter.style.left = (touch.clientX - 60) + 'px';
-        joystickOuter.style.top = (touch.clientY - 60) + 'px';
         
         swipeDetected = false;
       }, { passive: false });
 
       zone.addEventListener('touchmove', (e) => {
         e.preventDefault();
-        if (!joystick.active) return;
         
         for (let i = 0; i < e.changedTouches.length; i++) {
-          if (e.changedTouches[i].identifier === joystick.id) {
-            const touch = e.changedTouches[i];
-            const dx = touch.clientX - joystick.originX;
-            const dy = touch.clientY - joystick.originY;
+          const touch = e.changedTouches[i];
+          
+          // Handle LEFT joystick (movement)
+          if (touch.identifier === joystickLeft.id && joystickLeft.active) {
+            const dx = touch.clientX - joystickLeft.originX;
+            const dy = touch.clientY - joystickLeft.originY;
             
             // Normalize
             const maxDist = 50;
@@ -4046,15 +4409,30 @@ Total Gold Earned: ${saveData.totalGoldEarned}
             const clampedDist = Math.min(dist, maxDist);
             
             if (dist > 0) {
-              joystick.x = (dx / dist) * (clampedDist / maxDist);
-              joystick.y = (dy / dist) * (clampedDist / maxDist);
+              joystickLeft.x = (dx / dist) * (clampedDist / maxDist);
+              joystickLeft.y = (dy / dist) * (clampedDist / maxDist);
               
               // Update inner joystick knob position
               joystickInner.style.left = '50%';
               joystickInner.style.top = '50%';
-              joystickInner.style.transform = `translate(calc(-50% + ${joystick.x * 35}px), calc(-50% + ${joystick.y * 35}px))`;
+              joystickInner.style.transform = `translate(calc(-50% + ${joystickLeft.x * 35}px), calc(-50% + ${joystickLeft.y * 35}px))`;
             }
-            break;
+          }
+          
+          // Handle RIGHT joystick (aiming)
+          if (touch.identifier === joystickRight.id && joystickRight.active) {
+            const dx = touch.clientX - joystickRight.originX;
+            const dy = touch.clientY - joystickRight.originY;
+            
+            // Normalize
+            const maxDist = 50;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            const clampedDist = Math.min(dist, maxDist);
+            
+            if (dist > 0) {
+              joystickRight.x = (dx / dist) * (clampedDist / maxDist);
+              joystickRight.y = (dy / dist) * (clampedDist / maxDist);
+            }
           }
         }
       }, { passive: false });
@@ -4062,15 +4440,22 @@ Total Gold Earned: ${saveData.totalGoldEarned}
       const endJoystick = (e) => {
         e.preventDefault();
         for (let i = 0; i < e.changedTouches.length; i++) {
-          if (e.changedTouches[i].identifier === joystick.id) {
-            joystick.active = false;
-            joystick.x = 0;
-            joystick.y = 0;
+          const touch = e.changedTouches[i];
+          
+          if (touch.identifier === joystickLeft.id) {
+            joystickLeft.active = false;
+            joystickLeft.x = 0;
+            joystickLeft.y = 0;
             
             // Hide joystick
             joystickOuter.style.display = 'none';
             joystickInner.style.transform = 'translate(-50%, -50%)';
-            break;
+          }
+          
+          if (touch.identifier === joystickRight.id) {
+            joystickRight.active = false;
+            joystickRight.x = 0;
+            joystickRight.y = 0;
           }
         }
       };
@@ -4290,6 +4675,107 @@ Total Gold Earned: ${saveData.totalGoldEarned}
         
         meteors.push(new Meteor(targetX, targetZ));
         weapons.meteor.lastShot = time;
+      }
+
+      // 5. LIGHTNING STRIKES
+      if (weapons.lightning.active && time - weapons.lightning.lastShot > weapons.lightning.cooldown) {
+        // Hit random enemies
+        const targets = [];
+        const aliveEnemies = enemies.filter(e => !e.isDead);
+        
+        // Select random enemies up to target count
+        const targetCount = Math.min(weapons.lightning.targets, aliveEnemies.length);
+        const shuffled = [...aliveEnemies].sort(() => 0.5 - Math.random());
+        
+        for(let i = 0; i < targetCount; i++) {
+          const enemy = shuffled[i];
+          targets.push(enemy);
+          
+          // Create lightning bolt from sky
+          const lightning = new LightningBolt(
+            new THREE.Vector3(enemy.mesh.position.x, 15, enemy.mesh.position.z),
+            enemy.mesh.position.clone()
+          );
+          particles.push(lightning);
+          
+          // Flash effect
+          const flashLight = new THREE.PointLight(0x5DADE2, 3, 15);
+          flashLight.position.copy(enemy.mesh.position);
+          flashLight.position.y += 2;
+          scene.add(flashLight);
+          setTimeout(() => scene.remove(flashLight), 100);
+          
+          // Damage enemy
+          const dmg = weapons.lightning.damage * playerStats.strength;
+          const isCrit = Math.random() < playerStats.critChance;
+          const finalDmg = isCrit ? dmg * playerStats.critDmg : dmg;
+          enemy.takeDamage(finalDmg);
+          createDamageNumber(finalDmg, enemy.mesh.position, isCrit);
+          
+          // Particles
+          spawnParticles(enemy.mesh.position, 0x5DADE2, 10);
+        }
+        
+        weapons.lightning.lastShot = time;
+        if (targets.length > 0) {
+          playSound('shoot');
+        }
+      }
+
+      // 6. DOUBLE BARREL
+      if (weapons.doubleBarrel.active && time - weapons.doubleBarrel.lastShot > weapons.doubleBarrel.cooldown) {
+        // Find nearest enemy
+        let nearest = null;
+        let minDst = Infinity;
+        
+        for (let e of enemies) {
+          if (e.isDead) continue;
+          const d = player.mesh.position.distanceTo(e.mesh.position);
+          if (d < weapons.doubleBarrel.range && d < minDst) {
+            minDst = d;
+            nearest = e;
+          }
+        }
+
+        if (nearest) {
+          // Fire two shots with spread
+          const baseDir = new THREE.Vector3(
+            nearest.mesh.position.x - player.mesh.position.x,
+            0,
+            nearest.mesh.position.z - player.mesh.position.z
+          ).normalize();
+          
+          // Left barrel
+          const leftAngle = Math.atan2(baseDir.z, baseDir.x) - weapons.doubleBarrel.spread;
+          const leftTarget = new THREE.Vector3(
+            player.mesh.position.x + Math.cos(leftAngle) * weapons.doubleBarrel.range,
+            0,
+            player.mesh.position.z + Math.sin(leftAngle) * weapons.doubleBarrel.range
+          );
+          projectiles.push(new Projectile(player.mesh.position.x, player.mesh.position.z, leftTarget));
+          
+          // Right barrel
+          const rightAngle = Math.atan2(baseDir.z, baseDir.x) + weapons.doubleBarrel.spread;
+          const rightTarget = new THREE.Vector3(
+            player.mesh.position.x + Math.cos(rightAngle) * weapons.doubleBarrel.range,
+            0,
+            player.mesh.position.z + Math.sin(rightAngle) * weapons.doubleBarrel.range
+          );
+          projectiles.push(new Projectile(player.mesh.position.x, player.mesh.position.z, rightTarget));
+          
+          // Effects
+          const flashLight = new THREE.PointLight(0xFFFF00, 3, 12);
+          flashLight.position.copy(player.mesh.position);
+          flashLight.position.y += 1;
+          scene.add(flashLight);
+          setTimeout(() => scene.remove(flashLight), 80);
+          
+          spawnParticles(player.mesh.position, 0xFFFF00, 8);
+          spawnParticles(player.mesh.position, 0xFFFFFF, 5);
+          
+          weapons.doubleBarrel.lastShot = time;
+          playSound('shoot');
+        }
       }
 
       // Entities Update
