@@ -4190,15 +4190,15 @@
       weapons.aura.active = false;
       weapons.meteor.active = false;
       
-      windmillQuest = { active: false, timer: 0, duration: 30, windmill: null, hasCompleted: false };
+      windmillQuest = { active: false, timer: 0, duration: 15, windmill: null, hasCompleted: false };
       document.getElementById('windmill-quest-ui').style.display = 'none';
       
       // Reset windmill HP
       if (scene) {
         scene.children.forEach(c => {
           if (c.userData.isWindmill) {
-            c.userData.hp = 600;
-            c.userData.maxHp = 600;
+            c.userData.hp = 1000;
+            c.userData.maxHp = 1000;
           }
         });
       }
