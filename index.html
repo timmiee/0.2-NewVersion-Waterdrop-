@@ -4396,16 +4396,18 @@ Total Gold Earned: ${saveData.totalGoldEarned}
           // Determine if we're in portrait or landscape mode
           const isPortrait = screenHeight > screenWidth;
           
-          // In portrait: bottom half = movement, top half (below UI) = aiming
-          // In landscape: left half = movement, right half = aiming
+          // Note: Top 40% is reserved for UI (filtered above at 0.6 threshold)
+          // Playable area is from 60% to 100% (bottom 40% of screen)
+          // In portrait: split playable area - upper half for aiming, lower half for movement
+          // In landscape: split horizontally - left half for movement, right half for aiming
           let isMovementZone = false;
           let isAimingZone = false;
           
           if (isPortrait) {
-            // Portrait mode: split vertically
-            const midY = screenHeight * 0.8; // Movement in bottom 20%, aiming in middle 20%
+            // Portrait mode: split vertically within playable area (60%-100%)
+            const midY = screenHeight * 0.8; // Midpoint of playable area
             isMovementZone = touch.clientY >= midY && !joystickLeft.active;
-            isAimingZone = touch.clientY < midY && !joystickRight.active;
+            isAimingZone = touch.clientY >= screenHeight * 0.6 && touch.clientY < midY && !joystickRight.active;
           } else {
             // Landscape mode: split horizontally
             isMovementZone = touch.clientX < screenWidth / 2 && !joystickLeft.active;
