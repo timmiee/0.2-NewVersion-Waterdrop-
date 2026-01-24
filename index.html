@@ -4393,21 +4393,24 @@ Total Gold Earned: ${saveData.totalGoldEarned}
             continue;
           }
           
-          // Determine if we're in portrait or landscape mode
-          const isPortrait = screenHeight > screenWidth;
+          // Determine if we're in portrait or landscape mode (same logic as camera)
+          const aspect = screenWidth / screenHeight;
+          const isPortrait = aspect < 1;
           
-          // Note: Top 40% is reserved for UI (filtered above at 0.6 threshold)
-          // Playable area is from 60% to 100% (bottom 40% of screen)
-          // In portrait: split playable area - upper half for aiming, lower half for movement
+          // Note: Top 40% of screen is reserved for UI (filtered above at 0.6 threshold)
+          // Playable area is the bottom 40% of screen (from 60% to 100% of screen height)
+          // In portrait: split playable area vertically - upper half for aiming, lower half for movement
           // In landscape: split horizontally - left half for movement, right half for aiming
           let isMovementZone = false;
           let isAimingZone = false;
           
           if (isPortrait) {
-            // Portrait mode: split vertically within playable area (60%-100%)
-            const midY = screenHeight * 0.8; // Midpoint of playable area
+            // Portrait mode: split vertically within playable area
+            const playableStart = screenHeight * 0.6;
+            const playableEnd = screenHeight;
+            const midY = (playableStart + playableEnd) / 2; // True midpoint at 80%
             isMovementZone = touch.clientY >= midY && !joystickLeft.active;
-            isAimingZone = touch.clientY >= screenHeight * 0.6 && touch.clientY < midY && !joystickRight.active;
+            isAimingZone = touch.clientY >= playableStart && touch.clientY < midY && !joystickRight.active;
           } else {
             // Landscape mode: split horizontally
             isMovementZone = touch.clientX < screenWidth / 2 && !joystickLeft.active;
