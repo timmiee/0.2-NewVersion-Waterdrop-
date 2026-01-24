@@ -4397,8 +4397,8 @@ Total Gold Earned: ${saveData.totalGoldEarned}
           const aspect = screenWidth / screenHeight;
           const isPortrait = aspect < 1;
           
-          // Note: Top 40% of screen is reserved for UI (filtered above at 0.6 threshold)
-          // Playable area is the bottom 40% of screen (from 60% to 100% of screen height)
+          // Note: Top 60% of screen includes UI elements (filtered above at 0.6 threshold)
+          // Playable area occupies the bottom 40% of screen height (from 60% to 100%)
           // In portrait: split playable area vertically - upper half for aiming, lower half for movement
           // In landscape: split horizontally - left half for movement, right half for aiming
           let isMovementZone = false;
@@ -4408,7 +4408,7 @@ Total Gold Earned: ${saveData.totalGoldEarned}
             // Portrait mode: split vertically within playable area
             const playableStart = screenHeight * 0.6;
             const playableEnd = screenHeight;
-            const midY = (playableStart + playableEnd) / 2; // True midpoint at 80%
+            const midY = (playableStart + playableEnd) / 2; // Midpoint of playable area (at 80% of screen height)
             isMovementZone = touch.clientY >= midY && !joystickLeft.active;
             isAimingZone = touch.clientY >= playableStart && touch.clientY < midY && !joystickRight.active;
           } else {
