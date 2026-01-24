@@ -2971,7 +2971,23 @@
       // Camera (Orthographic for miniature look)
       const aspect = window.innerWidth / window.innerHeight;
       const d = 20;
-      camera = new THREE.OrthographicCamera(-d * aspect, d * aspect, d, -d, 1, 1000);
+      // In portrait mode (aspect < 1), ensure horizontal view isn't too narrow
+      // In landscape mode (aspect > 1), maintain the standard behavior
+      let left, right, top, bottom;
+      if (aspect < 1) {
+        // Portrait mode: expand horizontal view
+        left = -d;
+        right = d;
+        top = d / aspect;
+        bottom = -d / aspect;
+      } else {
+        // Landscape mode: standard behavior
+        left = -d * aspect;
+        right = d * aspect;
+        top = d;
+        bottom = -d;
+      }
+      camera = new THREE.OrthographicCamera(left, right, top, bottom, 1, 1000);
       camera.position.set(20, 20, 20); // Isometric angle
       camera.lookAt(scene.position);
 
@@ -3422,10 +3438,21 @@
         
         const d = originalD - (originalD - zoomD) * Math.sin(eased * Math.PI);
         const aspect = window.innerWidth / window.innerHeight;
-        camera.left = -d * aspect;
-        camera.right = d * aspect;
-        camera.top = d;
-        camera.bottom = -d;
+        
+        // Apply same portrait/landscape logic as camera setup
+        if (aspect < 1) {
+          // Portrait mode
+          camera.left = -d;
+          camera.right = d;
+          camera.top = d / aspect;
+          camera.bottom = -d / aspect;
+        } else {
+          // Landscape mode
+          camera.left = -d * aspect;
+          camera.right = d * aspect;
+          camera.top = d;
+          camera.bottom = -d;
+        }
         camera.updateProjectionMatrix();
         
         if (t < 1) {
@@ -4366,8 +4393,27 @@ Total Gold Earned: ${saveData.totalGoldEarned}
             continue;
           }
           
-          // Left half = movement joystick
-          if (touch.clientX < screenWidth / 2 && !joystickLeft.active) {
+          // Determine if we're in portrait or landscape mode
+          const isPortrait = screenHeight > screenWidth;
+          
+          // In portrait: bottom half = movement, top half (below UI) = aiming
+          // In landscape: left half = movement, right half = aiming
+          let isMovementZone = false;
+          let isAimingZone = false;
+          
+          if (isPortrait) {
+            // Portrait mode: split vertically
+            const midY = screenHeight * 0.8; // Movement in bottom 20%, aiming in middle 20%
+            isMovementZone = touch.clientY >= midY && !joystickLeft.active;
+            isAimingZone = touch.clientY < midY && !joystickRight.active;
+          } else {
+            // Landscape mode: split horizontally
+            isMovementZone = touch.clientX < screenWidth / 2 && !joystickLeft.active;
+            isAimingZone = touch.clientX >= screenWidth / 2 && !joystickRight.active;
+          }
+          
+          // Movement joystick
+          if (isMovementZone) {
             joystickLeft.id = touch.identifier;
             joystickLeft.active = true;
             joystickLeft.originX = touch.clientX;
@@ -4378,8 +4424,8 @@ Total Gold Earned: ${saveData.totalGoldEarned}
             joystickOuter.style.left = (touch.clientX - 60) + 'px';
             joystickOuter.style.top = (touch.clientY - 60) + 'px';
           }
-          // Right half = aiming joystick
-          else if (touch.clientX >= screenWidth / 2 && !joystickRight.active) {
+          // Aiming joystick
+          else if (isAimingZone) {
             joystickRight.id = touch.identifier;
             joystickRight.active = true;
             joystickRight.originX = touch.clientX;
@@ -4511,10 +4557,21 @@ Total Gold Earned: ${saveData.totalGoldEarned}
     function onWindowResize() {
       const aspect = window.innerWidth / window.innerHeight;
       const d = 20;
-      camera.left = -d * aspect;
-      camera.right = d * aspect;
-      camera.top = d;
-      camera.bottom = -d;
+      // In portrait mode (aspect < 1), ensure horizontal view isn't too narrow
+      // In landscape mode (aspect > 1), maintain the standard behavior
+      if (aspect < 1) {
+        // Portrait mode: expand horizontal view
+        camera.left = -d;
+        camera.right = d;
+        camera.top = d / aspect;
+        camera.bottom = -d / aspect;
+      } else {
+        // Landscape mode: standard behavior
+        camera.left = -d * aspect;
+        camera.right = d * aspect;
+        camera.top = d;
+        camera.bottom = -d;
+      }
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     }
