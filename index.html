@@ -787,9 +787,31 @@
       display: none;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start; /* Changed from center to allow scrolling */
       z-index: 50; /* Lower than UI layer buttons */
       padding: 40px;
+      overflow-y: auto; /* Enable scroll for achievements */
+      overflow-x: hidden;
+    }
+    
+    /* Custom scrollbar for achievements screen */
+    #achievements-screen::-webkit-scrollbar {
+      width: 12px;
+    }
+    
+    #achievements-screen::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 10px;
+    }
+    
+    #achievements-screen::-webkit-scrollbar-thumb {
+      background: linear-gradient(to bottom, #5DADE2, #3498DB);
+      border-radius: 10px;
+      border: 2px solid rgba(0, 0, 0, 0.3);
+    }
+    
+    #achievements-screen::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(to bottom, #7EC8E3, #5DADE2);
     }
 
     .screen-title {
@@ -1445,6 +1467,10 @@
         this.isDashing = true;
         this.dashTime = this.dashDuration;
         
+        // Track dashes for achievements
+        if (!saveData.totalDashes) saveData.totalDashes = 0;
+        saveData.totalDashes++;
+        
         // Splash effect on dash start - more dramatic
         spawnParticles(this.mesh.position, COLORS.player, 20);
         for(let i=0; i<8; i++) {
@@ -1464,6 +1490,10 @@
       }
 
       takeDamage(amount) {
+        // Track damage for achievements
+        if (!saveData.damagesTaken) saveData.damagesTaken = 0;
+        saveData.damagesTaken++;
+        
         // Armor reduction
         const reduced = Math.max(1, amount * (1 - playerStats.armor / 100));
         playerStats.hp -= reduced;
@@ -2592,47 +2622,196 @@
 
     // --- ACHIEVEMENTS SYSTEM ---
     const ACHIEVEMENTS = {
-      kills100: { id: 'kills100', name: '100 Kills', desc: 'Kill 100 enemies', reward: 50, check: () => playerStats.kills >= 100 },
-      level10: { id: 'level10', name: 'Level 10', desc: 'Reach Level 10', reward: 100, check: () => playerStats.lvl >= 10 },
-      level25: { id: 'level25', name: 'Level 25', desc: 'Reach Level 25', reward: 250, check: () => playerStats.lvl >= 25 },
-      level50: { id: 'level50', name: 'Level 50', desc: 'Reach Level 50', reward: 500, check: () => playerStats.lvl >= 50 },
-      level75: { id: 'level75', name: 'Level 75', desc: 'Reach Level 75', reward: 750, check: () => playerStats.lvl >= 75 },
-      level100: { id: 'level100', name: 'Level 100', desc: 'Reach Level 100', reward: 1000, check: () => playerStats.lvl >= 100 }
+      kills100: { id: 'kills100', name: '100 Kills', desc: 'Kill 100 enemies', reward: 50, check: () => playerStats.kills >= 100, claimed: false },
+      kills250: { id: 'kills250', name: '250 Kills', desc: 'Kill 250 enemies', reward: 100, check: () => playerStats.kills >= 250, claimed: false },
+      kills500: { id: 'kills500', name: '500 Kills', desc: 'Kill 500 enemies', reward: 200, check: () => playerStats.kills >= 500, claimed: false },
+      kills1000: { id: 'kills1000', name: '1000 Kills', desc: 'Kill 1000 enemies', reward: 500, check: () => playerStats.kills >= 1000, claimed: false },
+      level10: { id: 'level10', name: 'Level 10', desc: 'Reach Level 10', reward: 100, check: () => playerStats.lvl >= 10, claimed: false },
+      level25: { id: 'level25', name: 'Level 25', desc: 'Reach Level 25', reward: 250, check: () => playerStats.lvl >= 25, claimed: false },
+      level50: { id: 'level50', name: 'Level 50', desc: 'Reach Level 50', reward: 500, check: () => playerStats.lvl >= 50, claimed: false },
+      level75: { id: 'level75', name: 'Level 75', desc: 'Reach Level 75', reward: 750, check: () => playerStats.lvl >= 75, claimed: false },
+      level100: { id: 'level100', name: 'Level 100', desc: 'Reach Level 100', reward: 1000, check: () => playerStats.lvl >= 100, claimed: false },
+      goldCollector: { id: 'goldCollector', name: 'Gold Collector', desc: 'Collect 1000 gold total', reward: 150, check: () => saveData.totalGold >= 1000, claimed: false },
+      dasher: { id: 'dasher', name: 'Dasher', desc: 'Perform 50 dashes', reward: 75, check: () => saveData.totalDashes >= 50, claimed: false },
+      survivor: { id: 'survivor', name: 'Survivor', desc: 'Survive for 10 minutes', reward: 300, check: () => gameTime >= 600, claimed: false },
+      weaponMaster: { id: 'weaponMaster', name: 'Weapon Master', desc: 'Unlock all weapons', reward: 400, check: () => weapons.gun.active && weapons.sword.active && weapons.aura.active && weapons.meteor.active && weapons.lightning.active, claimed: false },
+      noHit: { id: 'noHit', name: 'Untouchable', desc: 'Reach level 5 without taking damage', reward: 500, check: () => playerStats.lvl >= 5 && saveData.damagesTaken === 0, claimed: false }
     };
+
+    // Initialize achievement tracking stats
+    if (!saveData.totalGold) saveData.totalGold = 0;
+    if (!saveData.totalDashes) saveData.totalDashes = 0;
+    if (!saveData.damagesTaken) saveData.damagesTaken = 0;
+    if (!saveData.unclaimedAchievements) saveData.unclaimedAchievements = [];
 
     function updateAchievementsScreen() {
       const content = document.getElementById('achievements-content');
       if (!content) return;
       
-      let html = '<div style="display: grid; gap: 15px; width: 100%; max-width: 600px; margin: 0 auto;">';
+      let html = '<div style="display: grid; gap: 15px; width: 100%; max-width: 600px; margin: 0 auto; padding-bottom: 100px;">';
       
       for (const key in ACHIEVEMENTS) {
         const achievement = ACHIEVEMENTS[key];
         const isEarned = saveData.achievements && saveData.achievements.includes(achievement.id);
+        const isClaimed = achievement.claimed || (saveData.claimedAchievements && saveData.claimedAchievements.includes(achievement.id));
+        const canClaim = isEarned && !isClaimed;
         
         html += `
           <div style="
-            background: linear-gradient(to bottom, ${isEarned ? '#2c5530' : '#3a3a3a'}, ${isEarned ? '#1a3020' : '#2a2a2a'});
-            border: 3px solid ${isEarned ? '#FFD700' : '#5a5a5a'};
+            background: linear-gradient(to bottom, ${isClaimed ? '#2c5530' : isEarned ? '#4a4a1a' : '#3a3a3a'}, ${isClaimed ? '#1a3020' : isEarned ? '#2a2a0a' : '#2a2a2a'});
+            border: 3px solid ${isClaimed ? '#00FF00' : isEarned ? '#FFD700' : '#5a5a5a'};
             border-radius: 15px;
             padding: 15px;
             text-align: left;
-          ">
-            <div style="color: ${isEarned ? '#FFD700' : '#bbb'}; font-size: 20px; font-weight: bold; margin-bottom: 5px;">
-              ${isEarned ? '✓ ' : ''}${achievement.name}
+            cursor: ${canClaim ? 'pointer' : 'default'};
+            transition: all 0.2s;
+            ${canClaim ? 'box-shadow: 0 0 15px rgba(255,215,0,0.6); animation: pulse-gold 1.5s infinite;' : ''}
+          " ${canClaim ? `onclick="claimAchievement('${achievement.id}')"` : ''}>
+            <div style="color: ${isClaimed ? '#00FF00' : isEarned ? '#FFD700' : '#bbb'}; font-size: 20px; font-weight: bold; margin-bottom: 5px;">
+              ${isClaimed ? '✓ ' : isEarned ? '! ' : ''}${achievement.name}
             </div>
-            <div style="color: ${isEarned ? '#90ee90' : '#888'}; font-size: 14px; margin-bottom: 8px;">
+            <div style="color: ${isClaimed ? '#90ee90' : isEarned ? '#f0e68c' : '#888'}; font-size: 14px; margin-bottom: 8px;">
               ${achievement.desc}
             </div>
             <div style="color: #FFD700; font-size: 16px; font-weight: bold;">
-              Reward: ${achievement.reward} Gold
+              Reward: ${achievement.reward} Gold ${isClaimed ? '(CLAIMED)' : isEarned ? '(CLICK TO CLAIM)' : ''}
             </div>
           </div>
         `;
       }
       
       html += '</div>';
+      
+      // Add pulse animation CSS if not already added
+      if (!document.getElementById('achievementPulse')) {
+        const style = document.createElement('style');
+        style.id = 'achievementPulse';
+        style.textContent = `
+          @keyframes pulse-gold {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); box-shadow: 0 0 25px rgba(255,215,0,0.9); }
+          }
+        `;
+        document.head.appendChild(style);
+      }
+      
       content.innerHTML = html;
+      
+      // Update notification badge on achievements button
+      updateAchievementNotification();
+    }
+    
+    function claimAchievement(achievementId) {
+      const achievement = ACHIEVEMENTS[achievementId];
+      if (!achievement) return;
+      
+      const isEarned = saveData.achievements && saveData.achievements.includes(achievement.id);
+      const isClaimed = achievement.claimed || (saveData.claimedAchievements && saveData.claimedAchievements.includes(achievement.id));
+      
+      if (isEarned && !isClaimed) {
+        // Mark as claimed
+        if (!saveData.claimedAchievements) saveData.claimedAchievements = [];
+        saveData.claimedAchievements.push(achievement.id);
+        achievement.claimed = true;
+        
+        // Award gold with visual effect
+        addGold(achievement.reward);
+        
+        // Show gold bag with amount
+        const goldBag = document.createElement('div');
+        goldBag.style.position = 'fixed';
+        goldBag.style.top = '50%';
+        goldBag.style.left = '50%';
+        goldBag.style.transform = 'translate(-50%, -50%) scale(0)';
+        goldBag.style.fontSize = '80px';
+        goldBag.style.zIndex = '10000';
+        goldBag.style.pointerEvents = 'none';
+        goldBag.innerHTML = `💰<br><span style="font-size: 40px; color: #FFD700; text-shadow: 0 0 10px rgba(255,215,0,0.8);">+${achievement.reward} GOLD</span>`;
+        goldBag.style.textAlign = 'center';
+        document.body.appendChild(goldBag);
+        
+        // Animate gold bag
+        let scale = 0;
+        const duration = 2000;
+        const start = Date.now();
+        const animateGoldBag = () => {
+          const elapsed = Date.now() - start;
+          const t = elapsed / duration;
+          
+          if (t >= 1) {
+            goldBag.remove();
+            return;
+          }
+          
+          if (t < 0.3) {
+            scale = t / 0.3; // Scale up
+          } else if (t < 0.7) {
+            scale = 1; // Hold
+          } else {
+            scale = 1 - ((t - 0.7) / 0.3); // Fade out
+          }
+          
+          goldBag.style.transform = `translate(-50%, -50%) scale(${scale})`;
+          requestAnimationFrame(animateGoldBag);
+        };
+        animateGoldBag();
+        
+        // Play sound
+        playSound('levelup');
+        
+        // Save
+        saveSaveData();
+        
+        // Refresh screen
+        updateAchievementsScreen();
+      }
+    }
+    
+    function updateAchievementNotification() {
+      // Check if there are unclaimed achievements
+      let unclaimedCount = 0;
+      for (const key in ACHIEVEMENTS) {
+        const achievement = ACHIEVEMENTS[key];
+        const isEarned = saveData.achievements && saveData.achievements.includes(achievement.id);
+        const isClaimed = achievement.claimed || (saveData.claimedAchievements && saveData.claimedAchievements.includes(achievement.id));
+        if (isEarned && !isClaimed) {
+          unclaimedCount++;
+        }
+      }
+      
+      // Update or create notification badge
+      let badge = document.getElementById('achievement-notification-badge');
+      if (unclaimedCount > 0) {
+        if (!badge) {
+          badge = document.createElement('div');
+          badge.id = 'achievement-notification-badge';
+          badge.style.position = 'absolute';
+          badge.style.top = '0';
+          badge.style.right = '10px';
+          badge.style.width = '30px';
+          badge.style.height = '30px';
+          badge.style.borderRadius = '50%';
+          badge.style.background = 'linear-gradient(to bottom, #FF0000, #CC0000)';
+          badge.style.border = '2px solid #FFD700';
+          badge.style.color = 'white';
+          badge.style.fontSize = '18px';
+          badge.style.fontWeight = 'bold';
+          badge.style.display = 'flex';
+          badge.style.alignItems = 'center';
+          badge.style.justifyContent = 'center';
+          badge.style.boxShadow = '0 0 10px rgba(255,0,0,0.8)';
+          badge.style.animation = 'pulse 1s infinite';
+          badge.style.pointerEvents = 'none';
+          badge.style.zIndex = '1000';
+          
+          const achievementsBtn = document.getElementById('achievements-btn');
+          achievementsBtn.style.position = 'relative';
+          achievementsBtn.appendChild(badge);
+        }
+        badge.textContent = unclaimedCount;
+      } else if (badge) {
+        badge.remove();
+      }
     }
 
     function checkAchievements() {
@@ -2646,16 +2825,13 @@
         
         // Check if achieved
         if (achievement.check()) {
-          // Award achievement
+          // Award achievement (but don't give gold yet - must claim)
           if (!saveData.achievements) saveData.achievements = [];
           saveData.achievements.push(achievement.id);
           
-          // Award gold
-          addGold(achievement.reward);
-          
           // Show achievement notification
-          createFloatingText(`ACHIEVEMENT: ${achievement.name}`, player.mesh.position);
-          createFloatingText(`+${achievement.reward} GOLD`, player.mesh.position);
+          createFloatingText(`ACHIEVEMENT UNLOCKED: ${achievement.name}`, player.mesh.position);
+          createFloatingText(`Go to menu to claim!`, player.mesh.position);
           
           // Save
           saveSaveData();
@@ -2667,6 +2843,9 @@
           for(let i=0; i<30; i++) {
             spawnParticles(player.mesh.position, 0xFFD700, 5);
           }
+          
+          // Update notification badge
+          updateAchievementNotification();
         }
       }
     }
@@ -3909,6 +4088,8 @@
       playerStats.gold += finalAmount;
       saveData.gold += finalAmount;
       saveData.totalGoldEarned += finalAmount;
+      if (!saveData.totalGold) saveData.totalGold = 0;
+      saveData.totalGold += finalAmount; // Track for achievements
       updateHUD();
       updateGoldDisplays();
     }
