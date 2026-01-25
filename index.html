@@ -80,10 +80,32 @@
 
     /* HUD */
     .hud-top {
-      padding: 20px;
+      padding: 15px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 8px;
+      max-width: 100%;
+    }
+
+    /* Responsive bar sizing for portrait/landscape */
+    @media (orientation: portrait) {
+      .bar-container {
+        width: min(200px, 40vw);
+        height: 24px;
+      }
+      .hud-top {
+        padding: 10px;
+      }
+    }
+
+    @media (orientation: landscape) {
+      .bar-container {
+        width: min(200px, 25vw);
+        height: 20px;
+      }
+      .hud-top {
+        padding: 8px;
+      }
     }
 
     .bar-container {
@@ -161,19 +183,30 @@
     /* Tutorial Text */
     #tutorial-text {
       position: absolute;
-      top: 50%;
+      top: 15%;
       left: 50%;
-      transform: translate(-50%, -50%);
-      color: white;
-      font-size: 24px;
+      transform: translate(-50%, 0);
+      
+      /* Match level up box styling */
+      background: linear-gradient(to bottom, #4a4a4a, #3a3a3a);
+      padding: 20px 30px;
+      border-radius: 20px;
+      border: 4px solid #5DADE2;
+      box-shadow: 0 15px 30px rgba(0,0,0,0.7), 0 0 40px rgba(93,173,226,0.5), inset 0 0 30px rgba(93,173,226,0.1);
+      
+      /* Cosy, fitting font styling */
+      color: #FFD700;
+      font-size: 20px;
       font-weight: bold;
+      font-family: 'M PLUS Rounded 1c', 'Comic Sans MS', 'Chalkboard', cursive, sans-serif;
       text-align: center;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.9), 0 0 20px rgba(93,173,226,0.8);
+      text-shadow: 0 0 8px rgba(255,215,0,0.6), 0 0 15px rgba(255,215,0,0.3), 1px 1px 2px rgba(0,0,0,0.8);
+      
       opacity: 0;
       transition: opacity 0.5s ease-in-out;
       z-index: 30;
-      pointer-events: none;
-      max-width: 80%;
+      pointer-events: none; /* Ensure input not blocked */
+      max-width: 85%;
     }
 
     /* Level Up Modal */
@@ -190,15 +223,19 @@
       justify-content: center;
       pointer-events: auto;
       z-index: 20;
+      overflow-y: auto; /* Allow scrolling if needed */
+      padding: 20px 0; /* Padding for scroll */
     }
 
     .modal-content {
       background: linear-gradient(to bottom, #4a4a4a, #3a3a3a);
-      padding: 25px;
+      padding: 20px;
       border-radius: 20px;
       border: 4px solid #5DADE2;
-      width: 80%;
+      width: 85%;
       max-width: 400px;
+      max-height: 85vh; /* Ensure it fits on screen */
+      overflow-y: auto; /* Allow internal scrolling */
       text-align: center;
       box-shadow: 0 15px 30px rgba(0,0,0,0.7), 0 0 40px rgba(93,173,226,0.5), inset 0 0 30px rgba(93,173,226,0.1);
     }
@@ -490,27 +527,27 @@
       height: 60px;
     }
 
-    /* Position buttons over text in image - adjust these based on actual image layout */
+    /* Position buttons over text in image - moved ~0.65cm (2.5%) lower to align with actual text */
     #start-game-btn {
-      top: 40%;
+      top: 42.5%;
       left: 50%;
       transform: translateX(-50%);
     }
 
     #progression-btn {
-      top: 50%;
+      top: 52.5%;
       left: 50%;
       transform: translateX(-50%);
     }
 
     #achievements-btn {
-      top: 60%;
+      top: 62.5%;
       left: 50%;
       transform: translateX(-50%);
     }
 
     #credits-btn {
-      top: 70%;
+      top: 72.5%;
       left: 50%;
       transform: translateX(-50%);
     }
@@ -535,9 +572,10 @@
     }
 
     .menu-btn:active {
-      transform: translateX(-50%) scale(0.95);
-      box-shadow: 0 0 50px rgba(255,255,255,1), 0 0 100px rgba(93,173,226,0.9);
+      transform: translateX(-50%) scale(0.95) translateY(3px);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.6), 0 0 50px rgba(255,255,255,1), 0 0 100px rgba(93,173,226,0.9);
       animation: lightning-flash 0.3s ease;
+      filter: brightness(1.3);
     }
 
     .menu-btn:active::before {
@@ -575,7 +613,9 @@
       align-items: center;
       z-index: 50; /* Lower than UI layer buttons */
       overflow-y: auto;
+      overflow-x: hidden; /* Prevent horizontal overflow */
       padding: 20px;
+      padding-bottom: 100px; /* Extra space for back button */
     }
 
     .shop-header {
@@ -595,11 +635,11 @@
 
     .shop-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: 15px;
       width: 90%;
       max-width: 1200px;
-      margin-bottom: 80px;
+      margin-bottom: 100px; /* Increased space for back button visibility */
     }
 
     .upgrade-shop-card {
@@ -747,9 +787,31 @@
       display: none;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start; /* Changed from center to allow scrolling */
       z-index: 50; /* Lower than UI layer buttons */
       padding: 40px;
+      overflow-y: auto; /* Enable scroll for achievements */
+      overflow-x: hidden;
+    }
+    
+    /* Custom scrollbar for achievements screen */
+    #achievements-screen::-webkit-scrollbar {
+      width: 12px;
+    }
+    
+    #achievements-screen::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 10px;
+    }
+    
+    #achievements-screen::-webkit-scrollbar-thumb {
+      background: linear-gradient(to bottom, #5DADE2, #3498DB);
+      border-radius: 10px;
+      border: 2px solid rgba(0, 0, 0, 0.3);
+    }
+    
+    #achievements-screen::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(to bottom, #7EC8E3, #5DADE2);
     }
 
     .screen-title {
@@ -1074,6 +1136,7 @@
     let waveCount = 0;
     let windmillQuest = { active: false, timer: 0, duration: 30, windmill: null, hasCompleted: false };
     let runStartGold = 0;  // Track gold at start of run for end-of-run calculation
+    let sessionDamagesTaken = 0;  // Session-specific damage tracking for Untouchable achievement
 
     // Tutorial System
     let tutorialActive = false;
@@ -1338,6 +1401,40 @@
         // Pulse highlight with deterministic variation based on gameTime
         this.highlight.material.opacity = 0.6 + Math.sin(gameTime * 3) * 0.2 + Math.sin(gameTime * 7) * 0.1;
         
+        // Character drops water when moving - wet, bubbly, squishy effects
+        const movementSpeed = Math.sqrt(this.velocity.x * this.velocity.x + this.velocity.z * this.velocity.z);
+        if (movementSpeed > 0.01) {
+          // Drop water droplets on ground
+          if (Math.random() < 0.15) { // 15% chance each frame when moving
+            spawnWaterDroplet(this.mesh.position);
+          }
+          
+          // Add small bubble particles rising from character
+          if (Math.random() < 0.1) {
+            const bubbleGeo = new THREE.SphereGeometry(0.1 + Math.random() * 0.05, 8, 8);
+            const bubbleMat = new THREE.MeshPhysicalMaterial({ 
+              color: 0x4ECDC4, 
+              transparent: true, 
+              opacity: 0.6,
+              metalness: 0.9,
+              roughness: 0.1
+            });
+            const bubble = new THREE.Mesh(bubbleGeo, bubbleMat);
+            bubble.position.copy(this.mesh.position);
+            bubble.position.y += 0.3;
+            scene.add(bubble);
+            
+            bubble.userData = {
+              isPlayerBubble: true,
+              riseSpeed: 0.02 + Math.random() * 0.02,
+              lifetime: 1.5,
+              driftX: (Math.random() - 0.5) * 0.01,
+              driftZ: (Math.random() - 0.5) * 0.01
+            };
+            particles.push(bubble);
+          }
+        }
+        
         // Update aura circle
         if (weapons.aura.active) {
           this.auraCircle.visible = true;
@@ -1371,6 +1468,10 @@
         this.isDashing = true;
         this.dashTime = this.dashDuration;
         
+        // Track dashes for achievements
+        if (!saveData.totalDashes) saveData.totalDashes = 0;
+        saveData.totalDashes++;
+        
         // Splash effect on dash start - more dramatic
         spawnParticles(this.mesh.position, COLORS.player, 20);
         for(let i=0; i<8; i++) {
@@ -1390,6 +1491,11 @@
       }
 
       takeDamage(amount) {
+        // Track damage for achievements (both session and total)
+        sessionDamagesTaken++; // Session-specific for Untouchable achievement
+        if (!saveData.damagesTaken) saveData.damagesTaken = 0;
+        saveData.damagesTaken++;
+        
         // Armor reduction
         const reduced = Math.max(1, amount * (1 - playerStats.armor / 100));
         playerStats.hp -= reduced;
@@ -1533,7 +1639,10 @@
         this.maxHp = this.hp;
         this.damage = 33 * levelScaling; // Damage scaled by level
         this.isDead = false;
-        this.isDamaged = false; // Track if enemy has been visually damaged
+        this.isDamaged = false; // Track if enemy has been visually damaged (legacy)
+        this.isDamaged75 = false; // Track 75% HP damage state
+        this.isDamaged50 = false; // Track 50% HP damage state
+        this.isDamaged25 = false; // Track 25% HP damage state
         this.pulsePhase = Math.random() * Math.PI;
         this.wobbleOffset = Math.random() * 100;
         this.lastAttackTime = 0;
@@ -1686,65 +1795,134 @@
         this.hp -= amount;
         createDamageNumber(amount, this.mesh.position, isCrit);
         
-        // Destruction effect at 20% HP threshold
+        // 4-STAGE ENEMY DAMAGE STATES
         const hpPercent = this.hp / this.maxHp;
         const oldHpPercent = oldHp / this.maxHp;
+        const enemyColor = this.mesh.material.color.getHex();
         
-        // First hit below 20% - destroy part of body
-        if (oldHpPercent >= 0.2 && hpPercent < 0.2 && !this.isDamaged) {
-          this.isDamaged = true;
+        // Stage 4 (25% HP) - Missing limbs, large body parts gone, slowed movement
+        if (oldHpPercent >= 0.25 && hpPercent < 0.25 && !this.isDamaged25) {
+          this.isDamaged25 = true;
+          this.walkSpeed *= 0.6; // Slowed by 40% due to missing limb
+          this.mesh.scale.multiplyScalar(0.7); // Much smaller - major body parts missing
           
-          // Visually damage the enemy - make smaller and break off pieces
-          const damagePercent = 0.35 + Math.random() * 0.15; // 35-50%
-          const newScale = 1 - damagePercent;
-          this.mesh.scale.multiplyScalar(newScale);
-          
-          // Spawn broken pieces
-          const enemyColor = this.mesh.material.color.getHex();
-          for(let i = 0; i < 5; i++) {
-            const piece = new THREE.Mesh(
-              new THREE.BoxGeometry(0.2, 0.2, 0.2),
-              new THREE.MeshBasicMaterial({ color: enemyColor })
+          // Spawn large broken limbs
+          for(let i = 0; i < 8; i++) {
+            const limb = new THREE.Mesh(
+              new THREE.BoxGeometry(0.3 + Math.random() * 0.3, 0.3 + Math.random() * 0.3, 0.1),
+              new THREE.MeshToonMaterial({ color: enemyColor, transparent: true, opacity: 0.9 })
             );
-            piece.position.copy(this.mesh.position);
-            scene.add(piece);
+            limb.position.copy(this.mesh.position);
+            scene.add(limb);
             
             const vel = new THREE.Vector3(
-              (Math.random() - 0.5) * 0.3,
-              Math.random() * 0.4,
-              (Math.random() - 0.5) * 0.3
+              (Math.random() - 0.5) * 0.5,
+              Math.random() * 0.6,
+              (Math.random() - 0.5) * 0.5
             );
             
-            let life = 40;
-            const updatePiece = () => {
+            let life = 60;
+            const updateLimb = () => {
               life--;
-              piece.position.add(vel);
+              limb.position.add(vel);
               vel.y -= 0.02; // Gravity
-              piece.rotation.x += 0.1;
-              piece.rotation.y += 0.1;
+              limb.rotation.x += 0.15;
+              limb.rotation.y += 0.15;
+              limb.material.opacity = life / 60;
               
-              if (life <= 0 || piece.position.y < 0) {
-                scene.remove(piece);
-                piece.geometry.dispose();
-                piece.material.dispose();
+              if (life <= 0 || limb.position.y < 0) {
+                scene.remove(limb);
+                limb.geometry.dispose();
+                limb.material.dispose();
               } else {
-                requestAnimationFrame(updatePiece);
+                requestAnimationFrame(updateLimb);
               }
             };
-            updatePiece();
+            updateLimb();
           }
           
-          // Enhanced particles for destruction
-          spawnParticles(this.mesh.position, enemyColor, 15);
+          spawnParticles(this.mesh.position, enemyColor, 20);
           playSound('hit');
         }
         
-        // Flash
+        // Stage 3 (50% HP) - Flesh ripped off, major wounds
+        else if (oldHpPercent >= 0.5 && hpPercent < 0.5 && !this.isDamaged50) {
+          this.isDamaged50 = true;
+          this.mesh.scale.multiplyScalar(0.85); // Noticeably damaged
+          
+          // Add wound texture by darkening parts
+          this.mesh.material.emissive.setHex(0x330000); // Dark red wounds
+          this.mesh.material.emissiveIntensity = 0.3;
+          
+          // Spawn flesh pieces
+          for(let i = 0; i < 10; i++) {
+            const flesh = new THREE.Mesh(
+              new THREE.BoxGeometry(0.2, 0.2, 0.1),
+              new THREE.MeshBasicMaterial({ color: 0x8B0000 }) // Dark red flesh
+            );
+            flesh.position.copy(this.mesh.position);
+            scene.add(flesh);
+            
+            const vel = new THREE.Vector3(
+              (Math.random() - 0.5) * 0.4,
+              Math.random() * 0.5,
+              (Math.random() - 0.5) * 0.4
+            );
+            
+            let life = 50;
+            const updateFlesh = () => {
+              life--;
+              flesh.position.add(vel);
+              vel.y -= 0.02;
+              flesh.rotation.x += 0.1;
+              flesh.rotation.y += 0.1;
+              
+              if (life <= 0 || flesh.position.y < 0) {
+                scene.remove(flesh);
+                flesh.geometry.dispose();
+                flesh.material.dispose();
+              } else {
+                requestAnimationFrame(updateFlesh);
+              }
+            };
+            updateFlesh();
+          }
+          
+          spawnParticles(this.mesh.position, 0x8B0000, 15); // Blood color
+          playSound('hit');
+        }
+        
+        // Stage 2 (75% HP) - Blood spots, small holes, damage marks
+        else if (oldHpPercent >= 0.75 && hpPercent < 0.75 && !this.isDamaged75) {
+          this.isDamaged75 = true;
+          
+          // Add blood spots - slightly darken color
+          const currentColor = this.mesh.material.color.clone();
+          currentColor.multiplyScalar(0.8); // Darken by 20%
+          this.mesh.material.color.copy(currentColor);
+          
+          // Add small damage marks (holes)
+          for(let i = 0; i < 5; i++) {
+            const hole = new THREE.Mesh(
+              new THREE.CircleGeometry(0.1, 8),
+              new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.7 })
+            );
+            hole.position.copy(this.mesh.position);
+            hole.position.x += (Math.random() - 0.5) * 0.5;
+            hole.position.y += (Math.random() - 0.5) * 0.5;
+            hole.position.z += (Math.random() - 0.5) * 0.5;
+            this.mesh.add(hole);
+          }
+          
+          spawnParticles(this.mesh.position, 0xFF0000, 8); // Red blood particles
+          playSound('hit');
+        }
+        
+        // Flash on every hit
         const oldColor = this.mesh.material.color.getHex();
         this.mesh.material.color.setHex(0xFFFFFF);
         
         // Enhanced splash particles using enemy's own color
-        const enemyColor = oldColor;
         const particleCount = isCrit ? 8 : 3;
         spawnParticles(this.mesh.position, enemyColor, particleCount);
         
@@ -2446,47 +2624,196 @@
 
     // --- ACHIEVEMENTS SYSTEM ---
     const ACHIEVEMENTS = {
-      kills100: { id: 'kills100', name: '100 Kills', desc: 'Kill 100 enemies', reward: 50, check: () => playerStats.kills >= 100 },
-      level10: { id: 'level10', name: 'Level 10', desc: 'Reach Level 10', reward: 100, check: () => playerStats.lvl >= 10 },
-      level25: { id: 'level25', name: 'Level 25', desc: 'Reach Level 25', reward: 250, check: () => playerStats.lvl >= 25 },
-      level50: { id: 'level50', name: 'Level 50', desc: 'Reach Level 50', reward: 500, check: () => playerStats.lvl >= 50 },
-      level75: { id: 'level75', name: 'Level 75', desc: 'Reach Level 75', reward: 750, check: () => playerStats.lvl >= 75 },
-      level100: { id: 'level100', name: 'Level 100', desc: 'Reach Level 100', reward: 1000, check: () => playerStats.lvl >= 100 }
+      kills100: { id: 'kills100', name: '100 Kills', desc: 'Kill 100 enemies', reward: 50, check: () => playerStats.kills >= 100, claimed: false },
+      kills250: { id: 'kills250', name: '250 Kills', desc: 'Kill 250 enemies', reward: 100, check: () => playerStats.kills >= 250, claimed: false },
+      kills500: { id: 'kills500', name: '500 Kills', desc: 'Kill 500 enemies', reward: 200, check: () => playerStats.kills >= 500, claimed: false },
+      kills1000: { id: 'kills1000', name: '1000 Kills', desc: 'Kill 1000 enemies', reward: 500, check: () => playerStats.kills >= 1000, claimed: false },
+      level10: { id: 'level10', name: 'Level 10', desc: 'Reach Level 10', reward: 100, check: () => playerStats.lvl >= 10, claimed: false },
+      level25: { id: 'level25', name: 'Level 25', desc: 'Reach Level 25', reward: 250, check: () => playerStats.lvl >= 25, claimed: false },
+      level50: { id: 'level50', name: 'Level 50', desc: 'Reach Level 50', reward: 500, check: () => playerStats.lvl >= 50, claimed: false },
+      level75: { id: 'level75', name: 'Level 75', desc: 'Reach Level 75', reward: 750, check: () => playerStats.lvl >= 75, claimed: false },
+      level100: { id: 'level100', name: 'Level 100', desc: 'Reach Level 100', reward: 1000, check: () => playerStats.lvl >= 100, claimed: false },
+      goldCollector: { id: 'goldCollector', name: 'Gold Collector', desc: 'Collect 1000 gold total', reward: 150, check: () => saveData.totalGold >= 1000, claimed: false },
+      dasher: { id: 'dasher', name: 'Dasher', desc: 'Perform 50 dashes', reward: 75, check: () => saveData.totalDashes >= 50, claimed: false },
+      survivor: { id: 'survivor', name: 'Survivor', desc: 'Survive for 10 minutes', reward: 300, check: () => gameTime >= 600, claimed: false },
+      weaponMaster: { id: 'weaponMaster', name: 'Weapon Master', desc: 'Unlock all weapons', reward: 400, check: () => weapons.gun.active && weapons.sword.active && weapons.aura.active && weapons.meteor.active && weapons.lightning.active, claimed: false },
+      noHit: { id: 'noHit', name: 'Untouchable', desc: 'Reach level 5 without taking damage', reward: 500, check: () => playerStats.lvl >= 5 && sessionDamagesTaken === 0, claimed: false }
     };
+
+    // Initialize achievement tracking stats
+    if (!saveData.totalGold) saveData.totalGold = 0;
+    if (!saveData.totalDashes) saveData.totalDashes = 0;
+    if (!saveData.damagesTaken) saveData.damagesTaken = 0;
+    if (!saveData.unclaimedAchievements) saveData.unclaimedAchievements = [];
 
     function updateAchievementsScreen() {
       const content = document.getElementById('achievements-content');
       if (!content) return;
       
-      let html = '<div style="display: grid; gap: 15px; width: 100%; max-width: 600px; margin: 0 auto;">';
+      let html = '<div style="display: grid; gap: 15px; width: 100%; max-width: 600px; margin: 0 auto; padding-bottom: 100px;">';
       
       for (const key in ACHIEVEMENTS) {
         const achievement = ACHIEVEMENTS[key];
         const isEarned = saveData.achievements && saveData.achievements.includes(achievement.id);
+        const isClaimed = achievement.claimed || (saveData.claimedAchievements && saveData.claimedAchievements.includes(achievement.id));
+        const canClaim = isEarned && !isClaimed;
         
         html += `
           <div style="
-            background: linear-gradient(to bottom, ${isEarned ? '#2c5530' : '#3a3a3a'}, ${isEarned ? '#1a3020' : '#2a2a2a'});
-            border: 3px solid ${isEarned ? '#FFD700' : '#5a5a5a'};
+            background: linear-gradient(to bottom, ${isClaimed ? '#2c5530' : isEarned ? '#4a4a1a' : '#3a3a3a'}, ${isClaimed ? '#1a3020' : isEarned ? '#2a2a0a' : '#2a2a2a'});
+            border: 3px solid ${isClaimed ? '#00FF00' : isEarned ? '#FFD700' : '#5a5a5a'};
             border-radius: 15px;
             padding: 15px;
             text-align: left;
-          ">
-            <div style="color: ${isEarned ? '#FFD700' : '#bbb'}; font-size: 20px; font-weight: bold; margin-bottom: 5px;">
-              ${isEarned ? '✓ ' : ''}${achievement.name}
+            cursor: ${canClaim ? 'pointer' : 'default'};
+            transition: all 0.2s;
+            ${canClaim ? 'box-shadow: 0 0 15px rgba(255,215,0,0.6); animation: pulse-gold 1.5s infinite;' : ''}
+          " ${canClaim ? `onclick="claimAchievement('${achievement.id}')"` : ''}>
+            <div style="color: ${isClaimed ? '#00FF00' : isEarned ? '#FFD700' : '#bbb'}; font-size: 20px; font-weight: bold; margin-bottom: 5px;">
+              ${isClaimed ? '✓ ' : isEarned ? '! ' : ''}${achievement.name}
             </div>
-            <div style="color: ${isEarned ? '#90ee90' : '#888'}; font-size: 14px; margin-bottom: 8px;">
+            <div style="color: ${isClaimed ? '#90ee90' : isEarned ? '#f0e68c' : '#888'}; font-size: 14px; margin-bottom: 8px;">
               ${achievement.desc}
             </div>
             <div style="color: #FFD700; font-size: 16px; font-weight: bold;">
-              Reward: ${achievement.reward} Gold
+              Reward: ${achievement.reward} Gold ${isClaimed ? '(CLAIMED)' : isEarned ? '(CLICK TO CLAIM)' : ''}
             </div>
           </div>
         `;
       }
       
       html += '</div>';
+      
+      // Add pulse animation CSS if not already added
+      if (!document.getElementById('achievementPulse')) {
+        const style = document.createElement('style');
+        style.id = 'achievementPulse';
+        style.textContent = `
+          @keyframes pulse-gold {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); box-shadow: 0 0 25px rgba(255,215,0,0.9); }
+          }
+        `;
+        document.head.appendChild(style);
+      }
+      
       content.innerHTML = html;
+      
+      // Update notification badge on achievements button
+      updateAchievementNotification();
+    }
+    
+    function claimAchievement(achievementId) {
+      const achievement = ACHIEVEMENTS[achievementId];
+      if (!achievement) return;
+      
+      const isEarned = saveData.achievements && saveData.achievements.includes(achievement.id);
+      const isClaimed = achievement.claimed || (saveData.claimedAchievements && saveData.claimedAchievements.includes(achievement.id));
+      
+      if (isEarned && !isClaimed) {
+        // Mark as claimed
+        if (!saveData.claimedAchievements) saveData.claimedAchievements = [];
+        saveData.claimedAchievements.push(achievement.id);
+        achievement.claimed = true;
+        
+        // Award gold with visual effect
+        addGold(achievement.reward);
+        
+        // Show gold bag with amount
+        const goldBag = document.createElement('div');
+        goldBag.style.position = 'fixed';
+        goldBag.style.top = '50%';
+        goldBag.style.left = '50%';
+        goldBag.style.transform = 'translate(-50%, -50%) scale(0)';
+        goldBag.style.fontSize = '80px';
+        goldBag.style.zIndex = '10000';
+        goldBag.style.pointerEvents = 'none';
+        goldBag.innerHTML = `💰<br><span style="font-size: 40px; color: #FFD700; text-shadow: 0 0 10px rgba(255,215,0,0.8);">+${achievement.reward} GOLD</span>`;
+        goldBag.style.textAlign = 'center';
+        document.body.appendChild(goldBag);
+        
+        // Animate gold bag
+        let scale = 0;
+        const duration = 2000;
+        const start = Date.now();
+        const animateGoldBag = () => {
+          const elapsed = Date.now() - start;
+          const t = elapsed / duration;
+          
+          if (t >= 1) {
+            goldBag.remove();
+            return;
+          }
+          
+          if (t < 0.3) {
+            scale = t / 0.3; // Scale up
+          } else if (t < 0.7) {
+            scale = 1; // Hold
+          } else {
+            scale = 1 - ((t - 0.7) / 0.3); // Fade out
+          }
+          
+          goldBag.style.transform = `translate(-50%, -50%) scale(${scale})`;
+          requestAnimationFrame(animateGoldBag);
+        };
+        animateGoldBag();
+        
+        // Play sound
+        playSound('levelup');
+        
+        // Save
+        saveSaveData();
+        
+        // Refresh screen
+        updateAchievementsScreen();
+      }
+    }
+    
+    function updateAchievementNotification() {
+      // Check if there are unclaimed achievements
+      let unclaimedCount = 0;
+      for (const key in ACHIEVEMENTS) {
+        const achievement = ACHIEVEMENTS[key];
+        const isEarned = saveData.achievements && saveData.achievements.includes(achievement.id);
+        const isClaimed = achievement.claimed || (saveData.claimedAchievements && saveData.claimedAchievements.includes(achievement.id));
+        if (isEarned && !isClaimed) {
+          unclaimedCount++;
+        }
+      }
+      
+      // Update or create notification badge
+      let badge = document.getElementById('achievement-notification-badge');
+      if (unclaimedCount > 0) {
+        if (!badge) {
+          badge = document.createElement('div');
+          badge.id = 'achievement-notification-badge';
+          badge.style.position = 'absolute';
+          badge.style.top = '0';
+          badge.style.right = '10px';
+          badge.style.width = '30px';
+          badge.style.height = '30px';
+          badge.style.borderRadius = '50%';
+          badge.style.background = 'linear-gradient(to bottom, #FF0000, #CC0000)';
+          badge.style.border = '2px solid #FFD700';
+          badge.style.color = 'white';
+          badge.style.fontSize = '18px';
+          badge.style.fontWeight = 'bold';
+          badge.style.display = 'flex';
+          badge.style.alignItems = 'center';
+          badge.style.justifyContent = 'center';
+          badge.style.boxShadow = '0 0 10px rgba(255,0,0,0.8)';
+          badge.style.animation = 'pulse 1s infinite';
+          badge.style.pointerEvents = 'none';
+          badge.style.zIndex = '1000';
+          
+          const achievementsBtn = document.getElementById('achievements-btn');
+          achievementsBtn.style.position = 'relative';
+          achievementsBtn.appendChild(badge);
+        }
+        badge.textContent = unclaimedCount;
+      } else if (badge) {
+        badge.remove();
+      }
     }
 
     function checkAchievements() {
@@ -2500,16 +2827,13 @@
         
         // Check if achieved
         if (achievement.check()) {
-          // Award achievement
+          // Award achievement (but don't give gold yet - must claim)
           if (!saveData.achievements) saveData.achievements = [];
           saveData.achievements.push(achievement.id);
           
-          // Award gold
-          addGold(achievement.reward);
-          
           // Show achievement notification
-          createFloatingText(`ACHIEVEMENT: ${achievement.name}`, player.mesh.position);
-          createFloatingText(`+${achievement.reward} GOLD`, player.mesh.position);
+          createFloatingText(`ACHIEVEMENT UNLOCKED: ${achievement.name}`, player.mesh.position);
+          createFloatingText(`Go to menu to claim!`, player.mesh.position);
           
           // Save
           saveSaveData();
@@ -2521,6 +2845,9 @@
           for(let i=0; i<30; i++) {
             spawnParticles(player.mesh.position, 0xFFD700, 5);
           }
+          
+          // Update notification badge
+          updateAchievementNotification();
         }
       }
     }
@@ -2642,22 +2969,58 @@
       scene.add(ground);
 
       // Features
-      // Lake (Blue Plane) with water effect
+      // Lake (Blue Plane) with realistic water effects, reflections, and sun
       const lakeGeo = new THREE.CircleGeometry(15, 32);
-      const lakeMat = new THREE.MeshBasicMaterial({ color: COLORS.lake, transparent: true, opacity: 0.8 });
+      const lakeMat = new THREE.MeshPhysicalMaterial({ 
+        color: COLORS.lake, 
+        transparent: true, 
+        opacity: 0.85,
+        metalness: 0.9, // High metalness for reflections
+        roughness: 0.1, // Low roughness for smooth water
+        clearcoat: 1.0, // Clear coat for glossy surface
+        clearcoatRoughness: 0.1
+      });
       const lake = new THREE.Mesh(lakeGeo, lakeMat);
       lake.rotation.x = -Math.PI / 2;
       lake.position.set(30, 0.01, -30);
+      lake.receiveShadow = true;
       scene.add(lake);
       
-      // Add water ripple effect
-      const rippleGeo = new THREE.RingGeometry(14, 15, 32);
-      const rippleMat = new THREE.MeshBasicMaterial({ color: 0x3399FF, transparent: true, opacity: 0.5 });
-      const ripple = new THREE.Mesh(rippleGeo, rippleMat);
-      ripple.rotation.x = -Math.PI / 2;
-      ripple.position.set(30, 0.02, -30);
-      ripple.userData = { isWaterRipple: true, phase: 0 };
-      scene.add(ripple);
+      // Add water ripple effect with multiple rings
+      for(let i=0; i<3; i++) {
+        const rippleGeo = new THREE.RingGeometry(13 + i, 14 + i, 32);
+        const rippleMat = new THREE.MeshBasicMaterial({ 
+          color: 0x3399FF, 
+          transparent: true, 
+          opacity: 0.4 - i*0.1 
+        });
+        const ripple = new THREE.Mesh(rippleGeo, rippleMat);
+        ripple.rotation.x = -Math.PI / 2;
+        ripple.position.set(30, 0.02 + i*0.01, -30);
+        ripple.userData = { isWaterRipple: true, phase: i * Math.PI / 3, ringIndex: i };
+        scene.add(ripple);
+      }
+      
+      // Sun reflection on water - animated sparkles
+      for(let i=0; i<15; i++) {
+        const sparkleGeo = new THREE.CircleGeometry(0.3, 8);
+        const sparkleMat = new THREE.MeshBasicMaterial({ 
+          color: 0xFFFFAA, 
+          transparent: true, 
+          opacity: 0.6 
+        });
+        const sparkle = new THREE.Mesh(sparkleGeo, sparkleMat);
+        sparkle.rotation.x = -Math.PI / 2;
+        const angle = (i / 15) * Math.PI * 2;
+        const radius = 3 + Math.random() * 10;
+        sparkle.position.set(
+          30 + Math.cos(angle) * radius, 
+          0.05, 
+          -30 + Math.sin(angle) * radius
+        );
+        sparkle.userData = { isSunSparkle: true, phase: Math.random() * Math.PI * 2, baseOpacity: 0.4 + Math.random() * 0.3 };
+        scene.add(sparkle);
+      }
 
       // Smooth nice roads connecting areas with curves
       const roadMat = new THREE.MeshPhysicalMaterial({ 
@@ -3044,52 +3407,76 @@
         }
       }
       
-      // Waterfall from cliff into lake
+      // Waterfall from sloped cliff into lake - IMPROVED with realistic sloping
       const waterfallGroup = new THREE.Group();
       
-      // Cliff/rock formation
-      const cliffGeo = new THREE.BoxGeometry(8, 12, 6);
-      const cliffMat = new THREE.MeshToonMaterial({ color: 0x696969 }); // Dark gray
-      const cliff = new THREE.Mesh(cliffGeo, cliffMat);
-      cliff.position.set(30, 6, -45); // Above and behind the lake
-      cliff.castShadow = true;
-      waterfallGroup.add(cliff);
+      // Sloped cliff - multiple levels creating a gradual slope down to hills
+      const cliffMat = new THREE.MeshPhysicalMaterial({ 
+        color: 0x696969, // Dark gray
+        metalness: 0.1,
+        roughness: 0.9
+      });
+      
+      // Top cliff section
+      const cliff1 = new THREE.Mesh(new THREE.BoxGeometry(10, 10, 8), cliffMat);
+      cliff1.position.set(30, 5, -48);
+      cliff1.castShadow = true;
+      cliff1.receiveShadow = true;
+      waterfallGroup.add(cliff1);
+      
+      // Middle slope - smaller and lower
+      const cliff2 = new THREE.Mesh(new THREE.BoxGeometry(12, 6, 10), cliffMat);
+      cliff2.position.set(30, 3, -43);
+      cliff2.castShadow = true;
+      cliff2.receiveShadow = true;
+      waterfallGroup.add(cliff2);
+      
+      // Lower hill - gentle slope
+      const cliff3 = new THREE.Mesh(new THREE.BoxGeometry(14, 3, 12), cliffMat);
+      cliff3.position.set(30, 1.5, -37);
+      cliff3.castShadow = true;
+      cliff3.receiveShadow = true;
+      waterfallGroup.add(cliff3);
       
       // Waterfall - multiple planes to simulate water flow
-      const waterfallGeo = new THREE.PlaneGeometry(3, 12);
-      const waterfallMat = new THREE.MeshBasicMaterial({ 
+      const waterfallGeo = new THREE.PlaneGeometry(3, 10);
+      const waterfallMat = new THREE.MeshPhysicalMaterial({ 
         color: 0x87CEEB, 
         transparent: true, 
-        opacity: 0.6,
-        side: THREE.DoubleSide
+        opacity: 0.7,
+        side: THREE.DoubleSide,
+        metalness: 0.5,
+        roughness: 0.2
       });
       
       const waterfall = new THREE.Mesh(waterfallGeo, waterfallMat);
-      waterfall.position.set(30, 6, -39);
-      waterfall.rotation.x = -0.2; // Slight angle
+      waterfall.position.set(30, 6, -43);
+      waterfall.rotation.x = -0.3; // Angled flow
       waterfall.userData = { isWaterfall: true, phase: 0 };
       waterfallGroup.add(waterfall);
       
-      // Add flowing water particles
-      for(let i=0; i<5; i++) {
+      // Add flowing water particles with better animation
+      for(let i=0; i<8; i++) {
         const dropGeo = new THREE.SphereGeometry(0.3, 8, 8);
-        const dropMat = new THREE.MeshBasicMaterial({ 
+        const dropMat = new THREE.MeshPhysicalMaterial({ 
           color: 0x4ECDC4, 
           transparent: true, 
-          opacity: 0.7 
+          opacity: 0.8,
+          metalness: 0.8,
+          roughness: 0.1
         });
         const drop = new THREE.Mesh(dropGeo, dropMat);
-        drop.position.set(30 + (Math.random()-0.5)*2, 12 - i*2, -39);
-        drop.userData = { isWaterDrop: true, speed: 0.1 + Math.random()*0.1, startY: 12 - i*2 };
+        drop.position.set(30 + (Math.random()-0.5)*2, 10 - i*1.2, -43 + i*0.5);
+        drop.userData = { isWaterDrop: true, speed: 0.15 + Math.random()*0.1, startY: 10 - i*1.2 };
         waterfallGroup.add(drop);
       }
       
-      // Splash at bottom
-      const splashGeo = new THREE.CircleGeometry(2, 16);
+      // Splash at bottom with mist effect
+      const splashGeo = new THREE.CircleGeometry(3, 32);
       const splashMat = new THREE.MeshBasicMaterial({ 
         color: 0xFFFFFF, 
         transparent: true, 
-        opacity: 0.4 
+        opacity: 0.5 
       });
       const splash = new THREE.Mesh(splashGeo, splashMat);
       splash.rotation.x = -Math.PI/2;
@@ -3097,23 +3484,273 @@
       splash.userData = { isSplash: true, phase: 0 };
       waterfallGroup.add(splash);
       
+      // Mist particles rising from splash
+      for(let i=0; i<6; i++) {
+        const mistGeo = new THREE.SphereGeometry(0.5, 8, 8);
+        const mistMat = new THREE.MeshBasicMaterial({ 
+          color: 0xE0FFFF, 
+          transparent: true, 
+          opacity: 0.3 
+        });
+        const mist = new THREE.Mesh(mistGeo, mistMat);
+        mist.position.set(30 + (Math.random()-0.5)*4, 0.5 + i*0.5, -33 + (Math.random()-0.5)*4);
+        mist.userData = { isMist: true, riseSpeed: 0.02 + Math.random()*0.02, maxY: 3 + i };
+        waterfallGroup.add(mist);
+      }
+      
       scene.add(waterfallGroup);
       
-      // Scatter flowers around environment
-      const flowerGeo = new THREE.ConeGeometry(0.2, 0.5, 6);
-      const flowerColors = [0xFF69B4, 0xFFFF00, 0xFF0000, 0xFFA500, 0xFFFFFF];
+      // FARM AREA - Wheat field, Barn, and Tractor (near windmill, with distance)
+      const farmGroup = new THREE.Group();
+      farmGroup.position.set(25, 0, 55); // Near windmill but with distance
       
-      for(let i=0; i<100; i++) {
+      // Wheat field - golden yellow grain field
+      const wheatFieldGeo = new THREE.PlaneGeometry(20, 15);
+      const wheatMat = new THREE.MeshToonMaterial({ color: 0xF4A460 }); // Sandy brown/wheat color
+      const wheatField = new THREE.Mesh(wheatFieldGeo, wheatMat);
+      wheatField.rotation.x = -Math.PI/2;
+      wheatField.position.y = 0.05;
+      wheatField.receiveShadow = true;
+      farmGroup.add(wheatField);
+      
+      // Individual wheat stalks for detail
+      const wheatStalkGeo = new THREE.CylinderGeometry(0.1, 0.1, 1.5, 4);
+      const wheatStalkMat = new THREE.MeshToonMaterial({ color: 0xDAA520 }); // Goldenrod
+      for(let i=0; i<50; i++) {
+        const stalk = new THREE.Mesh(wheatStalkGeo, wheatStalkMat);
+        stalk.position.set(
+          (Math.random() - 0.5) * 18,
+          0.75,
+          (Math.random() - 0.5) * 13
+        );
+        stalk.castShadow = true;
+        farmGroup.add(stalk);
+      }
+      
+      // Barn building - classic red barn
+      const barnBase = new THREE.Mesh(
+        new THREE.BoxGeometry(8, 6, 10),
+        new THREE.MeshToonMaterial({ color: 0x8B0000 }) // Dark red
+      );
+      barnBase.position.set(-15, 3, 0);
+      barnBase.castShadow = true;
+      barnBase.receiveShadow = true;
+      farmGroup.add(barnBase);
+      
+      // Barn roof - triangular
+      const barnRoofGeo = new THREE.ConeGeometry(6, 4, 4);
+      const barnRoof = new THREE.Mesh(barnRoofGeo, new THREE.MeshToonMaterial({ color: 0x654321 })); // Brown
+      barnRoof.rotation.y = Math.PI/4;
+      barnRoof.position.set(-15, 8, 0);
+      barnRoof.castShadow = true;
+      farmGroup.add(barnRoof);
+      
+      // Barn door
+      const barnDoor = new THREE.Mesh(
+        new THREE.BoxGeometry(3, 4, 0.2),
+        new THREE.MeshToonMaterial({ color: 0x3a2a1a })
+      );
+      barnDoor.position.set(-15, 2, 5.1);
+      farmGroup.add(barnDoor);
+      
+      // Tractor - simple geometric tractor
+      const tractorBody = new THREE.Mesh(
+        new THREE.BoxGeometry(3, 2, 4),
+        new THREE.MeshToonMaterial({ color: 0x228B22 }) // Forest green
+      );
+      tractorBody.position.set(5, 1, -5);
+      tractorBody.castShadow = true;
+      farmGroup.add(tractorBody);
+      
+      // Tractor cabin
+      const tractorCabin = new THREE.Mesh(
+        new THREE.BoxGeometry(2, 2, 2),
+        new THREE.MeshToonMaterial({ color: 0x32CD32 }) // Lime green
+      );
+      tractorCabin.position.set(5, 3, -4);
+      tractorCabin.castShadow = true;
+      farmGroup.add(tractorCabin);
+      
+      // Tractor wheels
+      const wheelGeo = new THREE.CylinderGeometry(0.8, 0.8, 0.5, 8);
+      const wheelMat = new THREE.MeshToonMaterial({ color: 0x2F4F4F }); // Dark slate gray
+      const wheels = [
+        [-1, 0.8, -5.5], [1, 0.8, -5.5], // Front wheels
+        [-1, 0.8, -3.5], [1, 0.8, -3.5]  // Back wheels
+      ];
+      wheels.forEach(pos => {
+        const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+        wheel.rotation.z = Math.PI/2;
+        wheel.position.set(5 + pos[0], pos[1], pos[2]);
+        farmGroup.add(wheel);
+      });
+      
+      scene.add(farmGroup);
+      
+      // MYSTICAL/MAGICAL BUILDING - Crystal Tower
+      const crystalGroup = new THREE.Group();
+      crystalGroup.position.set(-50, 0, 55);
+      
+      // Tower base - stone platform
+      const towerBase = new THREE.Mesh(
+        new THREE.CylinderGeometry(6, 7, 2, 8),
+        new THREE.MeshPhysicalMaterial({ 
+          color: 0x708090, // Slate gray
+          metalness: 0.3,
+          roughness: 0.6
+        })
+      );
+      towerBase.position.y = 1;
+      towerBase.castShadow = true;
+      crystalGroup.add(towerBase);
+      
+      // Crystal spire - glowing magical structure
+      const crystalGeo = new THREE.ConeGeometry(3, 15, 6);
+      const crystalMat = new THREE.MeshPhysicalMaterial({ 
+        color: 0x9370DB, // Medium purple
+        metalness: 0.9,
+        roughness: 0.1,
+        transparent: true,
+        opacity: 0.85,
+        emissive: 0x9370DB,
+        emissiveIntensity: 0.5
+      });
+      const crystal = new THREE.Mesh(crystalGeo, crystalMat);
+      crystal.position.y = 10;
+      crystal.castShadow = true;
+      crystalGroup.add(crystal);
+      
+      // Floating crystals around tower
+      for(let i=0; i<6; i++) {
+        const angle = (i / 6) * Math.PI * 2;
+        const floatCrystal = new THREE.Mesh(
+          new THREE.OctahedronGeometry(0.8),
+          new THREE.MeshPhysicalMaterial({ 
+            color: 0xBA55D3, // Medium orchid
+            metalness: 0.8,
+            roughness: 0.2,
+            emissive: 0xBA55D3,
+            emissiveIntensity: 0.3
+          })
+        );
+        floatCrystal.position.set(
+          Math.cos(angle) * 5,
+          8 + Math.sin(gameTime + i) * 2,
+          Math.sin(angle) * 5
+        );
+        floatCrystal.userData = { isMagicCrystal: true, angle: angle, index: i, phaseOffset: i * Math.PI / 3 };
+        crystalGroup.add(floatCrystal);
+      }
+      
+      // Magical glow circle on ground
+      const magicGlow = new THREE.Mesh(
+        new THREE.CircleGeometry(8, 32),
+        new THREE.MeshBasicMaterial({ 
+          color: 0xDDA0DD, // Plum
+          transparent: true,
+          opacity: 0.3
+        })
+      );
+      magicGlow.rotation.x = -Math.PI/2;
+      magicGlow.position.y = 0.06;
+      crystalGroup.add(magicGlow);
+      
+      scene.add(crystalGroup);
+      
+      // STATUE - Cool statue in center of map (replacing brown square if exists)
+      const statueGroup = new THREE.Group();
+      statueGroup.position.set(0, 0, 0); // Center of map
+      
+      // Pedestal
+      const pedestalGeo = new THREE.CylinderGeometry(2.5, 3, 2, 8);
+      const pedestalMat = new THREE.MeshPhysicalMaterial({ 
+        color: 0xDCDCDC, // Gainsboro (light gray marble)
+        metalness: 0.2,
+        roughness: 0.4
+      });
+      const pedestal = new THREE.Mesh(pedestalGeo, pedestalMat);
+      pedestal.position.y = 1;
+      pedestal.castShadow = true;
+      statueGroup.add(pedestal);
+      
+      // Statue figure - water droplet warrior
+      const statueBodyGeo = new THREE.SphereGeometry(1.5, 16, 16);
+      const statueMat = new THREE.MeshPhysicalMaterial({ 
+        color: 0xC0C0C0, // Silver
+        metalness: 0.8,
+        roughness: 0.2
+      });
+      const statueBody = new THREE.Mesh(statueBodyGeo, statueMat);
+      statueBody.position.y = 4;
+      statueBody.scale.y = 1.5; // Taller droplet shape
+      statueBody.castShadow = true;
+      statueGroup.add(statueBody);
+      
+      // Statue weapon - raised sword/spear
+      const statueWeaponGeo = new THREE.CylinderGeometry(0.2, 0.2, 4, 8);
+      const statueWeapon = new THREE.Mesh(statueWeaponGeo, statueMat);
+      statueWeapon.position.set(1, 6, 0);
+      statueWeapon.rotation.z = -Math.PI/4;
+      statueWeapon.castShadow = true;
+      statueGroup.add(statueWeapon);
+      
+      // Plaque
+      const plaqueGeo = new THREE.BoxGeometry(2, 0.8, 0.2);
+      const plaque = new THREE.Mesh(plaqueGeo, new THREE.MeshToonMaterial({ color: 0x8B7355 }));
+      plaque.position.set(0, 0.4, 3.2);
+      statueGroup.add(plaque);
+      
+      scene.add(statueGroup);
+      
+      // Scatter MORE flowers around environment (increased from 100 to 250)
+      const flowerGeo = new THREE.ConeGeometry(0.2, 0.5, 6);
+      const flowerColors = [0xFF69B4, 0xFFFF00, 0xFF0000, 0xFFA500, 0xFFFFFF, 0xFF1493, 0x9370DB];
+      
+      for(let i=0; i<250; i++) {
         const flower = new THREE.Mesh(flowerGeo, new THREE.MeshBasicMaterial({ 
           color: flowerColors[Math.floor(Math.random() * flowerColors.length)] 
         }));
         flower.position.set(
-          (Math.random() - 0.5) * 160,
+          (Math.random() - 0.5) * 170,
           0.25,
-          (Math.random() - 0.5) * 160
+          (Math.random() - 0.5) * 170
         );
         flower.rotation.x = -Math.PI/2;
         scene.add(flower);
+      }
+      
+      // Add MORE fences around different areas
+      const fenceMat2 = new THREE.MeshToonMaterial({ color: 0x8B4513 });
+      const postGeo2 = new THREE.BoxGeometry(0.3, 2, 0.3);
+      const railGeo2 = new THREE.BoxGeometry(4, 0.2, 0.2);
+      
+      // Fence around farm area
+      for(let i=0; i<20; i++) {
+        const post = new THREE.Mesh(postGeo2, fenceMat2);
+        if(i < 5) {
+          post.position.set(15 + i*4, 1, 47);
+        } else if(i < 10) {
+          post.position.set(35, 1, 47 + (i-5)*4);
+        } else if(i < 15) {
+          post.position.set(35 - (i-10)*4, 1, 67);
+        } else {
+          post.position.set(15, 1, 67 - (i-15)*4);
+        }
+        post.castShadow = true;
+        scene.add(post);
+      }
+      
+      // Fence around mystical building
+      for(let i=0; i<16; i++) {
+        const angle = (i / 16) * Math.PI * 2;
+        const post = new THREE.Mesh(postGeo2, fenceMat2);
+        post.position.set(
+          -50 + Math.cos(angle) * 12,
+          1,
+          55 + Math.sin(angle) * 12
+        );
+        post.castShadow = true;
+        scene.add(post);
       }
     }
 
@@ -3453,6 +4090,8 @@
       playerStats.gold += finalAmount;
       saveData.gold += finalAmount;
       saveData.totalGoldEarned += finalAmount;
+      if (!saveData.totalGold) saveData.totalGold = 0;
+      saveData.totalGold += finalAmount; // Track for achievements
       updateHUD();
       updateGoldDisplays();
     }
@@ -3636,6 +4275,62 @@
     }
     
     function createLevelUpEffects() {
+      // WATER FOUNTAIN EXPLOSION from character's head - water drops everywhere!
+      for(let i=0; i<60; i++) {
+        const angle = (i / 60) * Math.PI * 2;
+        const speed = 0.2 + Math.random() * 0.4;
+        const height = 0.6 + Math.random() * 0.8;
+        
+        // Create water droplet particles
+        const dropGeo = new THREE.SphereGeometry(0.15 + Math.random() * 0.1, 8, 8);
+        const dropMat = new THREE.MeshPhysicalMaterial({ 
+          color: 0x4ECDC4, 
+          transparent: true, 
+          opacity: 0.9,
+          metalness: 0.8,
+          roughness: 0.1
+        });
+        const drop = new THREE.Mesh(dropGeo, dropMat);
+        drop.position.copy(player.mesh.position);
+        drop.position.y += 2; // From character's head
+        scene.add(drop);
+        
+        drop.userData = {
+          isLevelUpWater: true,
+          velocity: new THREE.Vector3(
+            Math.cos(angle) * speed,
+            height,
+            Math.sin(angle) * speed
+          ),
+          gravity: -0.02,
+          lifetime: 2.0
+        };
+        particles.push(drop);
+      }
+      
+      // Water splash ring around character
+      const splashRingGeo = new THREE.RingGeometry(0.5, 2, 32);
+      const splashRingMat = new THREE.MeshBasicMaterial({ 
+        color: 0x5DADE2, 
+        transparent: true, 
+        opacity: 0.8,
+        side: THREE.DoubleSide
+      });
+      const splashRing = new THREE.Mesh(splashRingGeo, splashRingMat);
+      splashRing.rotation.x = -Math.PI / 2;
+      splashRing.position.copy(player.mesh.position);
+      splashRing.position.y = 0.1;
+      scene.add(splashRing);
+      
+      splashRing.userData = {
+        isLevelUpSplash: true,
+        expansionSpeed: 0.15,
+        maxRadius: 8,
+        lifetime: 1.5,
+        time: 0
+      };
+      particles.push(splashRing);
+      
       // Fountain/explosion of "LEVEL UP" text particles from player's head
       const texts = ["L", "E", "V", "E", "L", " ", "U", "P", "!"];
       
@@ -3685,7 +4380,7 @@
         particles.push(lightning);
       }
       
-      // Zoom effect
+      // Zoom effect (camera zooms in on character)
       const originalD = 20;
       const zoomD = 15;
       const zoomDuration = 1000; // ms
@@ -4404,19 +5099,20 @@
     }
     
     function showStatChange(text) {
-      // Create floating text on left side of screen
+      // Create floating text on LOWER-LEFT side of screen (smaller, not blocking view)
       const div = document.createElement('div');
       div.style.position = 'fixed';
-      div.style.top = '50%';
-      div.style.left = '20px';
-      div.style.transform = 'translateX(-100%) translateY(-50%) scale(0)';
+      div.style.bottom = '120px'; // Lower position (above joystick zone)
+      div.style.left = '10px'; // More to the left
+      div.style.transform = 'translateX(-100%) scale(0)';
       div.style.color = '#FFD700';
-      div.style.fontSize = '20px';
+      div.style.fontSize = '14px'; // Smaller text
       div.style.fontWeight = 'bold';
-      div.style.textShadow = '0 0 10px rgba(255,215,0,0.8), 0 0 20px rgba(255,215,0,0.5), 2px 2px 4px #000';
-      div.style.padding = '10px 15px';
-      div.style.background = 'rgba(30,30,30,0.9)';
-      div.style.borderRadius = '10px';
+      div.style.fontFamily = "'M PLUS Rounded 1c', 'Comic Sans MS', cursive, sans-serif"; // Cosy font
+      div.style.textShadow = '0 0 8px rgba(255,215,0,0.8), 0 0 15px rgba(255,215,0,0.5), 1px 1px 3px #000';
+      div.style.padding = '6px 10px'; // Smaller padding
+      div.style.background = 'rgba(30,30,30,0.85)';
+      div.style.borderRadius = '8px';
       div.style.border = '2px solid #FFD700';
       div.style.zIndex = '2000';
       div.style.pointerEvents = 'none';
@@ -4424,9 +5120,9 @@
       
       document.body.appendChild(div);
       
-      // Animate: slide in from left, scale up, then scale down
+      // Animate: slide in from left, scale up, hold, then fade out
       let scale = 0;
-      const animDuration = 1500; // ms
+      const animDuration = 2000; // ms (longer display time)
       const startTime = Date.now();
       
       const animate = () => {
@@ -4438,11 +5134,18 @@
           return;
         }
         
-        // Scale up then down (sine wave)
-        scale = Math.sin(t * Math.PI);
+        // Scale up quickly, hold, then fade
+        if (t < 0.2) {
+          scale = t / 0.2; // Scale up in first 20%
+        } else if (t < 0.8) {
+          scale = 1; // Hold at full size
+        } else {
+          scale = 1 - ((t - 0.8) / 0.2); // Fade out in last 20%
+        }
+        
         // Slide in from left
-        const translateX = (1 - Math.min(t * 2, 1)) * -100;
-        div.style.transform = `translateX(${translateX}%) translateY(-50%) scale(${scale})`;
+        const translateX = (1 - Math.min(t * 3, 1)) * -100;
+        div.style.transform = `translateX(${translateX}%) scale(${scale})`;
         
         requestAnimationFrame(animate);
       };
@@ -4474,6 +5177,9 @@
     }
 
     function resetGame() {
+      // Reset session-specific achievement tracking
+      sessionDamagesTaken = 0; // Session-specific for Untouchable achievement
+      
       // Apply permanent upgrades from save data
       const baseHp = 100 + PERMANENT_UPGRADES.maxHp.effect(saveData.upgrades.maxHp);
       const baseRegen = PERMANENT_UPGRADES.hpRegen.effect(saveData.upgrades.hpRegen);
@@ -5220,7 +5926,7 @@ Total Gold Earned: ${saveData.totalGoldEarned}
       scene.traverse(obj => {
         if (obj.userData.isWaterfall) {
           obj.userData.phase += 0.05;
-          obj.material.opacity = 0.6 + Math.sin(obj.userData.phase) * 0.1;
+          obj.material.opacity = 0.7 + Math.sin(obj.userData.phase) * 0.1;
         }
         if (obj.userData.isWaterDrop) {
           obj.position.y -= obj.userData.speed;
@@ -5232,7 +5938,71 @@ Total Gold Earned: ${saveData.totalGoldEarned}
           obj.userData.phase += 0.1;
           const scale = 1 + Math.sin(obj.userData.phase) * 0.3;
           obj.scale.set(scale, 1, scale);
-          obj.material.opacity = 0.4 + Math.sin(obj.userData.phase) * 0.2;
+          obj.material.opacity = 0.5 + Math.sin(obj.userData.phase) * 0.2;
+        }
+        // Mist rising animation
+        if (obj.userData.isMist) {
+          obj.position.y += obj.userData.riseSpeed;
+          if (obj.position.y > obj.userData.maxY) {
+            obj.position.y = 0.5;
+          }
+          obj.material.opacity = 0.3 * (1 - (obj.position.y / obj.userData.maxY));
+        }
+        // Magic crystal floating animation
+        if (obj.userData.isMagicCrystal) {
+          const angle = obj.userData.angle + gameTime * 0.3;
+          obj.position.x = -50 + Math.cos(angle) * 5;
+          obj.position.z = 55 + Math.sin(angle) * 5;
+          obj.position.y = 8 + Math.sin(gameTime * 2 + obj.userData.phaseOffset) * 2;
+          obj.rotation.y += 0.02;
+          obj.rotation.x += 0.01;
+        }
+        // Sun sparkles on water animation
+        if (obj.userData.isSunSparkle) {
+          obj.userData.phase += 0.05;
+          obj.material.opacity = obj.userData.baseOpacity * (0.5 + Math.sin(obj.userData.phase) * 0.5);
+          const scale = 0.8 + Math.sin(obj.userData.phase * 1.5) * 0.4;
+          obj.scale.set(scale, 1, scale);
+        }
+        // Level up water droplets animation
+        if (obj.userData.isLevelUpWater) {
+          obj.userData.velocity.y += obj.userData.gravity; // Apply gravity
+          obj.position.x += obj.userData.velocity.x * dt * 20;
+          obj.position.y += obj.userData.velocity.y * dt * 20;
+          obj.position.z += obj.userData.velocity.z * dt * 20;
+          obj.userData.lifetime -= dt;
+          obj.material.opacity = Math.max(0, obj.userData.lifetime / 2.0);
+          if (obj.userData.lifetime <= 0) {
+            scene.remove(obj);
+            return false; // Mark for removal
+          }
+        }
+        // Level up splash ring animation
+        if (obj.userData.isLevelUpSplash) {
+          obj.userData.time += dt;
+          const t = obj.userData.time / obj.userData.lifetime;
+          const currentRadius = 0.5 + t * obj.userData.maxRadius;
+          obj.scale.set(currentRadius, 1, currentRadius);
+          obj.material.opacity = 0.8 * (1 - t);
+          if (t >= 1) {
+            scene.remove(obj);
+            return false; // Mark for removal
+          }
+        }
+        // Player bubble animation
+        if (obj.userData.isPlayerBubble) {
+          obj.position.y += obj.userData.riseSpeed;
+          obj.position.x += obj.userData.driftX;
+          obj.position.z += obj.userData.driftZ;
+          obj.userData.lifetime -= dt;
+          obj.material.opacity = Math.max(0, obj.userData.lifetime / 1.5) * 0.6;
+          obj.scale.multiplyScalar(1.01); // Slowly expand
+          if (obj.userData.lifetime <= 0 || obj.position.y > 5) {
+            scene.remove(obj);
+            obj.geometry.dispose();
+            obj.material.dispose();
+            return false;
+          }
         }
       });
 
