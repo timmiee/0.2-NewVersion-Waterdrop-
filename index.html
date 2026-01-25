@@ -1353,8 +1353,9 @@
         this.wobblePhase += dt * (12 + speedMag * 50); // Further increased for more fluid motion
         const wobble = Math.sin(this.wobblePhase) * (0.1 + speedMag * 0.3); // More dramatic wobble
         
-        // Gravity bubble effect when turning - detect rotation change
-        const rotationDelta = Math.abs(this.prevRotation - this.mesh.rotation.y);
+        // Gravity bubble effect when turning - detect rotation change with proper wraparound
+        const angleDiff = this.prevRotation - this.mesh.rotation.y;
+        const rotationDelta = Math.abs(((angleDiff + Math.PI) % (2 * Math.PI)) - Math.PI);
         
         // Squish effect: stretch in direction of movement (MORE DRAMATIC)
         const stretchX = 1 + Math.abs(this.velocity.x) * 3.0; // Further increased for more fluid
