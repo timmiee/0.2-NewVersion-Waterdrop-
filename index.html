@@ -2682,22 +2682,58 @@
       scene.add(ground);
 
       // Features
-      // Lake (Blue Plane) with water effect
+      // Lake (Blue Plane) with realistic water effects, reflections, and sun
       const lakeGeo = new THREE.CircleGeometry(15, 32);
-      const lakeMat = new THREE.MeshBasicMaterial({ color: COLORS.lake, transparent: true, opacity: 0.8 });
+      const lakeMat = new THREE.MeshPhysicalMaterial({ 
+        color: COLORS.lake, 
+        transparent: true, 
+        opacity: 0.85,
+        metalness: 0.9, // High metalness for reflections
+        roughness: 0.1, // Low roughness for smooth water
+        clearcoat: 1.0, // Clear coat for glossy surface
+        clearcoatRoughness: 0.1
+      });
       const lake = new THREE.Mesh(lakeGeo, lakeMat);
       lake.rotation.x = -Math.PI / 2;
       lake.position.set(30, 0.01, -30);
+      lake.receiveShadow = true;
       scene.add(lake);
       
-      // Add water ripple effect
-      const rippleGeo = new THREE.RingGeometry(14, 15, 32);
-      const rippleMat = new THREE.MeshBasicMaterial({ color: 0x3399FF, transparent: true, opacity: 0.5 });
-      const ripple = new THREE.Mesh(rippleGeo, rippleMat);
-      ripple.rotation.x = -Math.PI / 2;
-      ripple.position.set(30, 0.02, -30);
-      ripple.userData = { isWaterRipple: true, phase: 0 };
-      scene.add(ripple);
+      // Add water ripple effect with multiple rings
+      for(let i=0; i<3; i++) {
+        const rippleGeo = new THREE.RingGeometry(13 + i, 14 + i, 32);
+        const rippleMat = new THREE.MeshBasicMaterial({ 
+          color: 0x3399FF, 
+          transparent: true, 
+          opacity: 0.4 - i*0.1 
+        });
+        const ripple = new THREE.Mesh(rippleGeo, rippleMat);
+        ripple.rotation.x = -Math.PI / 2;
+        ripple.position.set(30, 0.02 + i*0.01, -30);
+        ripple.userData = { isWaterRipple: true, phase: i * Math.PI / 3, ringIndex: i };
+        scene.add(ripple);
+      }
+      
+      // Sun reflection on water - animated sparkles
+      for(let i=0; i<15; i++) {
+        const sparkleGeo = new THREE.CircleGeometry(0.3, 8);
+        const sparkleMat = new THREE.MeshBasicMaterial({ 
+          color: 0xFFFFAA, 
+          transparent: true, 
+          opacity: 0.6 
+        });
+        const sparkle = new THREE.Mesh(sparkleGeo, sparkleMat);
+        sparkle.rotation.x = -Math.PI / 2;
+        const angle = (i / 15) * Math.PI * 2;
+        const radius = 3 + Math.random() * 10;
+        sparkle.position.set(
+          30 + Math.cos(angle) * radius, 
+          0.05, 
+          -30 + Math.sin(angle) * radius
+        );
+        sparkle.userData = { isSunSparkle: true, phase: Math.random() * Math.PI * 2, baseOpacity: 0.4 + Math.random() * 0.3 };
+        scene.add(sparkle);
+      }
 
       // Smooth nice roads connecting areas with curves
       const roadMat = new THREE.MeshPhysicalMaterial({ 
@@ -3084,52 +3120,76 @@
         }
       }
       
-      // Waterfall from cliff into lake
+      // Waterfall from sloped cliff into lake - IMPROVED with realistic sloping
       const waterfallGroup = new THREE.Group();
       
-      // Cliff/rock formation
-      const cliffGeo = new THREE.BoxGeometry(8, 12, 6);
-      const cliffMat = new THREE.MeshToonMaterial({ color: 0x696969 }); // Dark gray
-      const cliff = new THREE.Mesh(cliffGeo, cliffMat);
-      cliff.position.set(30, 6, -45); // Above and behind the lake
-      cliff.castShadow = true;
-      waterfallGroup.add(cliff);
+      // Sloped cliff - multiple levels creating a gradual slope down to hills
+      const cliffMat = new THREE.MeshPhysicalMaterial({ 
+        color: 0x696969, // Dark gray
+        metalness: 0.1,
+        roughness: 0.9
+      });
+      
+      // Top cliff section
+      const cliff1 = new THREE.Mesh(new THREE.BoxGeometry(10, 10, 8), cliffMat);
+      cliff1.position.set(30, 5, -48);
+      cliff1.castShadow = true;
+      cliff1.receiveShadow = true;
+      waterfallGroup.add(cliff1);
+      
+      // Middle slope - smaller and lower
+      const cliff2 = new THREE.Mesh(new THREE.BoxGeometry(12, 6, 10), cliffMat);
+      cliff2.position.set(30, 3, -43);
+      cliff2.castShadow = true;
+      cliff2.receiveShadow = true;
+      waterfallGroup.add(cliff2);
+      
+      // Lower hill - gentle slope
+      const cliff3 = new THREE.Mesh(new THREE.BoxGeometry(14, 3, 12), cliffMat);
+      cliff3.position.set(30, 1.5, -37);
+      cliff3.castShadow = true;
+      cliff3.receiveShadow = true;
+      waterfallGroup.add(cliff3);
       
       // Waterfall - multiple planes to simulate water flow
-      const waterfallGeo = new THREE.PlaneGeometry(3, 12);
-      const waterfallMat = new THREE.MeshBasicMaterial({ 
+      const waterfallGeo = new THREE.PlaneGeometry(3, 10);
+      const waterfallMat = new THREE.MeshPhysicalMaterial({ 
         color: 0x87CEEB, 
         transparent: true, 
-        opacity: 0.6,
-        side: THREE.DoubleSide
+        opacity: 0.7,
+        side: THREE.DoubleSide,
+        metalness: 0.5,
+        roughness: 0.2
       });
       
       const waterfall = new THREE.Mesh(waterfallGeo, waterfallMat);
-      waterfall.position.set(30, 6, -39);
-      waterfall.rotation.x = -0.2; // Slight angle
+      waterfall.position.set(30, 6, -43);
+      waterfall.rotation.x = -0.3; // Angled flow
       waterfall.userData = { isWaterfall: true, phase: 0 };
       waterfallGroup.add(waterfall);
       
-      // Add flowing water particles
-      for(let i=0; i<5; i++) {
+      // Add flowing water particles with better animation
+      for(let i=0; i<8; i++) {
         const dropGeo = new THREE.SphereGeometry(0.3, 8, 8);
-        const dropMat = new THREE.MeshBasicMaterial({ 
+        const dropMat = new THREE.MeshPhysicalMaterial({ 
           color: 0x4ECDC4, 
           transparent: true, 
-          opacity: 0.7 
+          opacity: 0.8,
+          metalness: 0.8,
+          roughness: 0.1
         });
         const drop = new THREE.Mesh(dropGeo, dropMat);
-        drop.position.set(30 + (Math.random()-0.5)*2, 12 - i*2, -39);
-        drop.userData = { isWaterDrop: true, speed: 0.1 + Math.random()*0.1, startY: 12 - i*2 };
+        drop.position.set(30 + (Math.random()-0.5)*2, 10 - i*1.2, -43 + i*0.5);
+        drop.userData = { isWaterDrop: true, speed: 0.15 + Math.random()*0.1, startY: 10 - i*1.2 };
         waterfallGroup.add(drop);
       }
       
-      // Splash at bottom
-      const splashGeo = new THREE.CircleGeometry(2, 16);
+      // Splash at bottom with mist effect
+      const splashGeo = new THREE.CircleGeometry(3, 32);
       const splashMat = new THREE.MeshBasicMaterial({ 
         color: 0xFFFFFF, 
         transparent: true, 
-        opacity: 0.4 
+        opacity: 0.5 
       });
       const splash = new THREE.Mesh(splashGeo, splashMat);
       splash.rotation.x = -Math.PI/2;
@@ -3137,23 +3197,273 @@
       splash.userData = { isSplash: true, phase: 0 };
       waterfallGroup.add(splash);
       
+      // Mist particles rising from splash
+      for(let i=0; i<6; i++) {
+        const mistGeo = new THREE.SphereGeometry(0.5, 8, 8);
+        const mistMat = new THREE.MeshBasicMaterial({ 
+          color: 0xE0FFFF, 
+          transparent: true, 
+          opacity: 0.3 
+        });
+        const mist = new THREE.Mesh(mistGeo, mistMat);
+        mist.position.set(30 + (Math.random()-0.5)*4, 0.5 + i*0.5, -33 + (Math.random()-0.5)*4);
+        mist.userData = { isMist: true, riseSpeed: 0.02 + Math.random()*0.02, maxY: 3 + i };
+        waterfallGroup.add(mist);
+      }
+      
       scene.add(waterfallGroup);
       
-      // Scatter flowers around environment
-      const flowerGeo = new THREE.ConeGeometry(0.2, 0.5, 6);
-      const flowerColors = [0xFF69B4, 0xFFFF00, 0xFF0000, 0xFFA500, 0xFFFFFF];
+      // FARM AREA - Wheat field, Barn, and Tractor (near windmill, with distance)
+      const farmGroup = new THREE.Group();
+      farmGroup.position.set(25, 0, 55); // Near windmill but with distance
       
-      for(let i=0; i<100; i++) {
+      // Wheat field - golden yellow grain field
+      const wheatFieldGeo = new THREE.PlaneGeometry(20, 15);
+      const wheatMat = new THREE.MeshToonMaterial({ color: 0xF4A460 }); // Sandy brown/wheat color
+      const wheatField = new THREE.Mesh(wheatFieldGeo, wheatMat);
+      wheatField.rotation.x = -Math.PI/2;
+      wheatField.position.y = 0.05;
+      wheatField.receiveShadow = true;
+      farmGroup.add(wheatField);
+      
+      // Individual wheat stalks for detail
+      const wheatStalkGeo = new THREE.CylinderGeometry(0.1, 0.1, 1.5, 4);
+      const wheatStalkMat = new THREE.MeshToonMaterial({ color: 0xDAA520 }); // Goldenrod
+      for(let i=0; i<50; i++) {
+        const stalk = new THREE.Mesh(wheatStalkGeo, wheatStalkMat);
+        stalk.position.set(
+          (Math.random() - 0.5) * 18,
+          0.75,
+          (Math.random() - 0.5) * 13
+        );
+        stalk.castShadow = true;
+        farmGroup.add(stalk);
+      }
+      
+      // Barn building - classic red barn
+      const barnBase = new THREE.Mesh(
+        new THREE.BoxGeometry(8, 6, 10),
+        new THREE.MeshToonMaterial({ color: 0x8B0000 }) // Dark red
+      );
+      barnBase.position.set(-15, 3, 0);
+      barnBase.castShadow = true;
+      barnBase.receiveShadow = true;
+      farmGroup.add(barnBase);
+      
+      // Barn roof - triangular
+      const barnRoofGeo = new THREE.ConeGeometry(6, 4, 4);
+      const barnRoof = new THREE.Mesh(barnRoofGeo, new THREE.MeshToonMaterial({ color: 0x654321 })); // Brown
+      barnRoof.rotation.y = Math.PI/4;
+      barnRoof.position.set(-15, 8, 0);
+      barnRoof.castShadow = true;
+      farmGroup.add(barnRoof);
+      
+      // Barn door
+      const barnDoor = new THREE.Mesh(
+        new THREE.BoxGeometry(3, 4, 0.2),
+        new THREE.MeshToonMaterial({ color: 0x3a2a1a })
+      );
+      barnDoor.position.set(-15, 2, 5.1);
+      farmGroup.add(barnDoor);
+      
+      // Tractor - simple geometric tractor
+      const tractorBody = new THREE.Mesh(
+        new THREE.BoxGeometry(3, 2, 4),
+        new THREE.MeshToonMaterial({ color: 0x228B22 }) // Forest green
+      );
+      tractorBody.position.set(5, 1, -5);
+      tractorBody.castShadow = true;
+      farmGroup.add(tractorBody);
+      
+      // Tractor cabin
+      const tractorCabin = new THREE.Mesh(
+        new THREE.BoxGeometry(2, 2, 2),
+        new THREE.MeshToonMaterial({ color: 0x32CD32 }) // Lime green
+      );
+      tractorCabin.position.set(5, 3, -4);
+      tractorCabin.castShadow = true;
+      farmGroup.add(tractorCabin);
+      
+      // Tractor wheels
+      const wheelGeo = new THREE.CylinderGeometry(0.8, 0.8, 0.5, 8);
+      const wheelMat = new THREE.MeshToonMaterial({ color: 0x2F4F4F }); // Dark slate gray
+      const wheels = [
+        [-1, 0.8, -5.5], [1, 0.8, -5.5], // Front wheels
+        [-1, 0.8, -3.5], [1, 0.8, -3.5]  // Back wheels
+      ];
+      wheels.forEach(pos => {
+        const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+        wheel.rotation.z = Math.PI/2;
+        wheel.position.set(5 + pos[0], pos[1], pos[2]);
+        farmGroup.add(wheel);
+      });
+      
+      scene.add(farmGroup);
+      
+      // MYSTICAL/MAGICAL BUILDING - Crystal Tower
+      const crystalGroup = new THREE.Group();
+      crystalGroup.position.set(-50, 0, 55);
+      
+      // Tower base - stone platform
+      const towerBase = new THREE.Mesh(
+        new THREE.CylinderGeometry(6, 7, 2, 8),
+        new THREE.MeshPhysicalMaterial({ 
+          color: 0x708090, // Slate gray
+          metalness: 0.3,
+          roughness: 0.6
+        })
+      );
+      towerBase.position.y = 1;
+      towerBase.castShadow = true;
+      crystalGroup.add(towerBase);
+      
+      // Crystal spire - glowing magical structure
+      const crystalGeo = new THREE.ConeGeometry(3, 15, 6);
+      const crystalMat = new THREE.MeshPhysicalMaterial({ 
+        color: 0x9370DB, // Medium purple
+        metalness: 0.9,
+        roughness: 0.1,
+        transparent: true,
+        opacity: 0.85,
+        emissive: 0x9370DB,
+        emissiveIntensity: 0.5
+      });
+      const crystal = new THREE.Mesh(crystalGeo, crystalMat);
+      crystal.position.y = 10;
+      crystal.castShadow = true;
+      crystalGroup.add(crystal);
+      
+      // Floating crystals around tower
+      for(let i=0; i<6; i++) {
+        const angle = (i / 6) * Math.PI * 2;
+        const floatCrystal = new THREE.Mesh(
+          new THREE.OctahedronGeometry(0.8),
+          new THREE.MeshPhysicalMaterial({ 
+            color: 0xBA55D3, // Medium orchid
+            metalness: 0.8,
+            roughness: 0.2,
+            emissive: 0xBA55D3,
+            emissiveIntensity: 0.3
+          })
+        );
+        floatCrystal.position.set(
+          Math.cos(angle) * 5,
+          8 + Math.sin(gameTime + i) * 2,
+          Math.sin(angle) * 5
+        );
+        floatCrystal.userData = { isMagicCrystal: true, angle: angle, index: i };
+        crystalGroup.add(floatCrystal);
+      }
+      
+      // Magical glow circle on ground
+      const magicGlow = new THREE.Mesh(
+        new THREE.CircleGeometry(8, 32),
+        new THREE.MeshBasicMaterial({ 
+          color: 0xDDA0DD, // Plum
+          transparent: true,
+          opacity: 0.3
+        })
+      );
+      magicGlow.rotation.x = -Math.PI/2;
+      magicGlow.position.y = 0.06;
+      crystalGroup.add(magicGlow);
+      
+      scene.add(crystalGroup);
+      
+      // STATUE - Cool statue in center of map (replacing brown square if exists)
+      const statueGroup = new THREE.Group();
+      statueGroup.position.set(0, 0, 0); // Center of map
+      
+      // Pedestal
+      const pedestalGeo = new THREE.CylinderGeometry(2.5, 3, 2, 8);
+      const pedestalMat = new THREE.MeshPhysicalMaterial({ 
+        color: 0xDCDCDC, // Gainsboro (light gray marble)
+        metalness: 0.2,
+        roughness: 0.4
+      });
+      const pedestal = new THREE.Mesh(pedestalGeo, pedestalMat);
+      pedestal.position.y = 1;
+      pedestal.castShadow = true;
+      statueGroup.add(pedestal);
+      
+      // Statue figure - water droplet warrior
+      const statueBodyGeo = new THREE.SphereGeometry(1.5, 16, 16);
+      const statueMat = new THREE.MeshPhysicalMaterial({ 
+        color: 0xC0C0C0, // Silver
+        metalness: 0.8,
+        roughness: 0.2
+      });
+      const statueBody = new THREE.Mesh(statueBodyGeo, statueMat);
+      statueBody.position.y = 4;
+      statueBody.scale.y = 1.5; // Taller droplet shape
+      statueBody.castShadow = true;
+      statueGroup.add(statueBody);
+      
+      // Statue weapon - raised sword/spear
+      const statueWeaponGeo = new THREE.CylinderGeometry(0.2, 0.2, 4, 8);
+      const statueWeapon = new THREE.Mesh(statueWeaponGeo, statueMat);
+      statueWeapon.position.set(1, 6, 0);
+      statueWeapon.rotation.z = -Math.PI/4;
+      statueWeapon.castShadow = true;
+      statueGroup.add(statueWeapon);
+      
+      // Plaque
+      const plaqueGeo = new THREE.BoxGeometry(2, 0.8, 0.2);
+      const plaque = new THREE.Mesh(plaqueGeo, new THREE.MeshToonMaterial({ color: 0x8B7355 }));
+      plaque.position.set(0, 0.4, 3.2);
+      statueGroup.add(plaque);
+      
+      scene.add(statueGroup);
+      
+      // Scatter MORE flowers around environment (increased from 100 to 250)
+      const flowerGeo = new THREE.ConeGeometry(0.2, 0.5, 6);
+      const flowerColors = [0xFF69B4, 0xFFFF00, 0xFF0000, 0xFFA500, 0xFFFFFF, 0xFF1493, 0x9370DB];
+      
+      for(let i=0; i<250; i++) {
         const flower = new THREE.Mesh(flowerGeo, new THREE.MeshBasicMaterial({ 
           color: flowerColors[Math.floor(Math.random() * flowerColors.length)] 
         }));
         flower.position.set(
-          (Math.random() - 0.5) * 160,
+          (Math.random() - 0.5) * 170,
           0.25,
-          (Math.random() - 0.5) * 160
+          (Math.random() - 0.5) * 170
         );
         flower.rotation.x = -Math.PI/2;
         scene.add(flower);
+      }
+      
+      // Add MORE fences around different areas
+      const fenceMat2 = new THREE.MeshToonMaterial({ color: 0x8B4513 });
+      const postGeo2 = new THREE.BoxGeometry(0.3, 2, 0.3);
+      const railGeo2 = new THREE.BoxGeometry(4, 0.2, 0.2);
+      
+      // Fence around farm area
+      for(let i=0; i<20; i++) {
+        const post = new THREE.Mesh(postGeo2, fenceMat2);
+        if(i < 5) {
+          post.position.set(15 + i*4, 1, 47);
+        } else if(i < 10) {
+          post.position.set(35, 1, 47 + (i-5)*4);
+        } else if(i < 15) {
+          post.position.set(35 - (i-10)*4, 1, 67);
+        } else {
+          post.position.set(15, 1, 67 - (i-15)*4);
+        }
+        post.castShadow = true;
+        scene.add(post);
+      }
+      
+      // Fence around mystical building
+      for(let i=0; i<16; i++) {
+        const angle = (i / 16) * Math.PI * 2;
+        const post = new THREE.Mesh(postGeo2, fenceMat2);
+        post.position.set(
+          -50 + Math.cos(angle) * 12,
+          1,
+          55 + Math.sin(angle) * 12
+        );
+        post.castShadow = true;
+        scene.add(post);
       }
     }
 
@@ -5260,7 +5570,7 @@ Total Gold Earned: ${saveData.totalGoldEarned}
       scene.traverse(obj => {
         if (obj.userData.isWaterfall) {
           obj.userData.phase += 0.05;
-          obj.material.opacity = 0.6 + Math.sin(obj.userData.phase) * 0.1;
+          obj.material.opacity = 0.7 + Math.sin(obj.userData.phase) * 0.1;
         }
         if (obj.userData.isWaterDrop) {
           obj.position.y -= obj.userData.speed;
@@ -5272,7 +5582,31 @@ Total Gold Earned: ${saveData.totalGoldEarned}
           obj.userData.phase += 0.1;
           const scale = 1 + Math.sin(obj.userData.phase) * 0.3;
           obj.scale.set(scale, 1, scale);
-          obj.material.opacity = 0.4 + Math.sin(obj.userData.phase) * 0.2;
+          obj.material.opacity = 0.5 + Math.sin(obj.userData.phase) * 0.2;
+        }
+        // Mist rising animation
+        if (obj.userData.isMist) {
+          obj.position.y += obj.userData.riseSpeed;
+          if (obj.position.y > obj.userData.maxY) {
+            obj.position.y = 0.5;
+          }
+          obj.material.opacity = 0.3 * (1 - (obj.position.y / obj.userData.maxY));
+        }
+        // Magic crystal floating animation
+        if (obj.userData.isMagicCrystal) {
+          const angle = obj.userData.angle + gameTime * 0.3;
+          obj.position.x = -50 + Math.cos(angle) * 5;
+          obj.position.z = 55 + Math.sin(angle) * 5;
+          obj.position.y = 8 + Math.sin(gameTime * 2 + obj.userData.index) * 2;
+          obj.rotation.y += 0.02;
+          obj.rotation.x += 0.01;
+        }
+        // Sun sparkles on water animation
+        if (obj.userData.isSunSparkle) {
+          obj.userData.phase += 0.05;
+          obj.material.opacity = obj.userData.baseOpacity * (0.5 + Math.sin(obj.userData.phase) * 0.5);
+          const scale = 0.8 + Math.sin(obj.userData.phase * 1.5) * 0.4;
+          obj.scale.set(scale, 1, scale);
         }
       });
 
