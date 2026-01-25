@@ -533,27 +533,27 @@
       height: 60px;
     }
 
-    /* Position buttons over text in image - moved 10% lower to align with actual text */
+    /* Position buttons over text in image - moved 5% lower */
     #start-game-btn {
-      top: 46.75%;
+      top: 51.75%;
       left: 50%;
       transform: translateX(-50%);
     }
 
     #progression-btn {
-      top: 57.75%;
+      top: 62.75%;
       left: 50%;
       transform: translateX(-50%);
     }
 
     #achievements-btn {
-      top: 68.75%;
+      top: 73.75%;
       left: 50%;
       transform: translateX(-50%);
     }
 
     #credits-btn {
-      top: 79.75%;
+      top: 84.75%;
       left: 50%;
       transform: translateX(-50%);
     }
@@ -592,6 +592,28 @@
     @keyframes lightning-flash {
       0%, 100% { filter: brightness(1.1); }
       50% { filter: brightness(2); box-shadow: 0 0 40px rgba(255,255,255,1), 0 0 80px rgba(93,173,226,1); }
+    }
+    
+    @keyframes slideInRight {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    
+    @keyframes slideOutRight {
+      from {
+        transform: translateX(0);
+        opacity: 1;
+      }
+      to {
+        transform: translateX(400px);
+        opacity: 0;
+      }
     }
 
     .gold-display {
@@ -833,6 +855,7 @@
       text-align: center;
       line-height: 1.8;
       max-width: 600px;
+      margin-bottom: 100px; /* Space for back button visibility */
     }
 
   </style>
@@ -1144,19 +1167,15 @@
     let runStartGold = 0;  // Track gold at start of run for end-of-run calculation
     let sessionDamagesTaken = 0;  // Session-specific damage tracking for Untouchable achievement
 
-    // Tutorial System
-    let tutorialActive = false;
-    let tutorialStep = 0;
-    let tutorialTimer = 0;
-    const tutorialMessages = [
-      "Move with joystick",
-      "Kill enemies, pick up EXP stars",
-      "Level up, choose upgrades - each has stat bonuses",
-      "Weapons add up - use 1-4 weapons at same time depending on level",
-      "Start with 1 weapon",
-      "Game is hard! Buy permanent upgrades between runs",
-      "Roguelite Survivor - Boss at Level 50, Stage Complete at Level 100",
-      "Good luck!"
+    // Countdown System (replaces tutorial)
+    let countdownActive = false;
+    let countdownStep = 0;
+    let countdownTimer = 0;
+    const countdownMessages = [
+      "Good luck!",
+      "3",
+      "2",
+      "1"
     ];
 
     // Shared geometries for particle pooling (performance optimization)
@@ -1277,6 +1296,27 @@
         this.highlight = new THREE.Mesh(highlightGeo, highlightMat);
         this.highlight.position.set(-0.2, 0.3, 0.2);
         this.mesh.add(this.highlight);
+        
+        // Add cigar accessory
+        const cigarGeo = new THREE.CylinderGeometry(0.03, 0.04, 0.25, 8);
+        const cigarMat = new THREE.MeshPhongMaterial({ 
+          color: 0x8B4513,
+          shininess: 10
+        });
+        this.cigar = new THREE.Mesh(cigarGeo, cigarMat);
+        this.cigar.rotation.z = Math.PI / 2; // Horizontal
+        this.cigar.position.set(0.3, 0.1, 0.35);
+        this.mesh.add(this.cigar);
+        
+        // Add glowing tip to cigar
+        const tipGeo = new THREE.SphereGeometry(0.05, 8, 8);
+        const tipMat = new THREE.MeshBasicMaterial({ 
+          color: 0xFF4500,
+          emissive: 0xFF4500
+        });
+        this.cigarTip = new THREE.Mesh(tipGeo, tipMat);
+        this.cigarTip.position.set(0.425, 0.1, 0.35);
+        this.mesh.add(this.cigarTip);
         
         // Aura Circle (visible when aura weapon is active)
         const auraGeo = new THREE.RingGeometry(3.5, 4, 32);
@@ -1407,6 +1447,38 @@
         // Pulse highlight with deterministic variation based on gameTime
         this.highlight.material.opacity = 0.6 + Math.sin(gameTime * 3) * 0.2 + Math.sin(gameTime * 7) * 0.1;
         
+        // Animate cigar tip glow
+        if (this.cigarTip) {
+          this.cigarTip.material.opacity = 0.7 + Math.sin(gameTime * 8) * 0.3;
+          
+          // Smoke particles from cigar
+          if (Math.random() < SMOKE_SPAWN_PROBABILITY) {
+            const smokeGeo = new THREE.SphereGeometry(0.05 + Math.random() * 0.03, 6, 6);
+            const smokeMat = new THREE.MeshBasicMaterial({ 
+              color: 0xCCCCCC, 
+              transparent: true, 
+              opacity: 0.3
+            });
+            const smoke = new THREE.Mesh(smokeGeo, smokeMat);
+            
+            // Get world position of cigar tip
+            const tipWorldPos = new THREE.Vector3();
+            this.cigarTip.getWorldPosition(tipWorldPos);
+            smoke.position.copy(tipWorldPos);
+            
+            scene.add(smoke);
+            smoke.userData = {
+              isCigarSmoke: true,
+              riseSpeed: 0.015 + Math.random() * 0.01,
+              lifetime: 1.5,
+              driftX: (Math.random() - 0.5) * 0.02,
+              driftZ: (Math.random() - 0.5) * 0.02,
+              fadeSpeed: 0.01
+            };
+            particles.push(smoke);
+          }
+        }
+        
         // Character drops water when moving - wet, bubbly, squishy effects
         const movementSpeed = Math.sqrt(this.velocity.x * this.velocity.x + this.velocity.z * this.velocity.z);
         if (movementSpeed > 0.01) {
@@ -1447,8 +1519,9 @@
           this.auraCircle.position.x = this.mesh.position.x;
           this.auraCircle.position.z = this.mesh.position.z;
           
-          // Scale based on aura range
-          const scale = weapons.aura.range * 2;
+          // Scale based on aura range with cap
+          const cappedRange = Math.min(weapons.aura.range, MAX_AURA_RANGE);
+          const scale = cappedRange * 2;
           this.auraCircle.geometry.dispose();
           this.auraCircle.geometry = new THREE.RingGeometry(scale - 0.5, scale, 32);
           
@@ -2601,8 +2674,33 @@
         expEarned: 0,
         maxWeapons: 0
       },
-      achievements: []
+      achievements: [],
+      notifications: [], // New notification/inbox system
+      inventory: [], // New inventory system for equipment
+      equippedItems: {} // Currently equipped items
     };
+    
+    // Rarity system for items
+    const RARITIES = {
+      COMMON: { name: 'Common', color: '#FFFFFF', multiplier: 1.0 },
+      RARE: { name: 'Rare', color: '#4FC3F7', multiplier: 1.25 },
+      EPIC: { name: 'Epic', color: '#AB47BC', multiplier: 1.5 },
+      LEGENDARY: { name: 'Legendary', color: '#FFD700', multiplier: 2.0 },
+      MYTHIC: { name: 'Mythic', color: '#FF1744', multiplier: 3.0 }
+    };
+    
+    // Game balance constants
+    const MAX_AURA_RANGE = 5;
+    const INITIAL_AURA_RANGE = 3;
+    const AURA_RANGE_INCREASE_MULTIPLIER = 0.1;
+    const AIM_ASSIST_FACTOR = 0.33;
+    const SMOKE_SPAWN_PROBABILITY = 0.15;
+    
+    // ID generation counter to prevent collisions
+    let idCounter = 0;
+    function generateUniqueId() {
+      return `${Date.now()}_${idCounter++}_${Math.random().toString(36).substr(2, 9)}`;
+    }
 
     let saveData = { ...defaultSaveData };
 
@@ -2613,6 +2711,9 @@
           saveData = JSON.parse(saved);
           // Ensure all fields exist
           saveData.upgrades = { ...defaultSaveData.upgrades, ...saveData.upgrades };
+          saveData.notifications = saveData.notifications || [];
+          saveData.inventory = saveData.inventory || [];
+          saveData.equippedItems = saveData.equippedItems || {};
         }
       } catch (e) {
         console.error('Failed to load save data:', e);
@@ -2626,6 +2727,117 @@
       } catch (e) {
         console.error('Failed to save data:', e);
       }
+    }
+    
+    // --- NOTIFICATION/INBOX SYSTEM ---
+    function addNotification(type, title, message, reward = null) {
+      const notification = {
+        id: generateUniqueId(),
+        type: type, // 'reward', 'achievement', 'info', 'warning'
+        title: title,
+        message: message,
+        reward: reward,
+        timestamp: Date.now(),
+        read: false
+      };
+      saveData.notifications.push(notification);
+      saveSaveData();
+      
+      // Show notification popup
+      showNotificationPopup(notification);
+    }
+    
+    function showNotificationPopup(notification) {
+      const popup = document.createElement('div');
+      popup.style.position = 'fixed';
+      popup.style.top = '80px';
+      popup.style.right = '20px';
+      popup.style.background = 'linear-gradient(to bottom, #2c3e50, #1a252f)';
+      popup.style.border = '3px solid #5DADE2';
+      popup.style.borderRadius = '10px';
+      popup.style.padding = '15px';
+      popup.style.maxWidth = '300px';
+      popup.style.zIndex = '2000';
+      popup.style.boxShadow = '0 0 20px rgba(93,173,226,0.5)';
+      popup.style.animation = 'slideInRight 0.3s ease';
+      
+      const titleEl = document.createElement('div');
+      titleEl.style.color = '#5DADE2';
+      titleEl.style.fontWeight = 'bold';
+      titleEl.style.fontSize = '18px';
+      titleEl.style.marginBottom = '5px';
+      titleEl.textContent = notification.title;
+      
+      const messageEl = document.createElement('div');
+      messageEl.style.color = '#ecf0f1';
+      messageEl.style.fontSize = '14px';
+      messageEl.textContent = notification.message;
+      
+      popup.appendChild(titleEl);
+      popup.appendChild(messageEl);
+      
+      if (notification.reward) {
+        const rewardEl = document.createElement('div');
+        rewardEl.style.color = '#FFD700';
+        rewardEl.style.fontWeight = 'bold';
+        rewardEl.style.marginTop = '5px';
+        rewardEl.textContent = `+${notification.reward} Gold`;
+        popup.appendChild(rewardEl);
+      }
+      
+      document.body.appendChild(popup);
+      
+      // Auto-remove after 4 seconds
+      setTimeout(() => {
+        popup.style.animation = 'slideOutRight 0.3s ease';
+        setTimeout(() => {
+          if (popup.parentNode) {
+            popup.parentNode.removeChild(popup);
+          }
+        }, 300);
+      }, 4000);
+    }
+    
+    // --- INVENTORY SYSTEM ---
+    function addItemToInventory(item) {
+      saveData.inventory.push(item);
+      saveSaveData();
+      addNotification('reward', 'New Item!', `You got: ${item.name} (${RARITIES[item.rarity].name})`);
+    }
+    
+    function equipItem(itemId, slot) {
+      const item = saveData.inventory.find(i => i.id === itemId);
+      if (item) {
+        saveData.equippedItems[slot] = itemId;
+        saveSaveData();
+        addNotification('info', 'Item Equipped', `${item.name} equipped to ${slot}`);
+      }
+    }
+    
+    function generateRandomItem(level = 1) {
+      const rarityRoll = Math.random();
+      let rarity;
+      if (rarityRoll < 0.5) rarity = 'COMMON';
+      else if (rarityRoll < 0.75) rarity = 'RARE';
+      else if (rarityRoll < 0.9) rarity = 'EPIC';
+      else if (rarityRoll < 0.97) rarity = 'LEGENDARY';
+      else rarity = 'MYTHIC';
+      
+      const types = ['weapon', 'armor', 'accessory'];
+      const type = types[Math.floor(Math.random() * types.length)];
+      
+      return {
+        id: generateUniqueId(),
+        name: `${RARITIES[rarity].name} ${type}`,
+        type: type,
+        rarity: rarity,
+        level: level,
+        stats: {
+          damage: Math.floor(5 * level * RARITIES[rarity].multiplier),
+          defense: Math.floor(3 * level * RARITIES[rarity].multiplier),
+          health: Math.floor(10 * level * RARITIES[rarity].multiplier)
+        }
+      };
     }
 
     // --- ACHIEVEMENTS SYSTEM ---
@@ -2725,6 +2937,9 @@
         
         // Award gold with visual effect
         addGold(achievement.reward);
+        
+        // Add notification for achievement claim
+        addNotification('achievement', 'Achievement Unlocked!', `${achievement.name} - ${achievement.desc}`, achievement.reward);
         
         // Show gold bag with amount
         const goldBag = document.createElement('div');
@@ -4001,7 +4216,7 @@
       waveCount++;
       
       // Tutorial mode - only 3 enemies initially
-      if (tutorialActive) {
+      if (countdownActive) {
         const count = 3;
         for(let i=0; i<count; i++) {
           const angle = Math.random() * Math.PI * 2;
@@ -4041,41 +4256,45 @@
       }
     }
 
-    function startTutorial() {
-      tutorialActive = true;
-      tutorialStep = 0;
-      tutorialTimer = 0;
-      showTutorialMessage(0);
+    function startCountdown() {
+      countdownActive = true;
+      countdownStep = 0;
+      countdownTimer = 0;
+      showCountdownMessage(0);
     }
 
-    function showTutorialMessage(step) {
-      if (step >= tutorialMessages.length) {
-        endTutorial();
+    function showCountdownMessage(step) {
+      if (step >= countdownMessages.length) {
+        endCountdown();
         return;
       }
       
-      const tutorialText = document.getElementById('tutorial-text');
-      tutorialText.textContent = tutorialMessages[step];
-      tutorialText.style.opacity = '1';
+      const countdownText = document.getElementById('tutorial-text');
+      countdownText.textContent = countdownMessages[step];
+      countdownText.style.opacity = '1';
+      countdownText.style.fontSize = step === 0 ? '48px' : '96px'; // Larger for countdown numbers
       
-      // Auto-advance after 4 seconds
+      // Duration based on step: "Good luck!" = 1.5s, numbers = 1s each
+      const duration = step === 0 ? 1500 : 1000;
+      
       setTimeout(() => {
-        tutorialText.style.opacity = '0';
+        countdownText.style.opacity = '0';
         setTimeout(() => {
-          tutorialStep++;
-          if (tutorialStep < tutorialMessages.length) {
-            showTutorialMessage(tutorialStep);
+          countdownStep++;
+          if (countdownStep < countdownMessages.length) {
+            showCountdownMessage(countdownStep);
           } else {
-            endTutorial();
+            endCountdown();
           }
-        }, 500);
-      }, 4000);
+        }, 300);
+      }, duration);
     }
 
-    function endTutorial() {
-      tutorialActive = false;
-      const tutorialText = document.getElementById('tutorial-text');
-      tutorialText.style.opacity = '0';
+    function endCountdown() {
+      countdownActive = false;
+      const countdownText = document.getElementById('tutorial-text');
+      countdownText.style.opacity = '0';
+      countdownText.style.fontSize = '36px'; // Reset to default
     }
 
     function spawnParticles(pos, color, count) {
@@ -4809,14 +5028,15 @@
         
         if (weapons.aura.active && weapons.aura.level < 4) {
           const nextLevel = weapons.aura.level + 1;
+          const rangeIncrease = INITIAL_AURA_RANGE * AURA_RANGE_INCREASE_MULTIPLIER; // 10% increase per level
           choices.push({ 
             id: 'aura_upgrade', 
             title: `AURA Level ${nextLevel}`, 
-            desc: `Damage +3, Range +0.5`, 
+            desc: `Damage +3, Range +10% (${rangeIncrease.toFixed(1)})`, 
             apply: () => { 
               weapons.aura.level++;
               weapons.aura.damage += 3;
-              weapons.aura.range += 0.5;
+              weapons.aura.range += rangeIncrease;
               showStatChange(`Aura Level ${weapons.aura.level}`);
             } 
           });
@@ -5164,6 +5384,63 @@
       isPaused = true;
       isGameActive = false;
       
+      // Create death water splash/pool effect
+      if (player && player.mesh) {
+        // Big water splash particles
+        for (let i = 0; i < 30; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = 0.5 + Math.random() * 1.5;
+          const particleGeo = new THREE.SphereGeometry(0.1 + Math.random() * 0.15, 8, 8);
+          const particleMat = new THREE.MeshPhysicalMaterial({
+            color: COLORS.player,
+            transparent: true,
+            opacity: 0.8
+          });
+          const particle = new THREE.Mesh(particleGeo, particleMat);
+          particle.position.copy(player.mesh.position);
+          particle.position.y = 0.3;
+          scene.add(particle);
+          
+          particle.userData = {
+            velocityX: Math.cos(angle) * speed,
+            velocityY: 0.5 + Math.random() * 1,
+            velocityZ: Math.sin(angle) * speed,
+            lifetime: 2,
+            gravity: -9.8
+          };
+          particles.push(particle);
+        }
+        
+        // Create water pool on ground
+        const poolGeo = new THREE.CircleGeometry(1.5, 32);
+        const poolMat = new THREE.MeshBasicMaterial({
+          color: COLORS.player,
+          transparent: true,
+          opacity: 0.5,
+          side: THREE.DoubleSide
+        });
+        const pool = new THREE.Mesh(poolGeo, poolMat);
+        pool.position.copy(player.mesh.position);
+        pool.position.y = 0.01;
+        pool.rotation.x = -Math.PI / 2;
+        scene.add(pool);
+        
+        // Fade out the pool over time
+        let poolOpacity = 0.5;
+        const fadePool = () => {
+          poolOpacity -= 0.01;
+          if (poolOpacity > 0) {
+            pool.material.opacity = poolOpacity;
+            requestAnimationFrame(fadePool);
+          } else {
+            scene.remove(pool);
+            pool.geometry.dispose();
+            pool.material.dispose();
+          }
+        };
+        setTimeout(fadePool, 1000);
+      }
+      
       // Calculate run stats
       const survivalTime = Math.floor((Date.now() - gameStartTime) / 1000);
       const goldEarned = playerStats.gold - runStartGold;
@@ -5221,7 +5498,7 @@
       const gunCooldown = 1000 * (1 - cdReduction);
       weapons.gun = { active: true, level: 1, damage: 15, cooldown: gunCooldown, lastShot: 0, range: 12, barrels: 1 };
       weapons.sword = { active: false, level: 0, damage: 30, cooldown: 1500, lastShot: 0, range: 3.5 };
-      weapons.aura = { active: false, level: 0, damage: 5, cooldown: 500, lastShot: 0, range: 4 };
+      weapons.aura = { active: false, level: 0, damage: 5, cooldown: 500, lastShot: 0, range: INITIAL_AURA_RANGE }; // Reduced by 25%
       weapons.meteor = { active: false, level: 0, damage: 60, cooldown: 2500, lastShot: 0, area: 5 };
       weapons.lightning = { active: false, level: 0, damage: 25, cooldown: 3000, lastShot: 0, targets: 4 };
       weapons.doubleBarrel = { active: false, level: 0, damage: 25, cooldown: 1200, lastShot: 0, range: 12, spread: 0.3 };
@@ -5307,8 +5584,8 @@
       document.getElementById('gameover-screen').style.display = 'none';
       updateHUD();
       
-      // Start tutorial
-      startTutorial();
+      // Start countdown (replaces tutorial)
+      startCountdown();
     }
 
     function toggleStats() {
@@ -5675,7 +5952,7 @@ Total Gold Earned: ${saveData.totalGoldEarned}
         if (nearest) {
           let targetPosition = nearest.mesh.position;
           
-          // In landscape mode with right joystick active, apply 25% aim assist
+          // In landscape mode with right joystick active, apply aim assist
           if (!isPortrait && joystickRight.active) {
             // Manual aiming with right joystick
             const aimAngle = Math.atan2(joystickRight.x, joystickRight.y);
@@ -5686,12 +5963,11 @@ Total Gold Earned: ${saveData.totalGoldEarned}
             const manualZ = player.mesh.position.z + Math.cos(aimAngle) * aimDistance;
             const manualTarget = new THREE.Vector3(manualX, nearest.mesh.position.y, manualZ);
             
-            // Apply 25% aim assist: blend between manual aim and auto-aim
-            const assistFactor = 0.25;
+            // Apply aim assist: blend between manual aim and auto-aim
             targetPosition = new THREE.Vector3(
-              manualTarget.x * (1 - assistFactor) + nearest.mesh.position.x * assistFactor,
+              manualTarget.x * (1 - AIM_ASSIST_FACTOR) + nearest.mesh.position.x * AIM_ASSIST_FACTOR,
               nearest.mesh.position.y,
-              manualTarget.z * (1 - assistFactor) + nearest.mesh.position.z * assistFactor
+              manualTarget.z * (1 - AIM_ASSIST_FACTOR) + nearest.mesh.position.z * AIM_ASSIST_FACTOR
             );
           }
           // In portrait mode: full auto-aim (default behavior)
@@ -6012,6 +6288,22 @@ Total Gold Earned: ${saveData.totalGoldEarned}
           obj.material.opacity = Math.max(0, obj.userData.lifetime / 1.5) * 0.6;
           obj.scale.multiplyScalar(1.01); // Slowly expand
           if (obj.userData.lifetime <= 0 || obj.position.y > 5) {
+            scene.remove(obj);
+            obj.geometry.dispose();
+            obj.material.dispose();
+            return false;
+          }
+        }
+        
+        // Update cigar smoke particles
+        if (obj.userData.isCigarSmoke) {
+          obj.position.y += obj.userData.riseSpeed;
+          obj.position.x += obj.userData.driftX;
+          obj.position.z += obj.userData.driftZ;
+          obj.userData.lifetime -= dt;
+          obj.material.opacity = Math.max(0, obj.userData.lifetime / 1.5) * 0.3;
+          obj.scale.multiplyScalar(1.03); // Expand faster than bubbles
+          if (obj.userData.lifetime <= 0 || obj.position.y > 3) {
             scene.remove(obj);
             obj.geometry.dispose();
             obj.material.dispose();
