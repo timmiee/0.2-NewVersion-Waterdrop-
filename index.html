@@ -593,6 +593,28 @@
       0%, 100% { filter: brightness(1.1); }
       50% { filter: brightness(2); box-shadow: 0 0 40px rgba(255,255,255,1), 0 0 80px rgba(93,173,226,1); }
     }
+    
+    @keyframes slideInRight {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    
+    @keyframes slideOutRight {
+      from {
+        transform: translateX(0);
+        opacity: 1;
+      }
+      to {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+    }
 
     .gold-display {
       position: absolute;
@@ -2652,7 +2674,19 @@
         expEarned: 0,
         maxWeapons: 0
       },
-      achievements: []
+      achievements: [],
+      notifications: [], // New notification/inbox system
+      inventory: [], // New inventory system for equipment
+      equippedItems: {} // Currently equipped items
+    };
+    
+    // Rarity system for items
+    const RARITIES = {
+      COMMON: { name: 'Common', color: '#FFFFFF', multiplier: 1.0 },
+      RARE: { name: 'Rare', color: '#4FC3F7', multiplier: 1.25 },
+      EPIC: { name: 'Epic', color: '#AB47BC', multiplier: 1.5 },
+      LEGENDARY: { name: 'Legendary', color: '#FFD700', multiplier: 2.0 },
+      MYTHIC: { name: 'Mythic', color: '#FF1744', multiplier: 3.0 }
     };
 
     let saveData = { ...defaultSaveData };
@@ -2664,6 +2698,9 @@
           saveData = JSON.parse(saved);
           // Ensure all fields exist
           saveData.upgrades = { ...defaultSaveData.upgrades, ...saveData.upgrades };
+          saveData.notifications = saveData.notifications || [];
+          saveData.inventory = saveData.inventory || [];
+          saveData.equippedItems = saveData.equippedItems || {};
         }
       } catch (e) {
         console.error('Failed to load save data:', e);
@@ -2677,6 +2714,117 @@
       } catch (e) {
         console.error('Failed to save data:', e);
       }
+    }
+    
+    // --- NOTIFICATION/INBOX SYSTEM ---
+    function addNotification(type, title, message, reward = null) {
+      const notification = {
+        id: Date.now() + Math.random(),
+        type: type, // 'reward', 'achievement', 'info', 'warning'
+        title: title,
+        message: message,
+        reward: reward,
+        timestamp: Date.now(),
+        read: false
+      };
+      saveData.notifications.push(notification);
+      saveSaveData();
+      
+      // Show notification popup
+      showNotificationPopup(notification);
+    }
+    
+    function showNotificationPopup(notification) {
+      const popup = document.createElement('div');
+      popup.style.position = 'fixed';
+      popup.style.top = '80px';
+      popup.style.right = '20px';
+      popup.style.background = 'linear-gradient(to bottom, #2c3e50, #1a252f)';
+      popup.style.border = '3px solid #5DADE2';
+      popup.style.borderRadius = '10px';
+      popup.style.padding = '15px';
+      popup.style.maxWidth = '300px';
+      popup.style.zIndex = '2000';
+      popup.style.boxShadow = '0 0 20px rgba(93,173,226,0.5)';
+      popup.style.animation = 'slideInRight 0.3s ease';
+      
+      const titleEl = document.createElement('div');
+      titleEl.style.color = '#5DADE2';
+      titleEl.style.fontWeight = 'bold';
+      titleEl.style.fontSize = '18px';
+      titleEl.style.marginBottom = '5px';
+      titleEl.textContent = notification.title;
+      
+      const messageEl = document.createElement('div');
+      messageEl.style.color = '#ecf0f1';
+      messageEl.style.fontSize = '14px';
+      messageEl.textContent = notification.message;
+      
+      popup.appendChild(titleEl);
+      popup.appendChild(messageEl);
+      
+      if (notification.reward) {
+        const rewardEl = document.createElement('div');
+        rewardEl.style.color = '#FFD700';
+        rewardEl.style.fontWeight = 'bold';
+        rewardEl.style.marginTop = '5px';
+        rewardEl.textContent = `+${notification.reward} Gold`;
+        popup.appendChild(rewardEl);
+      }
+      
+      document.body.appendChild(popup);
+      
+      // Auto-remove after 4 seconds
+      setTimeout(() => {
+        popup.style.animation = 'slideOutRight 0.3s ease';
+        setTimeout(() => {
+          if (popup.parentNode) {
+            popup.parentNode.removeChild(popup);
+          }
+        }, 300);
+      }, 4000);
+    }
+    
+    // --- INVENTORY SYSTEM ---
+    function addItemToInventory(item) {
+      saveData.inventory.push(item);
+      saveSaveData();
+      addNotification('reward', 'New Item!', `You got: ${item.name} (${RARITIES[item.rarity].name})`);
+    }
+    
+    function equipItem(itemId, slot) {
+      const item = saveData.inventory.find(i => i.id === itemId);
+      if (item) {
+        saveData.equippedItems[slot] = itemId;
+        saveSaveData();
+        addNotification('info', 'Item Equipped', `${item.name} equipped to ${slot}`);
+      }
+    }
+    
+    function generateRandomItem(level = 1) {
+      const rarityRoll = Math.random();
+      let rarity;
+      if (rarityRoll < 0.5) rarity = 'COMMON';
+      else if (rarityRoll < 0.75) rarity = 'RARE';
+      else if (rarityRoll < 0.9) rarity = 'EPIC';
+      else if (rarityRoll < 0.97) rarity = 'LEGENDARY';
+      else rarity = 'MYTHIC';
+      
+      const types = ['weapon', 'armor', 'accessory'];
+      const type = types[Math.floor(Math.random() * types.length)];
+      
+      return {
+        id: Date.now() + Math.random(),
+        name: `${RARITIES[rarity].name} ${type}`,
+        type: type,
+        rarity: rarity,
+        level: level,
+        stats: {
+          damage: Math.floor(5 * level * RARITIES[rarity].multiplier),
+          defense: Math.floor(3 * level * RARITIES[rarity].multiplier),
+          health: Math.floor(10 * level * RARITIES[rarity].multiplier)
+        }
+      };
     }
 
     // --- ACHIEVEMENTS SYSTEM ---
@@ -2776,6 +2924,9 @@
         
         // Award gold with visual effect
         addGold(achievement.reward);
+        
+        // Add notification for achievement claim
+        addNotification('achievement', 'Achievement Unlocked!', `${achievement.name} - ${achievement.desc}`, achievement.reward);
         
         // Show gold bag with amount
         const goldBag = document.createElement('div');
