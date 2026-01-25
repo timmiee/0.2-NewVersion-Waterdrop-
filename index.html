@@ -1378,6 +1378,40 @@
         // Pulse highlight with deterministic variation based on gameTime
         this.highlight.material.opacity = 0.6 + Math.sin(gameTime * 3) * 0.2 + Math.sin(gameTime * 7) * 0.1;
         
+        // Character drops water when moving - wet, bubbly, squishy effects
+        const movementSpeed = Math.sqrt(this.velocity.x * this.velocity.x + this.velocity.z * this.velocity.z);
+        if (movementSpeed > 0.01) {
+          // Drop water droplets on ground
+          if (Math.random() < 0.15) { // 15% chance each frame when moving
+            spawnWaterDroplet(this.mesh.position);
+          }
+          
+          // Add small bubble particles rising from character
+          if (Math.random() < 0.1) {
+            const bubbleGeo = new THREE.SphereGeometry(0.1 + Math.random() * 0.05, 8, 8);
+            const bubbleMat = new THREE.MeshPhysicalMaterial({ 
+              color: 0x4ECDC4, 
+              transparent: true, 
+              opacity: 0.6,
+              metalness: 0.9,
+              roughness: 0.1
+            });
+            const bubble = new THREE.Mesh(bubbleGeo, bubbleMat);
+            bubble.position.copy(this.mesh.position);
+            bubble.position.y += 0.3;
+            scene.add(bubble);
+            
+            bubble.userData = {
+              isPlayerBubble: true,
+              riseSpeed: 0.02 + Math.random() * 0.02,
+              lifetime: 1.5,
+              driftX: (Math.random() - 0.5) * 0.01,
+              driftZ: (Math.random() - 0.5) * 0.01
+            };
+            particles.push(bubble);
+          }
+        }
+        
         // Update aura circle
         if (weapons.aura.active) {
           this.auraCircle.visible = true;
@@ -1573,7 +1607,10 @@
         this.maxHp = this.hp;
         this.damage = 33 * levelScaling; // Damage scaled by level
         this.isDead = false;
-        this.isDamaged = false; // Track if enemy has been visually damaged
+        this.isDamaged = false; // Track if enemy has been visually damaged (legacy)
+        this.isDamaged75 = false; // Track 75% HP damage state
+        this.isDamaged50 = false; // Track 50% HP damage state
+        this.isDamaged25 = false; // Track 25% HP damage state
         this.pulsePhase = Math.random() * Math.PI;
         this.wobbleOffset = Math.random() * 100;
         this.lastAttackTime = 0;
@@ -1726,65 +1763,134 @@
         this.hp -= amount;
         createDamageNumber(amount, this.mesh.position, isCrit);
         
-        // Destruction effect at 20% HP threshold
+        // 4-STAGE ENEMY DAMAGE STATES
         const hpPercent = this.hp / this.maxHp;
         const oldHpPercent = oldHp / this.maxHp;
+        const enemyColor = this.mesh.material.color.getHex();
         
-        // First hit below 20% - destroy part of body
-        if (oldHpPercent >= 0.2 && hpPercent < 0.2 && !this.isDamaged) {
-          this.isDamaged = true;
+        // Stage 4 (25% HP) - Missing limbs, large body parts gone, slowed movement
+        if (oldHpPercent >= 0.25 && hpPercent < 0.25 && !this.isDamaged75 && !this.isDamaged50 && !this.isDamaged25) {
+          this.isDamaged25 = true;
+          this.walkSpeed *= 0.6; // Slowed by 40% due to missing limb
+          this.mesh.scale.multiplyScalar(0.7); // Much smaller - major body parts missing
           
-          // Visually damage the enemy - make smaller and break off pieces
-          const damagePercent = 0.35 + Math.random() * 0.15; // 35-50%
-          const newScale = 1 - damagePercent;
-          this.mesh.scale.multiplyScalar(newScale);
-          
-          // Spawn broken pieces
-          const enemyColor = this.mesh.material.color.getHex();
-          for(let i = 0; i < 5; i++) {
-            const piece = new THREE.Mesh(
-              new THREE.BoxGeometry(0.2, 0.2, 0.2),
-              new THREE.MeshBasicMaterial({ color: enemyColor })
+          // Spawn large broken limbs
+          for(let i = 0; i < 8; i++) {
+            const limb = new THREE.Mesh(
+              new THREE.BoxGeometry(0.3 + Math.random() * 0.3, 0.3 + Math.random() * 0.3, 0.1),
+              new THREE.MeshToonMaterial({ color: enemyColor, transparent: true, opacity: 0.9 })
             );
-            piece.position.copy(this.mesh.position);
-            scene.add(piece);
+            limb.position.copy(this.mesh.position);
+            scene.add(limb);
             
             const vel = new THREE.Vector3(
-              (Math.random() - 0.5) * 0.3,
-              Math.random() * 0.4,
-              (Math.random() - 0.5) * 0.3
+              (Math.random() - 0.5) * 0.5,
+              Math.random() * 0.6,
+              (Math.random() - 0.5) * 0.5
             );
             
-            let life = 40;
-            const updatePiece = () => {
+            let life = 60;
+            const updateLimb = () => {
               life--;
-              piece.position.add(vel);
+              limb.position.add(vel);
               vel.y -= 0.02; // Gravity
-              piece.rotation.x += 0.1;
-              piece.rotation.y += 0.1;
+              limb.rotation.x += 0.15;
+              limb.rotation.y += 0.15;
+              limb.material.opacity = life / 60;
               
-              if (life <= 0 || piece.position.y < 0) {
-                scene.remove(piece);
-                piece.geometry.dispose();
-                piece.material.dispose();
+              if (life <= 0 || limb.position.y < 0) {
+                scene.remove(limb);
+                limb.geometry.dispose();
+                limb.material.dispose();
               } else {
-                requestAnimationFrame(updatePiece);
+                requestAnimationFrame(updateLimb);
               }
             };
-            updatePiece();
+            updateLimb();
           }
           
-          // Enhanced particles for destruction
-          spawnParticles(this.mesh.position, enemyColor, 15);
+          spawnParticles(this.mesh.position, enemyColor, 20);
           playSound('hit');
         }
         
-        // Flash
+        // Stage 3 (50% HP) - Flesh ripped off, major wounds
+        else if (oldHpPercent >= 0.5 && hpPercent < 0.5 && !this.isDamaged50 && !this.isDamaged75) {
+          this.isDamaged50 = true;
+          this.mesh.scale.multiplyScalar(0.85); // Noticeably damaged
+          
+          // Add wound texture by darkening parts
+          this.mesh.material.emissive.setHex(0x330000); // Dark red wounds
+          this.mesh.material.emissiveIntensity = 0.3;
+          
+          // Spawn flesh pieces
+          for(let i = 0; i < 10; i++) {
+            const flesh = new THREE.Mesh(
+              new THREE.BoxGeometry(0.2, 0.2, 0.1),
+              new THREE.MeshBasicMaterial({ color: 0x8B0000 }) // Dark red flesh
+            );
+            flesh.position.copy(this.mesh.position);
+            scene.add(flesh);
+            
+            const vel = new THREE.Vector3(
+              (Math.random() - 0.5) * 0.4,
+              Math.random() * 0.5,
+              (Math.random() - 0.5) * 0.4
+            );
+            
+            let life = 50;
+            const updateFlesh = () => {
+              life--;
+              flesh.position.add(vel);
+              vel.y -= 0.02;
+              flesh.rotation.x += 0.1;
+              flesh.rotation.y += 0.1;
+              
+              if (life <= 0 || flesh.position.y < 0) {
+                scene.remove(flesh);
+                flesh.geometry.dispose();
+                flesh.material.dispose();
+              } else {
+                requestAnimationFrame(updateFlesh);
+              }
+            };
+            updateFlesh();
+          }
+          
+          spawnParticles(this.mesh.position, 0x8B0000, 15); // Blood color
+          playSound('hit');
+        }
+        
+        // Stage 2 (75% HP) - Blood spots, small holes, damage marks
+        else if (oldHpPercent >= 0.75 && hpPercent < 0.75 && !this.isDamaged75) {
+          this.isDamaged75 = true;
+          
+          // Add blood spots - slightly darken color
+          const currentColor = this.mesh.material.color.clone();
+          currentColor.multiplyScalar(0.8); // Darken by 20%
+          this.mesh.material.color.copy(currentColor);
+          
+          // Add small damage marks (holes)
+          for(let i = 0; i < 5; i++) {
+            const hole = new THREE.Mesh(
+              new THREE.CircleGeometry(0.1, 8),
+              new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.7 })
+            );
+            hole.position.copy(this.mesh.position);
+            hole.position.x += (Math.random() - 0.5) * 0.5;
+            hole.position.y += (Math.random() - 0.5) * 0.5;
+            hole.position.z += (Math.random() - 0.5) * 0.5;
+            this.mesh.add(hole);
+          }
+          
+          spawnParticles(this.mesh.position, 0xFF0000, 8); // Red blood particles
+          playSound('hit');
+        }
+        
+        // Flash on every hit
         const oldColor = this.mesh.material.color.getHex();
         this.mesh.material.color.setHex(0xFFFFFF);
         
         // Enhanced splash particles using enemy's own color
-        const enemyColor = oldColor;
         const particleCount = isCrit ? 8 : 3;
         spawnParticles(this.mesh.position, enemyColor, particleCount);
         
@@ -5695,6 +5801,21 @@ Total Gold Earned: ${saveData.totalGoldEarned}
           if (t >= 1) {
             scene.remove(obj);
             return false; // Mark for removal
+          }
+        }
+        // Player bubble animation
+        if (obj.userData.isPlayerBubble) {
+          obj.position.y += obj.userData.riseSpeed;
+          obj.position.x += obj.userData.driftX;
+          obj.position.z += obj.userData.driftZ;
+          obj.userData.lifetime -= dt;
+          obj.material.opacity = Math.max(0, obj.userData.lifetime / 1.5) * 0.6;
+          obj.scale.multiplyScalar(1.01); // Slowly expand
+          if (obj.userData.lifetime <= 0 || obj.position.y > 5) {
+            scene.remove(obj);
+            obj.geometry.dispose();
+            obj.material.dispose();
+            return false;
           }
         }
       });
