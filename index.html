@@ -43,13 +43,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="screen-orientation" content="portrait">
   <title>Water Drop Survivor</title>
+  <!-- Soft, cute, rounded font from Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap" rel="stylesheet">
   <style>
     body {
       margin: 0;
       padding: 0;
       overflow: hidden;
       background-color: #000000; /* Black background to avoid white space issues */
-      font-family: 'M PLUS Rounded 1c', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: 'M PLUS Rounded 1c', 'Comic Sans MS', 'Arial Rounded MT Bold', cursive, sans-serif;
       touch-action: none;
       user-select: none;
       -webkit-user-select: none;
@@ -154,6 +158,7 @@
       height: 100%;
       pointer-events: auto;
       touch-action: none;
+      z-index: 50; /* Ensure joystick is always on top and never blocked */
     }
     
     .joystick-outer {
@@ -204,8 +209,8 @@
       
       opacity: 0;
       transition: opacity 0.5s ease-in-out;
-      z-index: 30;
-      pointer-events: none; /* Ensure input not blocked */
+      z-index: 30; /* Below joystick zone (z-index: 50) to never block input */
+      pointer-events: none; /* Critical: Ensure tutorial text never blocks joystick input */
       max-width: 85%;
     }
 
@@ -221,8 +226,8 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      pointer-events: auto;
-      z-index: 20;
+      pointer-events: none; /* Don't block joystick - only modal-content captures events */
+      z-index: 20; /* Below joystick zone (z-index: 50) to never block input */
       overflow-y: auto; /* Allow scrolling if needed */
       padding: 20px 0; /* Padding for scroll */
     }
@@ -238,6 +243,7 @@
       overflow-y: auto; /* Allow internal scrolling */
       text-align: center;
       box-shadow: 0 15px 30px rgba(0,0,0,0.7), 0 0 40px rgba(93,173,226,0.5), inset 0 0 30px rgba(93,173,226,0.1);
+      pointer-events: auto; /* Modal content captures clicks, but modal background doesn't block joystick */
     }
 
     h2 {
