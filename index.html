@@ -1135,6 +1135,15 @@
     let windmillQuest = { active: false, timer: 0, duration: 30, windmill: null, hasCompleted: false };
     let runStartGold = 0;  // Track gold at start of run for end-of-run calculation
 
+    // Shared geometries for particle pooling (performance optimization)
+    const sharedGeometries = {
+      particleBox: new THREE.BoxGeometry(0.2, 0.2, 0.2),
+      particleSphere: new THREE.SphereGeometry(0.15, 6, 6),
+      particleTetra: new THREE.TetrahedronGeometry(0.15),
+      explosionPiece: new THREE.BoxGeometry(0.3, 0.3, 0.3),
+      explosionTetra: new THREE.TetrahedronGeometry(0.25)
+    };
+
     // Input - Twin-Stick Controls
     const joystickLeft = { x: 0, y: 0, active: false, id: null, originX: 0, originY: 0 }; // Movement
     const joystickRight = { x: 0, y: 0, active: false, id: null, originX: 0, originY: 0 }; // Aiming
@@ -1345,9 +1354,7 @@
         const wobble = Math.sin(this.wobblePhase) * (0.1 + speedMag * 0.3); // More dramatic wobble
         
         // Gravity bubble effect when turning - detect rotation change
-        const prevRotation = this.mesh.rotation.y;
-        const rotationDelta = Math.abs(prevRotation - this.mesh.rotation.y);
-        this.prevRotation = this.mesh.rotation.y;
+        const rotationDelta = Math.abs(this.prevRotation - this.mesh.rotation.y);
         
         // Squish effect: stretch in direction of movement (MORE DRAMATIC)
         const stretchX = 1 + Math.abs(this.velocity.x) * 3.0; // Further increased for more fluid
@@ -1365,12 +1372,15 @@
           stretchZ * (1 + wobble * 0.6 - lateralShift)  // Opposite shift on Z axis
         );
         
+        // Update prevRotation for next frame
+        this.prevRotation = this.mesh.rotation.y;
+        
         // Animate water shine
         this.shine.rotation.y += 0.05;
         this.shine.rotation.x += 0.03;
         
-        // Pulse highlight with more variation
-        this.highlight.material.opacity = 0.6 + Math.sin(gameTime * 3) * 0.2 + Math.random() * 0.1;
+        // Pulse highlight with deterministic variation based on gameTime
+        this.highlight.material.opacity = 0.6 + Math.sin(gameTime * 3) * 0.2 + Math.sin(gameTime * 7) * 0.1;
         
         // Update aura circle
         if (weapons.aura.active) {
@@ -1826,11 +1836,11 @@
         };
         updateRing();
         
-        // Explode into pieces with more variety
+        // Explode into pieces with more variety using shared geometries
         for(let i = 0; i < 12; i++) {
           const pieceGeo = i % 3 === 0 ? 
-            new THREE.TetrahedronGeometry(0.25) : 
-            new THREE.BoxGeometry(0.3, 0.3, 0.3);
+            sharedGeometries.explosionTetra : 
+            sharedGeometries.explosionPiece;
           const piece = new THREE.Mesh(
             pieceGeo,
             new THREE.MeshPhysicalMaterial({ 
@@ -1865,7 +1875,7 @@
             
             if (life <= 0 || piece.position.y < 0) {
               scene.remove(piece);
-              piece.geometry.dispose();
+              // Don't dispose shared geometry, only material
               piece.material.dispose();
             } else {
               requestAnimationFrame(updatePiece);
@@ -2124,13 +2134,13 @@
 
     class Particle {
       constructor(pos, color) {
-        // More varied particle shapes for better visuals
-        const shapes = [
-          new THREE.BoxGeometry(0.2, 0.2, 0.2),
-          new THREE.SphereGeometry(0.15, 6, 6),
-          new THREE.TetrahedronGeometry(0.15)
+        // Use shared geometries for better performance
+        const geoOptions = [
+          sharedGeometries.particleBox,
+          sharedGeometries.particleSphere,
+          sharedGeometries.particleTetra
         ];
-        const geo = shapes[Math.floor(Math.random() * shapes.length)];
+        const geo = geoOptions[Math.floor(Math.random() * geoOptions.length)];
         const mat = new THREE.MeshPhysicalMaterial({ 
           color: color,
           transparent: true,
@@ -2187,7 +2197,7 @@
         
         if (this.life <= 0) {
           scene.remove(this.mesh);
-          this.mesh.geometry.dispose();
+          // Don't dispose shared geometry, only material
           this.mesh.material.dispose();
           return false;
         }
@@ -4632,7 +4642,8 @@ Total Gold Earned: ${saveData.totalGoldEarned}
           if (isPortrait) {
             // Portrait mode: ONLY movement joystick (anywhere in playable area)
             // Auto-aim will be enabled in portrait mode
-            isMovementZone = !joystickLeft.active;
+            // Validate that touch is within playable bounds (bottom 40% of screen)
+            isMovementZone = touch.clientY >= screenHeight * 0.6 && !joystickLeft.active;
             isAimingZone = false; // No manual aiming in portrait
           } else {
             // Landscape mode: split horizontally - left half for movement, right half for aiming
