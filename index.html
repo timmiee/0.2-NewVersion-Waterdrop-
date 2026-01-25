@@ -1223,8 +1223,8 @@
             targetVel.x = joystickLeft.x * speed;
             targetVel.z = joystickLeft.y * speed;
           
-            this.mesh.position.x += targetVel.x;
-            this.mesh.position.z += targetVel.z;
+            this.mesh.position.x += targetVel.x * dt;
+            this.mesh.position.z += targetVel.z * dt;
 
             // Water droplet trail when moving
             this.trailTimer += dt;
@@ -1531,8 +1531,8 @@
             vz -= wobble * (dx/dist);
           }
           
-          this.mesh.position.x += vx;
-          this.mesh.position.z += vz;
+          this.mesh.position.x += vx * dt;
+          this.mesh.position.z += vz * dt;
           this.mesh.lookAt(targetPos);
         }
 
@@ -1852,12 +1852,12 @@
         this.vz = (dz / dist) * this.speed;
       }
 
-      update() {
+      update(dt = 1/60) {
         if (!this.active) return;
         
         // Handle enemy projectiles separately
         if (this.isEnemyProjectile) {
-          this.mesh.position.add(this.direction.clone().multiplyScalar(this.speed));
+          this.mesh.position.add(this.direction.clone().multiplyScalar(this.speed * dt * 60));
           this.lifetime--;
           
           if (this.lifetime <= 0) {
@@ -1878,8 +1878,8 @@
         }
         
         // Player projectiles
-        this.mesh.position.x += this.vx;
-        this.mesh.position.z += this.vz;
+        this.mesh.position.x += this.vx * dt * 60;
+        this.mesh.position.z += this.vz * dt * 60;
         this.life--;
 
         if (this.life <= 0) {
@@ -2003,11 +2003,11 @@
         this.active = true;
       }
       
-      update() {
+      update(dt = 1/60) {
         if (!this.active) return false;
         
-        this.mesh.position.y -= this.speed;
-        this.speed += 0.05; // Gravity
+        this.mesh.position.y -= this.speed * dt * 60;
+        this.speed += 0.05 * dt * 60; // Gravity
         
         if (this.mesh.position.y <= 0) {
           this.explode();
@@ -2083,15 +2083,16 @@
         this.maxLife = 40;
       }
       
-      update() {
+      update(dt = 1/60) {
         this.life--;
-        this.mesh.position.add(this.vel);
-        this.vel.y -= 0.025; // Gravity with realistic feel
+        const dtFactor = dt * 60;
+        this.mesh.position.add(this.vel.clone().multiplyScalar(dtFactor));
+        this.vel.y -= 0.025 * dtFactor; // Gravity with realistic feel
         
         // Apply rotation
-        this.mesh.rotation.x += this.rotVel.x;
-        this.mesh.rotation.y += this.rotVel.y;
-        this.mesh.rotation.z += this.rotVel.z;
+        this.mesh.rotation.x += this.rotVel.x * dtFactor;
+        this.mesh.rotation.y += this.rotVel.y * dtFactor;
+        this.mesh.rotation.z += this.rotVel.z * dtFactor;
         
         // Bounce with energy loss
         if (this.mesh.position.y < 0.1) {
@@ -5027,11 +5028,11 @@ Total Gold Earned: ${saveData.totalGoldEarned}
       // Entities Update
       enemies.forEach(e => e.update(dt, player.mesh.position));
       // Projectiles update returns false if dead
-      projectiles = projectiles.filter(p => p.update() !== false);
-      meteors = meteors.filter(m => m.update() !== false);
+      projectiles = projectiles.filter(p => p.update(dt) !== false);
+      meteors = meteors.filter(m => m.update(dt) !== false);
       expGems.forEach(g => g.update(player.mesh.position));
       goldCoins.forEach(g => g.update(player.mesh.position));
-      particles = particles.filter(p => p.update() !== false);
+      particles = particles.filter(p => p.update(dt) !== false);
       
       // Windmill Rotation and Light Animation
       scene.children.forEach(c => {
