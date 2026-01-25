@@ -161,19 +161,30 @@
     /* Tutorial Text */
     #tutorial-text {
       position: absolute;
-      top: 50%;
+      top: 15%;
       left: 50%;
-      transform: translate(-50%, -50%);
-      color: white;
-      font-size: 24px;
+      transform: translate(-50%, 0);
+      
+      /* Match level up box styling */
+      background: linear-gradient(to bottom, #4a4a4a, #3a3a3a);
+      padding: 20px 30px;
+      border-radius: 20px;
+      border: 4px solid #5DADE2;
+      box-shadow: 0 15px 30px rgba(0,0,0,0.7), 0 0 40px rgba(93,173,226,0.5), inset 0 0 30px rgba(93,173,226,0.1);
+      
+      /* Cosy, fitting font styling */
+      color: #FFD700;
+      font-size: 20px;
       font-weight: bold;
+      font-family: 'M PLUS Rounded 1c', 'Comic Sans MS', 'Chalkboard', cursive, sans-serif;
       text-align: center;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.9), 0 0 20px rgba(93,173,226,0.8);
+      text-shadow: 0 0 8px rgba(255,215,0,0.6), 0 0 15px rgba(255,215,0,0.3), 1px 1px 2px rgba(0,0,0,0.8);
+      
       opacity: 0;
       transition: opacity 0.5s ease-in-out;
       z-index: 30;
-      pointer-events: none;
-      max-width: 80%;
+      pointer-events: none; /* Ensure input not blocked */
+      max-width: 85%;
     }
 
     /* Level Up Modal */
@@ -490,27 +501,27 @@
       height: 60px;
     }
 
-    /* Position buttons over text in image - adjust these based on actual image layout */
+    /* Position buttons over text in image - moved ~0.65cm (2.5%) lower to align with actual text */
     #start-game-btn {
-      top: 40%;
+      top: 42.5%;
       left: 50%;
       transform: translateX(-50%);
     }
 
     #progression-btn {
-      top: 50%;
+      top: 52.5%;
       left: 50%;
       transform: translateX(-50%);
     }
 
     #achievements-btn {
-      top: 60%;
+      top: 62.5%;
       left: 50%;
       transform: translateX(-50%);
     }
 
     #credits-btn {
-      top: 70%;
+      top: 72.5%;
       left: 50%;
       transform: translateX(-50%);
     }
@@ -535,9 +546,10 @@
     }
 
     .menu-btn:active {
-      transform: translateX(-50%) scale(0.95);
-      box-shadow: 0 0 50px rgba(255,255,255,1), 0 0 100px rgba(93,173,226,0.9);
+      transform: translateX(-50%) scale(0.95) translateY(3px);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.6), 0 0 50px rgba(255,255,255,1), 0 0 100px rgba(93,173,226,0.9);
       animation: lightning-flash 0.3s ease;
+      filter: brightness(1.3);
     }
 
     .menu-btn:active::before {
