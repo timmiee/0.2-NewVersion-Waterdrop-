@@ -48,7 +48,7 @@
       margin: 0;
       padding: 0;
       overflow: hidden;
-      background-color: #FFF0F5; /* Lavender Blush */
+      background-color: #000000; /* Black background to avoid white space issues */
       font-family: 'M PLUS Rounded 1c', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       touch-action: none;
       user-select: none;
@@ -62,6 +62,7 @@
       width: 100%;
       height: 100%;
       z-index: 1;
+      background-color: #000000; /* Ensure no white space */
     }
 
     #ui-layer {
@@ -952,6 +953,14 @@
     }
     
     function playSound(type) {
+      // TODO: Replace synthesized sounds with realistic audio samples
+      // For production: Use Web Audio API to load and play .mp3/.wav files
+      // Lightning: Thunder/lightning recordings with 2-3 variations
+      // Gun: Realistic firearm sounds
+      // Sword: Swoosh/slash sounds
+      // Hit: Punchy impact sounds
+      // Currently using synthesized placeholder sounds
+      
       if (audioCtx.state === 'suspended') audioCtx.resume();
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
@@ -961,7 +970,7 @@
       const now = audioCtx.currentTime;
       
       if (type === 'shoot') {
-        // Realistic gun sound - sharper and snappier
+        // Placeholder - Replace with realistic gun sound
         osc.type = 'square';
         osc.frequency.setValueAtTime(800, now);
         osc.frequency.exponentialRampToValueAtTime(80, now + 0.03);
@@ -970,7 +979,7 @@
         osc.start(now);
         osc.stop(now + 0.08);
       } else if (type === 'hit') {
-        // Punchy hit sound with more bass
+        // Placeholder - Replace with punchy impact sound
         osc.type = 'triangle';
         osc.frequency.setValueAtTime(200, now);
         osc.frequency.exponentialRampToValueAtTime(50, now + 0.08);
