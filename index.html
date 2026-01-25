@@ -533,7 +533,7 @@
       height: 60px;
     }
 
-    /* Position buttons over text in image - moved 5% more lower */
+    /* Position buttons over text in image - moved 5% lower */
     #start-game-btn {
       top: 51.75%;
       left: 50%;
@@ -1452,7 +1452,7 @@
           this.cigarTip.material.opacity = 0.7 + Math.sin(gameTime * 8) * 0.3;
           
           // Smoke particles from cigar
-          if (Math.random() < 0.15) {
+          if (Math.random() < SMOKE_SPAWN_PROBABILITY) {
             const smokeGeo = new THREE.SphereGeometry(0.05 + Math.random() * 0.03, 6, 6);
             const smokeMat = new THREE.MeshBasicMaterial({ 
               color: 0xCCCCCC, 
@@ -1519,8 +1519,8 @@
           this.auraCircle.position.x = this.mesh.position.x;
           this.auraCircle.position.z = this.mesh.position.z;
           
-          // Scale based on aura range with cap at 5 units
-          const cappedRange = Math.min(weapons.aura.range, 5);
+          // Scale based on aura range with cap
+          const cappedRange = Math.min(weapons.aura.range, MAX_AURA_RANGE);
           const scale = cappedRange * 2;
           this.auraCircle.geometry.dispose();
           this.auraCircle.geometry = new THREE.RingGeometry(scale - 0.5, scale, 32);
@@ -2688,6 +2688,19 @@
       LEGENDARY: { name: 'Legendary', color: '#FFD700', multiplier: 2.0 },
       MYTHIC: { name: 'Mythic', color: '#FF1744', multiplier: 3.0 }
     };
+    
+    // Game balance constants
+    const MAX_AURA_RANGE = 5;
+    const INITIAL_AURA_RANGE = 3;
+    const AURA_RANGE_INCREASE_MULTIPLIER = 0.1;
+    const AIM_ASSIST_FACTOR = 0.33;
+    const SMOKE_SPAWN_PROBABILITY = 0.15;
+    
+    // ID generation counter to prevent collisions
+    let idCounter = 0;
+    function generateUniqueId() {
+      return `${Date.now()}_${idCounter++}_${Math.random().toString(36).substr(2, 9)}`;
+    }
 
     let saveData = { ...defaultSaveData };
 
@@ -2719,7 +2732,7 @@
     // --- NOTIFICATION/INBOX SYSTEM ---
     function addNotification(type, title, message, reward = null) {
       const notification = {
-        id: Date.now() + Math.random(),
+        id: generateUniqueId(),
         type: type, // 'reward', 'achievement', 'info', 'warning'
         title: title,
         message: message,
@@ -2814,7 +2827,7 @@
       const type = types[Math.floor(Math.random() * types.length)];
       
       return {
-        id: Date.now() + Math.random(),
+        id: generateUniqueId(),
         name: `${RARITIES[rarity].name} ${type}`,
         type: type,
         rarity: rarity,
@@ -5015,8 +5028,7 @@
         
         if (weapons.aura.active && weapons.aura.level < 4) {
           const nextLevel = weapons.aura.level + 1;
-          const baseRange = 3; // Initial reduced range
-          const rangeIncrease = baseRange * 0.1; // 10% increase per level
+          const rangeIncrease = INITIAL_AURA_RANGE * AURA_RANGE_INCREASE_MULTIPLIER; // 10% increase per level
           choices.push({ 
             id: 'aura_upgrade', 
             title: `AURA Level ${nextLevel}`, 
@@ -5486,7 +5498,7 @@
       const gunCooldown = 1000 * (1 - cdReduction);
       weapons.gun = { active: true, level: 1, damage: 15, cooldown: gunCooldown, lastShot: 0, range: 12, barrels: 1 };
       weapons.sword = { active: false, level: 0, damage: 30, cooldown: 1500, lastShot: 0, range: 3.5 };
-      weapons.aura = { active: false, level: 0, damage: 5, cooldown: 500, lastShot: 0, range: 3 }; // Reduced from 4 to 3 (25% reduction)
+      weapons.aura = { active: false, level: 0, damage: 5, cooldown: 500, lastShot: 0, range: INITIAL_AURA_RANGE }; // Reduced by 25%
       weapons.meteor = { active: false, level: 0, damage: 60, cooldown: 2500, lastShot: 0, area: 5 };
       weapons.lightning = { active: false, level: 0, damage: 25, cooldown: 3000, lastShot: 0, targets: 4 };
       weapons.doubleBarrel = { active: false, level: 0, damage: 25, cooldown: 1200, lastShot: 0, range: 12, spread: 0.3 };
@@ -5940,7 +5952,7 @@ Total Gold Earned: ${saveData.totalGoldEarned}
         if (nearest) {
           let targetPosition = nearest.mesh.position;
           
-          // In landscape mode with right joystick active, apply 33% aim assist
+          // In landscape mode with right joystick active, apply aim assist
           if (!isPortrait && joystickRight.active) {
             // Manual aiming with right joystick
             const aimAngle = Math.atan2(joystickRight.x, joystickRight.y);
@@ -5951,12 +5963,11 @@ Total Gold Earned: ${saveData.totalGoldEarned}
             const manualZ = player.mesh.position.z + Math.cos(aimAngle) * aimDistance;
             const manualTarget = new THREE.Vector3(manualX, nearest.mesh.position.y, manualZ);
             
-            // Apply 33% aim assist: blend between manual aim and auto-aim
-            const assistFactor = 0.33;
+            // Apply aim assist: blend between manual aim and auto-aim
             targetPosition = new THREE.Vector3(
-              manualTarget.x * (1 - assistFactor) + nearest.mesh.position.x * assistFactor,
+              manualTarget.x * (1 - AIM_ASSIST_FACTOR) + nearest.mesh.position.x * AIM_ASSIST_FACTOR,
               nearest.mesh.position.y,
-              manualTarget.z * (1 - assistFactor) + nearest.mesh.position.z * assistFactor
+              manualTarget.z * (1 - AIM_ASSIST_FACTOR) + nearest.mesh.position.z * AIM_ASSIST_FACTOR
             );
           }
           // In portrait mode: full auto-aim (default behavior)
