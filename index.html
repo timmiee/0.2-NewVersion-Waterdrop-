@@ -3986,6 +3986,62 @@
     }
     
     function createLevelUpEffects() {
+      // WATER FOUNTAIN EXPLOSION from character's head - water drops everywhere!
+      for(let i=0; i<60; i++) {
+        const angle = (i / 60) * Math.PI * 2;
+        const speed = 0.2 + Math.random() * 0.4;
+        const height = 0.6 + Math.random() * 0.8;
+        
+        // Create water droplet particles
+        const dropGeo = new THREE.SphereGeometry(0.15 + Math.random() * 0.1, 8, 8);
+        const dropMat = new THREE.MeshPhysicalMaterial({ 
+          color: 0x4ECDC4, 
+          transparent: true, 
+          opacity: 0.9,
+          metalness: 0.8,
+          roughness: 0.1
+        });
+        const drop = new THREE.Mesh(dropGeo, dropMat);
+        drop.position.copy(player.mesh.position);
+        drop.position.y += 2; // From character's head
+        scene.add(drop);
+        
+        drop.userData = {
+          isLevelUpWater: true,
+          velocity: new THREE.Vector3(
+            Math.cos(angle) * speed,
+            height,
+            Math.sin(angle) * speed
+          ),
+          gravity: -0.02,
+          lifetime: 2.0
+        };
+        particles.push(drop);
+      }
+      
+      // Water splash ring around character
+      const splashRingGeo = new THREE.RingGeometry(0.5, 2, 32);
+      const splashRingMat = new THREE.MeshBasicMaterial({ 
+        color: 0x5DADE2, 
+        transparent: true, 
+        opacity: 0.8,
+        side: THREE.DoubleSide
+      });
+      const splashRing = new THREE.Mesh(splashRingGeo, splashRingMat);
+      splashRing.rotation.x = -Math.PI / 2;
+      splashRing.position.copy(player.mesh.position);
+      splashRing.position.y = 0.1;
+      scene.add(splashRing);
+      
+      splashRing.userData = {
+        isLevelUpSplash: true,
+        expansionSpeed: 0.15,
+        maxRadius: 8,
+        lifetime: 1.5,
+        time: 0
+      };
+      particles.push(splashRing);
+      
       // Fountain/explosion of "LEVEL UP" text particles from player's head
       const texts = ["L", "E", "V", "E", "L", " ", "U", "P", "!"];
       
@@ -4035,7 +4091,7 @@
         particles.push(lightning);
       }
       
-      // Zoom effect
+      // Zoom effect (camera zooms in on character)
       const originalD = 20;
       const zoomD = 15;
       const zoomDuration = 1000; // ms
@@ -4754,19 +4810,20 @@
     }
     
     function showStatChange(text) {
-      // Create floating text on left side of screen
+      // Create floating text on LOWER-LEFT side of screen (smaller, not blocking view)
       const div = document.createElement('div');
       div.style.position = 'fixed';
-      div.style.top = '50%';
-      div.style.left = '20px';
-      div.style.transform = 'translateX(-100%) translateY(-50%) scale(0)';
+      div.style.bottom = '120px'; // Lower position (above joystick zone)
+      div.style.left = '10px'; // More to the left
+      div.style.transform = 'translateX(-100%) scale(0)';
       div.style.color = '#FFD700';
-      div.style.fontSize = '20px';
+      div.style.fontSize = '14px'; // Smaller text
       div.style.fontWeight = 'bold';
-      div.style.textShadow = '0 0 10px rgba(255,215,0,0.8), 0 0 20px rgba(255,215,0,0.5), 2px 2px 4px #000';
-      div.style.padding = '10px 15px';
-      div.style.background = 'rgba(30,30,30,0.9)';
-      div.style.borderRadius = '10px';
+      div.style.fontFamily = "'M PLUS Rounded 1c', 'Comic Sans MS', cursive, sans-serif"; // Cosy font
+      div.style.textShadow = '0 0 8px rgba(255,215,0,0.8), 0 0 15px rgba(255,215,0,0.5), 1px 1px 3px #000';
+      div.style.padding = '6px 10px'; // Smaller padding
+      div.style.background = 'rgba(30,30,30,0.85)';
+      div.style.borderRadius = '8px';
       div.style.border = '2px solid #FFD700';
       div.style.zIndex = '2000';
       div.style.pointerEvents = 'none';
@@ -4774,9 +4831,9 @@
       
       document.body.appendChild(div);
       
-      // Animate: slide in from left, scale up, then scale down
+      // Animate: slide in from left, scale up, hold, then fade out
       let scale = 0;
-      const animDuration = 1500; // ms
+      const animDuration = 2000; // ms (longer display time)
       const startTime = Date.now();
       
       const animate = () => {
@@ -4788,11 +4845,18 @@
           return;
         }
         
-        // Scale up then down (sine wave)
-        scale = Math.sin(t * Math.PI);
+        // Scale up quickly, hold, then fade
+        if (t < 0.2) {
+          scale = t / 0.2; // Scale up in first 20%
+        } else if (t < 0.8) {
+          scale = 1; // Hold at full size
+        } else {
+          scale = 1 - ((t - 0.8) / 0.2); // Fade out in last 20%
+        }
+        
         // Slide in from left
-        const translateX = (1 - Math.min(t * 2, 1)) * -100;
-        div.style.transform = `translateX(${translateX}%) translateY(-50%) scale(${scale})`;
+        const translateX = (1 - Math.min(t * 3, 1)) * -100;
+        div.style.transform = `translateX(${translateX}%) scale(${scale})`;
         
         requestAnimationFrame(animate);
       };
@@ -5607,6 +5671,31 @@ Total Gold Earned: ${saveData.totalGoldEarned}
           obj.material.opacity = obj.userData.baseOpacity * (0.5 + Math.sin(obj.userData.phase) * 0.5);
           const scale = 0.8 + Math.sin(obj.userData.phase * 1.5) * 0.4;
           obj.scale.set(scale, 1, scale);
+        }
+        // Level up water droplets animation
+        if (obj.userData.isLevelUpWater) {
+          obj.userData.velocity.y += obj.userData.gravity; // Apply gravity
+          obj.position.x += obj.userData.velocity.x * dt * 20;
+          obj.position.y += obj.userData.velocity.y * dt * 20;
+          obj.position.z += obj.userData.velocity.z * dt * 20;
+          obj.userData.lifetime -= dt;
+          obj.material.opacity = Math.max(0, obj.userData.lifetime / 2.0);
+          if (obj.userData.lifetime <= 0) {
+            scene.remove(obj);
+            return false; // Mark for removal
+          }
+        }
+        // Level up splash ring animation
+        if (obj.userData.isLevelUpSplash) {
+          obj.userData.time += dt;
+          const t = obj.userData.time / obj.userData.lifetime;
+          const currentRadius = 0.5 + t * obj.userData.maxRadius;
+          obj.scale.set(currentRadius, 1, currentRadius);
+          obj.material.opacity = 0.8 * (1 - t);
+          if (t >= 1) {
+            scene.remove(obj);
+            return false; // Mark for removal
+          }
         }
       });
 
