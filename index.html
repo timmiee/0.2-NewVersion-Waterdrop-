@@ -5211,11 +5211,14 @@
       gameStartTime = Date.now();
       runStartGold = saveData.gold;
       
+      // Reset all weapons to initial state
       const gunCooldown = 1000 * (1 - cdReduction);
       weapons.gun = { active: true, level: 1, damage: 15, cooldown: gunCooldown, lastShot: 0, range: 12, barrels: 1 };
-      weapons.sword.active = false;
-      weapons.aura.active = false;
-      weapons.meteor.active = false;
+      weapons.sword = { active: false, level: 0, damage: 30, cooldown: 1500, lastShot: 0, range: 3.5 };
+      weapons.aura = { active: false, level: 0, damage: 5, cooldown: 500, lastShot: 0, range: 4 };
+      weapons.meteor = { active: false, level: 0, damage: 60, cooldown: 2500, lastShot: 0, area: 5 };
+      weapons.lightning = { active: false, level: 0, damage: 25, cooldown: 3000, lastShot: 0, targets: 4 };
+      weapons.doubleBarrel = { active: false, level: 0, damage: 25, cooldown: 1200, lastShot: 0, range: 12, spread: 0.3 };
       
       windmillQuest = { active: false, timer: 0, duration: 15, windmill: null, hasCompleted: false };
       document.getElementById('windmill-quest-ui').style.display = 'none';
@@ -5286,6 +5289,10 @@
       if (player) {
         player.mesh.position.set(0, 0.5, 0);
         player.mesh.material.color.setHex(COLORS.player);
+        // Hide aura circle visual
+        if (player.auraCircle) {
+          player.auraCircle.visible = false;
+        }
       }
 
       isGameOver = false;
