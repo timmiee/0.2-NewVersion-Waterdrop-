@@ -369,6 +369,10 @@
       justify-content: center;
       z-index: 10000;
       transition: opacity 0.5s ease-out;
+      background-image: url('321E5768-E77B-4471-8C32-5D7C1D715A4B.png');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
     }
 
     #loading-screen.fade-out {
@@ -377,13 +381,14 @@
     }
 
     .loading-splash-logo {
-      max-width: 80%;
-      max-height: 50%;
+      max-width: 60%;
+      max-height: 40%;
       width: auto;
       height: auto;
       object-fit: contain;
       margin-bottom: 40px;
       animation: pulse 2s infinite;
+      filter: drop-shadow(0 0 20px rgba(93,173,226,0.6));
     }
 
     .game-title {
@@ -401,20 +406,22 @@
     }
 
     .loading-bar-container {
-      width: 300px;
-      height: 20px;
-      background: #2a2a2a;
-      border-radius: 10px;
+      width: 80%;
+      max-width: 400px;
+      height: 24px;
+      background: rgba(42, 42, 42, 0.8);
+      border-radius: 12px;
       overflow: hidden;
-      border: 2px solid #5DADE2;
+      border: 3px solid rgba(93, 173, 226, 0.8);
+      backdrop-filter: blur(5px);
     }
 
     .loading-bar {
       height: 100%;
-      background: linear-gradient(to right, #5DADE2, #3498DB);
+      background: linear-gradient(to right, #52C1E8, #5DADE2, #6EC9F0);
       width: 0%;
       transition: width 0.3s ease;
-      box-shadow: 0 0 10px rgba(93,173,226,0.8);
+      box-shadow: 0 0 15px rgba(93,173,226,0.9), inset 0 0 10px rgba(255,255,255,0.3);
     }
 
     /* Main Menu */
@@ -817,8 +824,13 @@
     <button id="stats-btn" class="btn-small" style="position: absolute; top: 20px; right: 20px; pointer-events: auto; z-index: 100;">STATS</button>
 
     <div id="joystick-zone">
+      <!-- Left/Movement Joystick -->
       <div class="joystick-outer" id="joystick-outer">
         <div class="joystick-inner" id="joystick-inner"></div>
+      </div>
+      <!-- Right/Aiming Joystick (for landscape mode) -->
+      <div class="joystick-outer" id="joystick-outer-right">
+        <div class="joystick-inner" id="joystick-inner-right"></div>
       </div>
     </div>
   </div>
@@ -1305,13 +1317,16 @@
             this.trailTimer = 0;
           }
           
-          // Rotation/Aiming with RIGHT stick (independent of movement)
-          if (joystickRight.active) {
-            // Turn to face the direction of right stick
+          // Rotation/Aiming with RIGHT stick or auto-aim based on orientation
+          const aspect = window.innerWidth / window.innerHeight;
+          const isPortrait = aspect < 1;
+          
+          if (!isPortrait && joystickRight.active) {
+            // Landscape mode with manual aiming: Turn to face the direction of right stick
             const angle = Math.atan2(joystickRight.x, joystickRight.y);
             this.mesh.rotation.y = angle;
           } else if (joystickLeft.active) {
-            // If no right stick input, rotate to face movement direction
+            // Portrait mode OR landscape without right stick: rotate to face movement direction
             const angle = Math.atan2(targetVel.x, targetVel.z);
             this.mesh.rotation.y = angle;
           }
@@ -2972,20 +2987,21 @@
       const aspect = window.innerWidth / window.innerHeight;
       const d = 20;
       // In portrait mode (aspect < 1), ensure horizontal view isn't too narrow
-      // In landscape mode (aspect > 1), maintain the standard behavior
+      // In landscape mode (aspect > 1), zoom in closer for better feel
       let left, right, top, bottom;
       if (aspect < 1) {
-        // Portrait mode: expand horizontal view
+        // Portrait mode: expand horizontal view (PERFECT - keep as is)
         left = -d;
         right = d;
         top = d / aspect;
         bottom = -d / aspect;
       } else {
-        // Landscape mode: standard behavior
-        left = -d * aspect;
-        right = d * aspect;
-        top = d;
-        bottom = -d;
+        // Landscape mode: zoom in more (closer camera) by reducing d
+        const landscapeD = d * 0.65; // 35% closer zoom for landscape
+        left = -landscapeD * aspect;
+        right = landscapeD * aspect;
+        top = landscapeD;
+        bottom = -landscapeD;
       }
       camera = new THREE.OrthographicCamera(left, right, top, bottom, 1, 1000);
       camera.position.set(20, 20, 20); // Isometric angle
@@ -4373,6 +4389,8 @@ Total Gold Earned: ${saveData.totalGoldEarned}
       const zone = document.getElementById('joystick-zone');
       const joystickOuter = document.getElementById('joystick-outer');
       const joystickInner = document.getElementById('joystick-inner');
+      const joystickOuterRight = document.getElementById('joystick-outer-right');
+      const joystickInnerRight = document.getElementById('joystick-inner-right');
       const container = document.getElementById('game-container');
       
       let touchStartX = 0;
@@ -4399,20 +4417,16 @@ Total Gold Earned: ${saveData.totalGoldEarned}
           
           // Note: Top 60% of screen includes UI elements (filtered above at 0.6 threshold)
           // Playable area occupies the bottom 40% of screen height (from 60% to 100%)
-          // In portrait: split playable area vertically - upper half for aiming, lower half for movement
-          // In landscape: split horizontally - left half for movement, right half for aiming
           let isMovementZone = false;
           let isAimingZone = false;
           
           if (isPortrait) {
-            // Portrait mode: split vertically within playable area
-            const playableStart = screenHeight * 0.6;
-            const playableEnd = screenHeight;
-            const midY = (playableStart + playableEnd) / 2; // Midpoint of playable area (at 80% of screen height)
-            isMovementZone = touch.clientY >= midY && !joystickLeft.active;
-            isAimingZone = touch.clientY >= playableStart && touch.clientY < midY && !joystickRight.active;
+            // Portrait mode: ONLY movement joystick (anywhere in playable area)
+            // Auto-aim will be enabled in portrait mode
+            isMovementZone = !joystickLeft.active;
+            isAimingZone = false; // No manual aiming in portrait
           } else {
-            // Landscape mode: split horizontally
+            // Landscape mode: split horizontally - left half for movement, right half for aiming
             isMovementZone = touch.clientX < screenWidth / 2 && !joystickLeft.active;
             isAimingZone = touch.clientX >= screenWidth / 2 && !joystickRight.active;
           }
@@ -4429,14 +4443,17 @@ Total Gold Earned: ${saveData.totalGoldEarned}
             joystickOuter.style.left = (touch.clientX - 60) + 'px';
             joystickOuter.style.top = (touch.clientY - 60) + 'px';
           }
-          // Aiming joystick
+          // Aiming joystick (landscape only)
           else if (isAimingZone) {
             joystickRight.id = touch.identifier;
             joystickRight.active = true;
             joystickRight.originX = touch.clientX;
             joystickRight.originY = touch.clientY;
             
-            // Could add a second visual joystick here if desired
+            // Show second visual joystick for aiming
+            joystickOuterRight.style.display = 'block';
+            joystickOuterRight.style.left = (touch.clientX - 60) + 'px';
+            joystickOuterRight.style.top = (touch.clientY - 60) + 'px';
           }
         }
         
@@ -4483,6 +4500,11 @@ Total Gold Earned: ${saveData.totalGoldEarned}
             if (dist > 0) {
               joystickRight.x = (dx / dist) * (clampedDist / maxDist);
               joystickRight.y = (dy / dist) * (clampedDist / maxDist);
+              
+              // Update right joystick knob position
+              joystickInnerRight.style.left = '50%';
+              joystickInnerRight.style.top = '50%';
+              joystickInnerRight.style.transform = `translate(calc(-50% + ${joystickRight.x * 35}px), calc(-50% + ${joystickRight.y * 35}px))`;
             }
           }
         }
@@ -4507,6 +4529,10 @@ Total Gold Earned: ${saveData.totalGoldEarned}
             joystickRight.active = false;
             joystickRight.x = 0;
             joystickRight.y = 0;
+            
+            // Hide right joystick
+            joystickOuterRight.style.display = 'none';
+            joystickInnerRight.style.transform = 'translate(-50%, -50%)';
           }
         }
       };
@@ -4562,20 +4588,21 @@ Total Gold Earned: ${saveData.totalGoldEarned}
     function onWindowResize() {
       const aspect = window.innerWidth / window.innerHeight;
       const d = 20;
-      // In portrait mode (aspect < 1), ensure horizontal view isn't too narrow
-      // In landscape mode (aspect > 1), maintain the standard behavior
+      // In portrait mode (aspect < 1), ensure horizontal view isn't too narrow (PERFECT)
+      // In landscape mode (aspect > 1), zoom in closer for better feel
       if (aspect < 1) {
-        // Portrait mode: expand horizontal view
+        // Portrait mode: expand horizontal view (PERFECT - keep as is)
         camera.left = -d;
         camera.right = d;
         camera.top = d / aspect;
         camera.bottom = -d / aspect;
       } else {
-        // Landscape mode: standard behavior
-        camera.left = -d * aspect;
-        camera.right = d * aspect;
-        camera.top = d;
-        camera.bottom = -d;
+        // Landscape mode: zoom in more (closer camera) by reducing d
+        const landscapeD = d * 0.65; // 35% closer zoom for landscape
+        camera.left = -landscapeD * aspect;
+        camera.right = landscapeD * aspect;
+        camera.top = landscapeD;
+        camera.bottom = -landscapeD;
       }
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
@@ -4643,6 +4670,10 @@ Total Gold Earned: ${saveData.totalGoldEarned}
 
       // --- WEAPONS ---
       
+      // Determine orientation for control behavior
+      const aspect = window.innerWidth / window.innerHeight;
+      const isPortrait = aspect < 1;
+      
       // 1. GUN
       if (weapons.gun.active && time - weapons.gun.lastShot > weapons.gun.cooldown) {
         // Find nearest enemy
@@ -4659,10 +4690,33 @@ Total Gold Earned: ${saveData.totalGoldEarned}
         }
 
         if (nearest) {
+          let targetPosition = nearest.mesh.position;
+          
+          // In landscape mode with right joystick active, apply 25% aim assist
+          if (!isPortrait && joystickRight.active) {
+            // Manual aiming with right joystick
+            const aimAngle = Math.atan2(joystickRight.x, joystickRight.y);
+            const aimDistance = minDst; // Use distance to nearest enemy
+            
+            // Calculate manual aim position
+            const manualX = player.mesh.position.x + Math.sin(aimAngle) * aimDistance;
+            const manualZ = player.mesh.position.z + Math.cos(aimAngle) * aimDistance;
+            const manualTarget = new THREE.Vector3(manualX, nearest.mesh.position.y, manualZ);
+            
+            // Apply 25% aim assist: blend between manual aim and auto-aim
+            const assistFactor = 0.25;
+            targetPosition = new THREE.Vector3(
+              manualTarget.x * (1 - assistFactor) + nearest.mesh.position.x * assistFactor,
+              nearest.mesh.position.y,
+              manualTarget.z * (1 - assistFactor) + nearest.mesh.position.z * assistFactor
+            );
+          }
+          // In portrait mode: full auto-aim (default behavior)
+          
           // Fire based on barrels
           for(let i=0; i<weapons.gun.barrels; i++) {
             setTimeout(() => {
-              projectiles.push(new Projectile(player.mesh.position.x, player.mesh.position.z, nearest.mesh.position));
+              projectiles.push(new Projectile(player.mesh.position.x, player.mesh.position.z, targetPosition));
               
               // Muzzle flash light effect
               const flashLight = new THREE.PointLight(0xFFFF00, 2, 10);
@@ -4678,7 +4732,7 @@ Total Gold Earned: ${saveData.totalGoldEarned}
               // Lightning effect from gun
               const lightning = new LightningBolt(
                 player.mesh.position.clone(),
-                nearest.mesh.position.clone()
+                targetPosition.clone()
               );
               particles.push(lightning);
               
