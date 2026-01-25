@@ -1520,15 +1520,33 @@
           }
           this.mesh.lookAt(targetPos);
         } else if (dist > 0.5) {
-          // Move towards target
+          // Move towards target with different patterns per enemy type
           let vx = (dx / dist) * this.speed;
           let vz = (dz / dist) * this.speed;
           
-          // Triangle moves erratically
-          if (this.type === 1) {
+          // Type 0 (Tank) - Direct chase, slow but steady
+          if (this.type === 0) {
+            // No special movement pattern
+          }
+          // Type 1 (Fast) - Zigzag erratic movement
+          else if (this.type === 1) {
             const wobble = Math.sin(gameTime * 10 + this.wobbleOffset) * 0.05;
             vx += wobble * (dz/dist); // Perpendicular
             vz -= wobble * (dx/dist);
+          }
+          // Type 2 (Balanced) - Circle strafe pattern
+          else if (this.type === 2) {
+            const circleSpeed = 0.02;
+            const angle = Math.atan2(dz, dx);
+            const circleAngle = angle + Math.sin(gameTime * 2 + this.wobbleOffset) * 0.5;
+            vx = Math.cos(circleAngle) * this.speed;
+            vz = Math.sin(circleAngle) * this.speed;
+          }
+          // Type 3 (Slowing) - Weaving approach
+          else if (this.type === 3) {
+            const weave = Math.sin(gameTime * 4 + this.wobbleOffset) * 0.03;
+            vx += weave * (dz/dist);
+            vz -= weave * (dx/dist);
           }
           
           this.mesh.position.x += vx * dt;
@@ -3079,8 +3097,8 @@
         top = d / aspect;
         bottom = -d / aspect;
       } else {
-        // Landscape mode: zoom in more (closer camera) by reducing d
-        const landscapeD = d * 0.65; // 35% closer zoom for landscape
+        // Landscape mode: zoom in MORE (closer camera) by reducing d
+        const landscapeD = d * 0.5; // 50% closer zoom for landscape (increased from 0.65)
         left = -landscapeD * aspect;
         right = landscapeD * aspect;
         top = landscapeD;
@@ -4569,6 +4587,11 @@ Total Gold Earned: ${saveData.totalGoldEarned}
             joystickLeft.originX = touch.clientX;
             joystickLeft.originY = touch.clientY;
             
+            // Store for dash detection
+            touchStartX = touch.clientX;
+            touchStartY = touch.clientY;
+            touchStartTime = Date.now();
+            
             // Show dynamic joystick at touch position
             joystickOuter.style.display = 'block';
             joystickOuter.style.left = (touch.clientX - 60) + 'px';
@@ -4647,6 +4670,17 @@ Total Gold Earned: ${saveData.totalGoldEarned}
           const touch = e.changedTouches[i];
           
           if (touch.identifier === joystickLeft.id) {
+            // Check for dash swipe - fast swipe in any 360° direction
+            const dx = touch.clientX - touchStartX;
+            const dy = touch.clientY - touchStartY;
+            const dt = Date.now() - touchStartTime;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            
+            // Quick swipe for dash (at least 60 pixels, less than 250ms for responsive feel)
+            if (dt < 250 && dist > 60) {
+              player.dash(dx/dist, dy/dist);
+            }
+            
             joystickLeft.active = false;
             joystickLeft.x = 0;
             joystickLeft.y = 0;
@@ -4680,40 +4714,6 @@ Total Gold Earned: ${saveData.totalGoldEarned}
       // Stats Button
       document.getElementById('stats-btn').addEventListener('click', toggleStats);
       document.getElementById('close-stats-btn').addEventListener('click', toggleStats);
-      
-      // Swipe Detection (Global - for dash)
-      container.addEventListener('touchstart', (e) => {
-        const t = e.changedTouches[0];
-        touchStartX = t.clientX;
-        touchStartY = t.clientY;
-        touchStartTime = Date.now();
-        swipeDetected = false;
-      }, { passive: false });
-
-      container.addEventListener('touchmove', (e) => {
-        const t = e.changedTouches[0];
-        const dx = t.clientX - touchStartX;
-        const dy = t.clientY - touchStartY;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        
-        // If moved enough, mark as swipe
-        if (dist > 30) {
-          swipeDetected = true;
-        }
-      }, { passive: false });
-
-      container.addEventListener('touchend', (e) => {
-        const t = e.changedTouches[0];
-        const dx = t.clientX - touchStartX;
-        const dy = t.clientY - touchStartY;
-        const dt = Date.now() - touchStartTime;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        
-        // Quick swipe for dash (at least 40 pixels, less than 400ms)
-        if (dt < 400 && dist > 40 && swipeDetected) {
-           player.dash(dx/dist, dy/dist);
-        }
-      }, { passive: false });
     }
 
     function onWindowResize() {
@@ -4728,8 +4728,8 @@ Total Gold Earned: ${saveData.totalGoldEarned}
         camera.top = d / aspect;
         camera.bottom = -d / aspect;
       } else {
-        // Landscape mode: zoom in more (closer camera) by reducing d
-        const landscapeD = d * 0.65; // 35% closer zoom for landscape
+        // Landscape mode: zoom in MORE (closer camera) by reducing d
+        const landscapeD = d * 0.5; // 50% closer zoom for landscape (increased from 0.65)
         camera.left = -landscapeD * aspect;
         camera.right = landscapeD * aspect;
         camera.top = landscapeD;
