@@ -366,7 +366,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-end;
       z-index: 10000;
       transition: opacity 0.5s ease-out;
       background-image: url('321E5768-E77B-4471-8C32-5D7C1D715A4B.png');
@@ -381,14 +381,7 @@
     }
 
     .loading-splash-logo {
-      max-width: 60%;
-      max-height: 40%;
-      width: auto;
-      height: auto;
-      object-fit: contain;
-      margin-bottom: 40px;
-      animation: pulse 2s infinite;
-      filter: drop-shadow(0 0 20px rgba(93,173,226,0.6));
+      display: none; /* Remove small centered image */
     }
 
     .game-title {
@@ -414,6 +407,7 @@
       overflow: hidden;
       border: 3px solid rgba(93, 173, 226, 0.8);
       backdrop-filter: blur(5px);
+      margin-bottom: 40px;
     }
 
     .loading-bar {
@@ -431,55 +425,75 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: linear-gradient(to bottom, #1a1a2e, #16213e);
+      background-image: url('654811F9-1760-4A74-B977-73ECB1A92913.png');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
       display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 50; /* Lower than UI layer buttons */
+      z-index: 50;
     }
 
     #main-menu::before {
-      content: '';
+      display: none; /* Remove duplicate background */
+    }
+
+    .menu-title {
+      display: none; /* Text is already in the image */
+    }
+
+    .menu-buttons {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background-image: url('654811F9-1760-4A74-B977-73ECB1A92913.png');
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
-      opacity: 0.6;
-      z-index: -1;
-    }
-
-    .menu-title {
-      font-size: 42px;
-      color: #5DADE2;
-      text-shadow: 0 0 20px rgba(93,173,226,0.8), 0 0 40px rgba(93,173,226,0.5);
-      margin-bottom: 40px;
-    }
-
-    .menu-buttons {
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      align-items: center;
+      justify-content: center;
     }
 
     .menu-btn {
-      background: linear-gradient(to bottom, #5DADE2, #3498DB);
-      color: white;
+      background: transparent;
+      color: transparent;
       border: none;
-      padding: 20px 60px;
-      font-size: 24px;
-      border-radius: 50px;
+      padding: 0;
+      font-size: 0;
+      border-radius: 0;
       font-weight: bold;
       cursor: pointer;
-      box-shadow: 0 6px 0 #2874A6, 0 0 0 rgba(93,173,226,0);
-      transition: all 0.15s ease;
-      position: relative;
-      overflow: hidden;
+      box-shadow: none;
+      transition: all 0.3s ease;
+      position: absolute;
+      overflow: visible;
+      /* Invisible clickable hotspots positioned over image text */
+      width: 300px;
+      height: 60px;
+    }
+
+    /* Position buttons over text in image - adjust these based on actual image layout */
+    #start-game-btn {
+      top: 40%;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    #progression-btn {
+      top: 50%;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    #achievements-btn {
+      top: 60%;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    #credits-btn {
+      top: 70%;
+      left: 50%;
+      transform: translateX(-50%);
     }
 
     .menu-btn::before {
@@ -490,20 +504,20 @@
       width: 0;
       height: 0;
       border-radius: 50%;
-      background: rgba(255, 255, 255, 0.5);
+      background: transparent;
       transform: translate(-50%, -50%);
       transition: width 0.6s, height 0.6s;
     }
 
     .menu-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 0 #2874A6, 0 0 20px rgba(93,173,226,0.6), 0 0 40px rgba(93,173,226,0.3);
-      filter: brightness(1.1);
+      transform: translateX(-50%);
+      box-shadow: 0 0 30px rgba(255,255,255,0.8), 0 0 60px rgba(93,173,226,0.6);
+      filter: drop-shadow(0 0 20px rgba(255,255,255,0.9));
     }
 
     .menu-btn:active {
-      transform: translateY(6px) scale(0.98);
-      box-shadow: 0 0 30px rgba(255,255,255,0.8), 0 0 50px rgba(93,173,226,0.8);
+      transform: translateX(-50%) scale(0.95);
+      box-shadow: 0 0 50px rgba(255,255,255,1), 0 0 100px rgba(93,173,226,0.9);
       animation: lightning-flash 0.3s ease;
     }
 
@@ -903,120 +917,17 @@
 
     // --- AUDIO SYSTEM (Oscillators) ---
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    // Music removed - keeping only sound effects
     let musicOscillators = [];
     let musicGain = null;
     let currentMusicLevel = 0;
     
     function initMusic() {
-      if (!musicGain) {
-        musicGain = audioCtx.createGain();
-        musicGain.gain.value = 0.05;
-        musicGain.connect(audioCtx.destination);
-      }
+      // Music disabled - no background music
     }
     
     function updateBackgroundMusic() {
-      initMusic();
-      const targetLevel = Math.min(playerStats.lvl, 10);
-      
-      if (targetLevel > currentMusicLevel) {
-        currentMusicLevel = targetLevel;
-        
-        // Add new layer with happier, more upbeat sounds
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        
-        osc.connect(gain);
-        gain.connect(musicGain);
-        
-        // Major key frequencies - happier, more dopamine-inducing (C Major scale)
-        const baseFreq = 261.63; // C4 (Middle C)
-        const majorScaleFreqs = [
-          baseFreq,           // C - Level 1
-          baseFreq * 1.125,   // D - Level 2
-          baseFreq * 1.26,    // E - Level 3
-          baseFreq * 1.33,    // F - Level 4
-          baseFreq * 1.5,     // G - Level 5
-          baseFreq * 1.68,    // A - Level 6
-          baseFreq * 1.89,    // B - Level 7
-          baseFreq * 2,       // C - Level 8 (octave up)
-          baseFreq * 2.25,    // D - Level 9
-          baseFreq * 2.52     // E - Level 10
-        ];
-        
-        // Use sine wave for happier, cleaner sound
-        osc.type = 'sine';
-        osc.frequency.value = majorScaleFreqs[currentMusicLevel - 1];
-        
-        // Add faster vibrato for more energetic feel
-        const lfo = audioCtx.createOscillator();
-        const lfoGain = audioCtx.createGain();
-        lfo.frequency.value = 6 + currentMusicLevel * 0.5; // Faster vibrato
-        lfoGain.gain.value = 8 + currentMusicLevel * 0.8; // More pronounced
-        lfo.connect(lfoGain);
-        lfoGain.connect(osc.frequency);
-        lfo.start();
-        
-        gain.gain.value = 0;
-        gain.gain.linearRampToValueAtTime(0.25 + currentMusicLevel * 0.02, audioCtx.currentTime + 0.8);
-        
-        osc.start();
-        musicOscillators.push({ osc, gain, lfo });
-        
-        // Add harmony layer (third above) for richer sound
-        const harmony = audioCtx.createOscillator();
-        const harmonyGain = audioCtx.createGain();
-        harmony.connect(harmonyGain);
-        harmonyGain.connect(musicGain);
-        harmony.type = 'sine';
-        harmony.frequency.value = majorScaleFreqs[currentMusicLevel - 1] * 1.26; // Major third
-        harmonyGain.gain.value = 0;
-        harmonyGain.gain.linearRampToValueAtTime(0.15, audioCtx.currentTime + 0.8);
-        harmony.start();
-        musicOscillators.push({ osc: harmony, gain: harmonyGain, lfo: null });
-        
-        // Add uplifting high melody for levels 3+
-        if (currentMusicLevel >= 3) {
-          const melody = audioCtx.createOscillator();
-          const melodyGain = audioCtx.createGain();
-          melody.connect(melodyGain);
-          melodyGain.connect(musicGain);
-          melody.type = 'triangle';
-          melody.frequency.value = majorScaleFreqs[currentMusicLevel - 1] * 2; // Octave up
-          melodyGain.gain.value = 0;
-          melodyGain.gain.linearRampToValueAtTime(0.12, audioCtx.currentTime + 0.8);
-          melody.start();
-          musicOscillators.push({ osc: melody, gain: melodyGain, lfo: null });
-        }
-        
-        // Add energetic rhythm layer for levels 5+
-        if (currentMusicLevel >= 5) {
-          const rhythm = audioCtx.createOscillator();
-          const rhythmGain = audioCtx.createGain();
-          rhythm.connect(rhythmGain);
-          rhythmGain.connect(musicGain);
-          rhythm.type = 'square';
-          rhythm.frequency.value = majorScaleFreqs[currentMusicLevel - 1] * 0.5; // Bass line
-          rhythmGain.gain.value = 0;
-          rhythmGain.gain.linearRampToValueAtTime(0.18, audioCtx.currentTime + 0.8);
-          rhythm.start();
-          musicOscillators.push({ osc: rhythm, gain: rhythmGain, lfo: null });
-        }
-        
-        // Add high frequency sparkle for levels 7+
-        if (currentMusicLevel >= 7) {
-          const sparkle = audioCtx.createOscillator();
-          const sparkleGain = audioCtx.createGain();
-          sparkle.connect(sparkleGain);
-          sparkleGain.connect(musicGain);
-          sparkle.type = 'sine';
-          sparkle.frequency.value = majorScaleFreqs[currentMusicLevel - 1] * 4; // High sparkle
-          sparkleGain.gain.value = 0;
-          sparkleGain.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.8);
-          sparkle.start();
-          musicOscillators.push({ osc: sparkle, gain: sparkleGain, lfo: null });
-        }
-      }
+      // Music disabled - no background music
     }
     
     function playSound(type) {
@@ -1071,8 +982,7 @@
         osc.start(now);
         osc.stop(now + 0.6);
         
-        // Update background music
-        updateBackgroundMusic();
+        // Music disabled
       } else if (type === 'splash') {
         // Water splash sound
         osc.type = 'sine';
@@ -3217,8 +3127,7 @@
       createWorld();
       player = new Player();
       
-      // Initialize background music
-      updateBackgroundMusic();
+      // Music disabled
       
       // Listeners
       setupInputs();
@@ -4472,7 +4381,7 @@
       });
       musicOscillators = [];
       currentMusicLevel = 0;
-      updateBackgroundMusic();
+      // Music disabled
 
       // Clear Entities
       enemies.forEach(e => {
