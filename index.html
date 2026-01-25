@@ -833,6 +833,7 @@
       text-align: center;
       line-height: 1.8;
       max-width: 600px;
+      margin-bottom: 100px; /* Space for back button visibility */
     }
 
   </style>
@@ -5788,7 +5789,7 @@ Total Gold Earned: ${saveData.totalGoldEarned}
         if (nearest) {
           let targetPosition = nearest.mesh.position;
           
-          // In landscape mode with right joystick active, apply 25% aim assist
+          // In landscape mode with right joystick active, apply 33% aim assist
           if (!isPortrait && joystickRight.active) {
             // Manual aiming with right joystick
             const aimAngle = Math.atan2(joystickRight.x, joystickRight.y);
@@ -5799,8 +5800,8 @@ Total Gold Earned: ${saveData.totalGoldEarned}
             const manualZ = player.mesh.position.z + Math.cos(aimAngle) * aimDistance;
             const manualTarget = new THREE.Vector3(manualX, nearest.mesh.position.y, manualZ);
             
-            // Apply 25% aim assist: blend between manual aim and auto-aim
-            const assistFactor = 0.25;
+            // Apply 33% aim assist: blend between manual aim and auto-aim
+            const assistFactor = 0.33;
             targetPosition = new THREE.Vector3(
               manualTarget.x * (1 - assistFactor) + nearest.mesh.position.x * assistFactor,
               nearest.mesh.position.y,
