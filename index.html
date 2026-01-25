@@ -369,6 +369,10 @@
       justify-content: center;
       z-index: 10000;
       transition: opacity 0.5s ease-out;
+      background-image: url('321E5768-E77B-4471-8C32-5D7C1D715A4B.png');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
     }
 
     #loading-screen.fade-out {
@@ -377,13 +381,14 @@
     }
 
     .loading-splash-logo {
-      max-width: 80%;
-      max-height: 50%;
+      max-width: 60%;
+      max-height: 40%;
       width: auto;
       height: auto;
       object-fit: contain;
       margin-bottom: 40px;
       animation: pulse 2s infinite;
+      filter: drop-shadow(0 0 20px rgba(93,173,226,0.6));
     }
 
     .game-title {
@@ -401,20 +406,22 @@
     }
 
     .loading-bar-container {
-      width: 300px;
-      height: 20px;
-      background: #2a2a2a;
-      border-radius: 10px;
+      width: 80%;
+      max-width: 400px;
+      height: 24px;
+      background: rgba(42, 42, 42, 0.8);
+      border-radius: 12px;
       overflow: hidden;
-      border: 2px solid #5DADE2;
+      border: 3px solid rgba(93, 173, 226, 0.8);
+      backdrop-filter: blur(5px);
     }
 
     .loading-bar {
       height: 100%;
-      background: linear-gradient(to right, #5DADE2, #3498DB);
+      background: linear-gradient(to right, #52C1E8, #5DADE2, #6EC9F0);
       width: 0%;
       transition: width 0.3s ease;
-      box-shadow: 0 0 10px rgba(93,173,226,0.8);
+      box-shadow: 0 0 15px rgba(93,173,226,0.9), inset 0 0 10px rgba(255,255,255,0.3);
     }
 
     /* Main Menu */
@@ -817,8 +824,13 @@
     <button id="stats-btn" class="btn-small" style="position: absolute; top: 20px; right: 20px; pointer-events: auto; z-index: 100;">STATS</button>
 
     <div id="joystick-zone">
+      <!-- Left/Movement Joystick -->
       <div class="joystick-outer" id="joystick-outer">
         <div class="joystick-inner" id="joystick-inner"></div>
+      </div>
+      <!-- Right/Aiming Joystick (for landscape mode) -->
+      <div class="joystick-outer" id="joystick-outer-right">
+        <div class="joystick-inner" id="joystick-inner-right"></div>
       </div>
     </div>
   </div>
@@ -1123,6 +1135,15 @@
     let windmillQuest = { active: false, timer: 0, duration: 30, windmill: null, hasCompleted: false };
     let runStartGold = 0;  // Track gold at start of run for end-of-run calculation
 
+    // Shared geometries for particle pooling (performance optimization)
+    const sharedGeometries = {
+      particleBox: new THREE.BoxGeometry(0.2, 0.2, 0.2),
+      particleSphere: new THREE.SphereGeometry(0.15, 6, 6),
+      particleTetra: new THREE.TetrahedronGeometry(0.15),
+      explosionPiece: new THREE.BoxGeometry(0.3, 0.3, 0.3),
+      explosionTetra: new THREE.TetrahedronGeometry(0.25)
+    };
+
     // Input - Twin-Stick Controls
     const joystickLeft = { x: 0, y: 0, active: false, id: null, originX: 0, originY: 0 }; // Movement
     const joystickRight = { x: 0, y: 0, active: false, id: null, originX: 0, originY: 0 }; // Aiming
@@ -1252,6 +1273,7 @@
         this.targetScale = new THREE.Vector3(1, 1, 1);
         this.trailTimer = 0;
         this.wobblePhase = 0;
+        this.prevRotation = 0; // Track rotation for gravity bubble effect
         
         // Dash
         this.isDashing = false;
@@ -1305,13 +1327,16 @@
             this.trailTimer = 0;
           }
           
-          // Rotation/Aiming with RIGHT stick (independent of movement)
-          if (joystickRight.active) {
-            // Turn to face the direction of right stick
+          // Rotation/Aiming with RIGHT stick or auto-aim based on orientation
+          const aspect = window.innerWidth / window.innerHeight;
+          const isPortrait = aspect < 1;
+          
+          if (!isPortrait && joystickRight.active) {
+            // Landscape mode with manual aiming: Turn to face the direction of right stick
             const angle = Math.atan2(joystickRight.x, joystickRight.y);
             this.mesh.rotation.y = angle;
           } else if (joystickLeft.active) {
-            // If no right stick input, rotate to face movement direction
+            // Portrait mode OR landscape without right stick: rotate to face movement direction
             const angle = Math.atan2(targetVel.x, targetVel.z);
             this.mesh.rotation.y = angle;
           }
@@ -1325,27 +1350,38 @@
         
         // Realistic water droplet physics with MORE PRONOUNCED wobble
         // Wobble increases with speed
-        this.wobblePhase += dt * (10 + speedMag * 40); // Increased from 8 + speedMag * 30
-        const wobble = Math.sin(this.wobblePhase) * (0.08 + speedMag * 0.25); // Increased from 0.05 + speedMag * 0.15
+        this.wobblePhase += dt * (12 + speedMag * 50); // Further increased for more fluid motion
+        const wobble = Math.sin(this.wobblePhase) * (0.1 + speedMag * 0.3); // More dramatic wobble
+        
+        // Gravity bubble effect when turning - detect rotation change with proper wraparound
+        const angleDiff = this.prevRotation - this.mesh.rotation.y;
+        const rotationDelta = Math.abs(((angleDiff + Math.PI) % (2 * Math.PI)) - Math.PI);
         
         // Squish effect: stretch in direction of movement (MORE DRAMATIC)
-        const stretchX = 1 + Math.abs(this.velocity.x) * 2.5; // Increased from 1.5
-        const stretchZ = 1 + Math.abs(this.velocity.z) * 2.5; // Increased from 1.5
+        const stretchX = 1 + Math.abs(this.velocity.x) * 3.0; // Further increased for more fluid
+        const stretchZ = 1 + Math.abs(this.velocity.z) * 3.0;
         const squishY = 1 / Math.sqrt(stretchX * stretchZ);
         
-        // Apply deformation with wobble (MORE PRONOUNCED)
+        // Gravity bubble effect: water mass shifts when turning
+        const turnFactor = Math.min(rotationDelta * 50, 0.3); // Limit max deformation from turning
+        const lateralShift = Math.sin(this.mesh.rotation.y) * turnFactor;
+        
+        // Apply deformation with wobble and gravity shift (MORE PRONOUNCED)
         this.mesh.scale.set(
-          stretchX * (1 + wobble * 0.5), // Increased from 0.3
-          squishY * (1 - wobble * 0.35), // Increased from 0.2
-          stretchZ * (1 + wobble * 0.5)  // Increased from 0.3
+          stretchX * (1 + wobble * 0.6 + lateralShift), // Enhanced wobble + gravity shift
+          squishY * (1 - wobble * 0.4 - turnFactor * 0.5), // More squish on turn
+          stretchZ * (1 + wobble * 0.6 - lateralShift)  // Opposite shift on Z axis
         );
+        
+        // Update prevRotation for next frame
+        this.prevRotation = this.mesh.rotation.y;
         
         // Animate water shine
         this.shine.rotation.y += 0.05;
         this.shine.rotation.x += 0.03;
         
-        // Pulse highlight
-        this.highlight.material.opacity = 0.6 + Math.sin(gameTime * 3) * 0.2;
+        // Pulse highlight with deterministic variation based on gameTime
+        this.highlight.material.opacity = 0.6 + Math.sin(gameTime * 3) * 0.2 + Math.sin(gameTime * 7) * 0.1;
         
         // Update aura circle
         if (weapons.aura.active) {
@@ -1765,38 +1801,82 @@
         // More dramatic explosion effect on death
         const enemyColor = this.mesh.material.color.getHex();
         
-        // Main explosion
-        spawnParticles(this.mesh.position, enemyColor, 25);
-        spawnParticles(this.mesh.position, 0xFFFFFF, 10);
+        // Main explosion - MORE particles
+        spawnParticles(this.mesh.position, enemyColor, 35);
+        spawnParticles(this.mesh.position, 0xFFFFFF, 15);
+        spawnParticles(this.mesh.position, 0xFFFF00, 8); // Add yellow sparkles
         
-        // Explode into pieces
-        for(let i = 0; i < 8; i++) {
+        // Shockwave ring effect
+        const ringGeo = new THREE.RingGeometry(0.1, 0.3, 32);
+        const ringMat = new THREE.MeshBasicMaterial({ 
+          color: enemyColor, 
+          transparent: true, 
+          opacity: 0.8,
+          side: THREE.DoubleSide
+        });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.position.copy(this.mesh.position);
+        ring.position.y = 0.1;
+        ring.rotation.x = -Math.PI / 2;
+        scene.add(ring);
+        
+        // Animate shockwave
+        let ringLife = 20;
+        const updateRing = () => {
+          ringLife--;
+          const scale = 1 + (20 - ringLife) * 0.3;
+          ring.scale.set(scale, scale, 1);
+          ring.material.opacity = ringLife / 20 * 0.8;
+          if (ringLife <= 0) {
+            scene.remove(ring);
+            ring.geometry.dispose();
+            ring.material.dispose();
+          } else {
+            requestAnimationFrame(updateRing);
+          }
+        };
+        updateRing();
+        
+        // Explode into pieces with more variety using shared geometries
+        for(let i = 0; i < 12; i++) {
+          const pieceGeo = i % 3 === 0 ? 
+            sharedGeometries.explosionTetra : 
+            sharedGeometries.explosionPiece;
           const piece = new THREE.Mesh(
-            new THREE.BoxGeometry(0.3, 0.3, 0.3),
-            new THREE.MeshBasicMaterial({ color: enemyColor })
+            pieceGeo,
+            new THREE.MeshPhysicalMaterial({ 
+              color: enemyColor,
+              transparent: true,
+              opacity: 1,
+              emissive: enemyColor,
+              emissiveIntensity: 0.5
+            })
           );
           piece.position.copy(this.mesh.position);
           scene.add(piece);
           
-          const angle = (i / 8) * Math.PI * 2;
+          const angle = (i / 12) * Math.PI * 2;
+          const speed = 0.4 + Math.random() * 0.3;
           const vel = new THREE.Vector3(
-            Math.cos(angle) * 0.4,
-            0.3 + Math.random() * 0.3,
-            Math.sin(angle) * 0.4
+            Math.cos(angle) * speed,
+            0.4 + Math.random() * 0.4,
+            Math.sin(angle) * speed
           );
           
-          let life = 50;
+          let life = 60;
           const updatePiece = () => {
             life--;
             piece.position.add(vel);
-            vel.y -= 0.02; // Gravity
-            piece.rotation.x += 0.15;
+            vel.y -= 0.03; // Gravity
+            piece.rotation.x += 0.2;
             piece.rotation.y += 0.15;
-            piece.material.opacity = life / 50;
+            piece.rotation.z += 0.1;
+            piece.material.opacity = life / 60;
+            piece.scale.setScalar(0.5 + (life / 60) * 0.5);
             
             if (life <= 0 || piece.position.y < 0) {
               scene.remove(piece);
-              piece.geometry.dispose();
+              // Don't dispose shared geometry, only material
               piece.material.dispose();
             } else {
               requestAnimationFrame(updatePiece);
@@ -1805,18 +1885,18 @@
           updatePiece();
         }
         
-        // Screen flash on kill (dopamine boost)
+        // Screen flash on kill (dopamine boost) - more satisfying
         const flash = document.createElement('div');
         flash.style.position = 'fixed';
         flash.style.top = '0';
         flash.style.left = '0';
         flash.style.width = '100%';
         flash.style.height = '100%';
-        flash.style.background = 'rgba(255, 255, 255, 0.2)';
+        flash.style.background = 'rgba(255, 255, 255, 0.3)';
         flash.style.pointerEvents = 'none';
         flash.style.zIndex = '500';
         document.body.appendChild(flash);
-        setTimeout(() => flash.remove(), 50);
+        setTimeout(() => flash.remove(), 60);
         
         scene.remove(this.mesh);
         this.mesh.geometry.dispose();
@@ -2055,38 +2135,70 @@
 
     class Particle {
       constructor(pos, color) {
-        const geo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
-        const mat = new THREE.MeshBasicMaterial({ color: color });
+        // Use shared geometries for better performance
+        const geoOptions = [
+          sharedGeometries.particleBox,
+          sharedGeometries.particleSphere,
+          sharedGeometries.particleTetra
+        ];
+        const geo = geoOptions[Math.floor(Math.random() * geoOptions.length)];
+        const mat = new THREE.MeshPhysicalMaterial({ 
+          color: color,
+          transparent: true,
+          opacity: 0.9,
+          metalness: 0.3,
+          roughness: 0.4,
+          emissive: color,
+          emissiveIntensity: 0.3
+        });
         this.mesh = new THREE.Mesh(geo, mat);
         this.mesh.position.copy(pos);
         
+        // More dynamic velocity for livelier particles
         this.vel = new THREE.Vector3(
-          (Math.random() - 0.5) * 0.3,
-          Math.random() * 0.3,
-          (Math.random() - 0.5) * 0.3
+          (Math.random() - 0.5) * 0.5,
+          Math.random() * 0.4 + 0.2,
+          (Math.random() - 0.5) * 0.5
+        );
+        
+        // Add rotation velocity
+        this.rotVel = new THREE.Vector3(
+          (Math.random() - 0.5) * 0.2,
+          (Math.random() - 0.5) * 0.2,
+          (Math.random() - 0.5) * 0.2
         );
         
         scene.add(this.mesh);
-        this.life = 30;
+        this.life = 40; // Longer life for better visibility
+        this.maxLife = 40;
       }
       
       update() {
         this.life--;
         this.mesh.position.add(this.vel);
-        this.vel.y -= 0.02; // Gravity
-        this.mesh.rotation.x += 0.1;
-        this.mesh.rotation.y += 0.1;
+        this.vel.y -= 0.025; // Gravity with realistic feel
         
-        if (this.mesh.position.y < 0) {
-          this.mesh.position.y = 0;
-          this.vel.y = 0;
-          this.vel.x *= 0.8;
-          this.vel.z *= 0.8;
+        // Apply rotation
+        this.mesh.rotation.x += this.rotVel.x;
+        this.mesh.rotation.y += this.rotVel.y;
+        this.mesh.rotation.z += this.rotVel.z;
+        
+        // Bounce with energy loss
+        if (this.mesh.position.y < 0.1) {
+          this.mesh.position.y = 0.1;
+          this.vel.y = Math.abs(this.vel.y) * 0.5; // Bounce with 50% energy loss
+          this.vel.x *= 0.7;
+          this.vel.z *= 0.7;
         }
+        
+        // Fade out smoothly
+        const lifeFactor = this.life / this.maxLife;
+        this.mesh.material.opacity = lifeFactor * 0.9;
+        this.mesh.scale.setScalar(0.5 + lifeFactor * 0.5); // Shrink over time
         
         if (this.life <= 0) {
           scene.remove(this.mesh);
-          this.mesh.geometry.dispose();
+          // Don't dispose shared geometry, only material
           this.mesh.material.dispose();
           return false;
         }
@@ -2573,53 +2685,60 @@
       ripple.userData = { isWaterRipple: true, phase: 0 };
       scene.add(ripple);
 
-      // Smooth nice roads connecting areas
+      // Smooth nice roads connecting areas with curves
       const roadMat = new THREE.MeshPhysicalMaterial({ 
-        color: 0xD3D3D3, // Light gray - smooth and polished
-        metalness: 0.05,
-        roughness: 0.3,
-        clearcoat: 0.8, // Makes it look polished
-        clearcoatRoughness: 0.2
+        color: 0xC8C8C8, // Slightly darker gray - natural stone path
+        metalness: 0.02,
+        roughness: 0.5,
+        clearcoat: 0.5,
+        clearcoatRoughness: 0.3
       });
-      const roadGeo = new THREE.PlaneGeometry(4, 4);
+      const roadGeo = new THREE.PlaneGeometry(3, 3); // Slightly smaller for natural look
       
-      // Road to windmill - smooth curved path
-      for(let i=0; i<30; i++) {
+      // Road to windmill - SMOOTH CURVED PATH with bezier-like curve
+      for(let i=0; i<40; i++) {
         const road = new THREE.Mesh(roadGeo, roadMat);
         road.rotation.x = -Math.PI/2;
-        const t = i / 30;
-        const x = t * 40;
-        const z = t * 40;
+        const t = i / 40;
+        // Smooth S-curve formula
+        const x = t * 40 + Math.sin(t * Math.PI * 2) * 5; // Add sine wave for curves
+        const z = t * 40 + Math.cos(t * Math.PI * 3) * 3; // Different frequency for natural look
         road.position.set(x, 0.03, z);
         road.receiveShadow = true;
         scene.add(road);
       }
       
       // Circular path around center - smooth ring road
-      for(let i=0; i<50; i++) {
+      for(let i=0; i<60; i++) {
         const road = new THREE.Mesh(roadGeo, roadMat);
         road.rotation.x = -Math.PI/2;
-        const angle = (i / 50) * Math.PI * 2;
-        const x = Math.cos(angle) * 25;
-        const z = Math.sin(angle) * 25;
+        const angle = (i / 60) * Math.PI * 2;
+        // Add slight variation to make it organic
+        const radius = 25 + Math.sin(angle * 5) * 1.5;
+        const x = Math.cos(angle) * radius;
+        const z = Math.sin(angle) * radius;
         road.position.set(x, 0.03, z);
         road.receiveShadow = true;
         scene.add(road);
       }
       
-      // Additional main roads (cross pattern)
-      for(let i=-20; i<20; i++) {
-        // Horizontal road
+      // Winding paths (not straight crosses) - natural curved roads
+      for(let i=-15; i<15; i++) {
+        // Curved horizontal path
         const road1 = new THREE.Mesh(roadGeo, roadMat);
         road1.rotation.x = -Math.PI/2;
-        road1.position.set(i * 2, 0.03, 0);
+        const xPos = i * 2.5;
+        const zOffset = Math.sin(i * 0.3) * 8; // Sine wave for curves
+        road1.position.set(xPos, 0.03, zOffset);
         road1.receiveShadow = true;
         scene.add(road1);
         
-        // Vertical road
+        // Curved vertical path
         const road2 = new THREE.Mesh(roadGeo, roadMat);
         road2.rotation.x = -Math.PI/2;
-        road2.position.set(0, 0.03, i * 2);
+        const zPos = i * 2.5;
+        const xOffset = Math.cos(i * 0.4) * 6; // Cosine wave for different curve
+        road2.position.set(xOffset, 0.03, zPos);
         road2.receiveShadow = true;
         scene.add(road2);
       }
@@ -2714,44 +2833,62 @@
       mineEnt.rotation.y = Math.PI;
       scene.add(mineEnt);
 
-      // Stonehenge - Circle of big rocks - MADE MORE VISIBLE
+      // Stonehenge - More realistic based on actual Stonehenge
       const stonehengeGroup = new THREE.Group();
       stonehengeGroup.position.set(-60, 0, -20);
       
-      const stoneMat = new THREE.MeshToonMaterial({ color: 0x808080 }); // Gray stone
-      const numStones = 12;
-      const stoneRadius = 10; // Increased from 8
+      // More realistic stone material with texture variation
+      const stoneMat = new THREE.MeshPhysicalMaterial({ 
+        color: 0x9E9E9E, // Weathered gray stone
+        metalness: 0.0,
+        roughness: 0.9,
+        clearcoat: 0.1,
+        clearcoatRoughness: 0.8
+      });
+      
+      const numStones = 10; // Real Stonehenge has ~30 originally, simplified to 10
+      const stoneRadius = 12;
       
       for(let i=0; i<numStones; i++) {
         const angle = (i / numStones) * Math.PI * 2;
         const x = Math.cos(angle) * stoneRadius;
         const z = Math.sin(angle) * stoneRadius;
         
-        // Vertical standing stone - MADE LARGER
-        const stoneGeo = new THREE.BoxGeometry(2, 6, 1.5); // Increased from (1.5, 4, 1)
+        // Vertical standing stone - more realistic proportions (taller, thicker)
+        const stoneWidth = 2.5 + Math.random() * 0.5; // Variation
+        const stoneHeight = 7 + Math.random() * 1; // Taller, with variation
+        const stoneDepth = 1.5;
+        const stoneGeo = new THREE.BoxGeometry(stoneWidth, stoneHeight, stoneDepth);
         const stone = new THREE.Mesh(stoneGeo, stoneMat);
-        stone.position.set(x, 3, z); // Raised y from 2 to 3
+        stone.position.set(x, stoneHeight/2, z); // Base on ground
         stone.rotation.y = angle + Math.PI/2; // Face center
         stone.castShadow = true;
+        stone.receiveShadow = true;
+        // Slight random tilt for weathered look
+        stone.rotation.z = (Math.random() - 0.5) * 0.05;
         stonehengeGroup.add(stone);
         
-        // Horizontal cap stone on top (every other pair)
+        // Horizontal lintel stones on top (connecting pairs)
         if (i % 2 === 0 && i < numStones - 1) {
           const nextAngle = ((i + 1) / numStones) * Math.PI * 2;
           const nextX = Math.cos(nextAngle) * stoneRadius;
           const nextZ = Math.sin(nextAngle) * stoneRadius;
           
-          const capGeo = new THREE.BoxGeometry(4, 1, 1.5); // Increased from (3, 0.8, 1)
+          const lintelWidth = 5.5; // Spans between stones
+          const lintelHeight = 1.2;
+          const lintelDepth = 1.3;
+          const capGeo = new THREE.BoxGeometry(lintelWidth, lintelHeight, lintelDepth);
           const cap = new THREE.Mesh(capGeo, stoneMat);
-          cap.position.set((x + nextX)/2, 6.5, (z + nextZ)/2); // Raised y from 4.4 to 6.5
+          cap.position.set((x + nextX)/2, 7.5, (z + nextZ)/2); // On top of stones
           cap.rotation.y = angle + Math.PI/2;
           cap.castShadow = true;
+          cap.receiveShadow = true;
           stonehengeGroup.add(cap);
         }
       }
       
-      // Central altar stone - MADE LARGER
-      const altarGeo = new THREE.BoxGeometry(4, 2, 3); // Increased from (3, 1.5, 2)
+      // Central altar stone - horizontal slab
+      const altarGeo = new THREE.BoxGeometry(5, 1.5, 3.5);
       const altar = new THREE.Mesh(altarGeo, stoneMat);
       altar.position.set(0, 1, 0); // Raised y from 0.75 to 1
       altar.castShadow = true;
@@ -2759,44 +2896,94 @@
       
       scene.add(stonehengeGroup);
 
-      // Mayan Pyramid - Stepped pyramid - MADE MORE VISIBLE
+      // Mayan/Egyptian Pyramid - More realistic stepped pyramid
       const mayanGroup = new THREE.Group();
       mayanGroup.position.set(50, 0, -50);
       
-      const pyramidMat = new THREE.MeshToonMaterial({ color: 0xD2B48C }); // Tan/beige like ancient stone
-      const pyramidSteps = 6; // Increased from 5
+      // Realistic stone material with weathered look
+      const pyramidMat = new THREE.MeshPhysicalMaterial({ 
+        color: 0xC9B590, // Weathered sandstone/limestone color
+        metalness: 0.0,
+        roughness: 0.85,
+        clearcoat: 0.05,
+        clearcoatRoughness: 0.9
+      });
+      
+      const pyramidSteps = 7; // More steps for realistic look
       
       for(let i=0; i<pyramidSteps; i++) {
-        const stepSize = 14 - i * 2; // Increased from (10 - i * 1.5)
-        const stepHeight = 2.5; // Increased from 2
+        const stepSize = 16 - i * 2.2; // Gradually narrowing
+        const stepHeight = 2.2; 
         const stepGeo = new THREE.BoxGeometry(stepSize, stepHeight, stepSize);
         const step = new THREE.Mesh(stepGeo, pyramidMat);
         step.position.set(0, i * stepHeight + stepHeight/2, 0);
         step.castShadow = true;
+        step.receiveShadow = true;
         mayanGroup.add(step);
+        
+        // Add stone block details on sides for realistic texture
+        if (i < pyramidSteps - 1) {
+          for(let side=0; side<4; side++) {
+            const angle = (side / 4) * Math.PI * 2;
+            const dist = stepSize / 2 - 0.5;
+            const blockGeo = new THREE.BoxGeometry(0.8, stepHeight * 0.8, 0.3);
+            const block = new THREE.Mesh(blockGeo, pyramidMat);
+            block.position.set(
+              Math.cos(angle) * dist,
+              i * stepHeight + stepHeight/2,
+              Math.sin(angle) * dist
+            );
+            block.rotation.y = angle + Math.PI/2;
+            block.castShadow = true;
+            mayanGroup.add(block);
+          }
+        }
       }
       
-      // Temple on top - MADE LARGER
-      const templeGeo = new THREE.BoxGeometry(4, 4, 4); // Increased from (3, 3, 3)
-      const templeMat = new THREE.MeshToonMaterial({ color: 0x8B7355 }); // Darker brown
+      // Temple shrine on top - more detailed
+      const templeGeo = new THREE.BoxGeometry(4.5, 4.5, 4.5);
+      const templeMat = new THREE.MeshPhysicalMaterial({ 
+        color: 0x8B6F47, // Darker weathered stone
+        metalness: 0.0,
+        roughness: 0.9
+      });
       const temple = new THREE.Mesh(templeGeo, templeMat);
-      temple.position.set(0, pyramidSteps * 2.5 + 2, 0); // Adjusted for new step height
+      temple.position.set(0, pyramidSteps * 2.2 + 2.25, 0);
       temple.castShadow = true;
+      temple.receiveShadow = true;
       mayanGroup.add(temple);
       
-      // Add some decorative blocks on sides - MADE LARGER
+      // Decorative elements - golden accents on corners
       for(let side=0; side<4; side++) {
         const angle = (side / 4) * Math.PI * 2;
-        const decorGeo = new THREE.BoxGeometry(0.8, 1.5, 0.8); // Increased from (0.5, 1, 0.5)
-        const decor = new THREE.Mesh(decorGeo, new THREE.MeshToonMaterial({ color: 0xFFD700 })); // Gold
-        const decorDist = 2.5; // Increased from 2
+        const decorGeo = new THREE.CylinderGeometry(0.4, 0.4, 2, 8);
+        const decor = new THREE.Mesh(decorGeo, new THREE.MeshPhysicalMaterial({ 
+          color: 0xDAA520, // Goldenrod
+          metalness: 0.6,
+          roughness: 0.3
+        }));
+        const decorDist = 2.8;
         decor.position.set(
           Math.cos(angle) * decorDist,
-          pyramidSteps * 2.5 + 2.5,
+          pyramidSteps * 2.2 + 3.25,
           Math.sin(angle) * decorDist
         );
         decor.castShadow = true;
         mayanGroup.add(decor);
+      }
+      
+      // Central stairway on one side for realism
+      const stairMat = new THREE.MeshPhysicalMaterial({
+        color: 0xB5956A,
+        metalness: 0.0,
+        roughness: 0.9
+      });
+      for(let s=0; s<pyramidSteps-1; s++) {
+        const stairGeo = new THREE.BoxGeometry(2, 0.3, 1.5);
+        const stair = new THREE.Mesh(stairGeo, stairMat);
+        stair.position.set(0, s * 2.2 + 1.5, (16 - s * 2.2) / 2 - 0.5);
+        stair.castShadow = true;
+        mayanGroup.add(stair);
       }
       
       scene.add(mayanGroup);
@@ -2972,20 +3159,21 @@
       const aspect = window.innerWidth / window.innerHeight;
       const d = 20;
       // In portrait mode (aspect < 1), ensure horizontal view isn't too narrow
-      // In landscape mode (aspect > 1), maintain the standard behavior
+      // In landscape mode (aspect > 1), zoom in closer for better feel
       let left, right, top, bottom;
       if (aspect < 1) {
-        // Portrait mode: expand horizontal view
+        // Portrait mode: expand horizontal view (PERFECT - keep as is)
         left = -d;
         right = d;
         top = d / aspect;
         bottom = -d / aspect;
       } else {
-        // Landscape mode: standard behavior
-        left = -d * aspect;
-        right = d * aspect;
-        top = d;
-        bottom = -d;
+        // Landscape mode: zoom in more (closer camera) by reducing d
+        const landscapeD = d * 0.65; // 35% closer zoom for landscape
+        left = -landscapeD * aspect;
+        right = landscapeD * aspect;
+        top = landscapeD;
+        bottom = -landscapeD;
       }
       camera = new THREE.OrthographicCamera(left, right, top, bottom, 1, 1000);
       camera.position.set(20, 20, 20); // Isometric angle
@@ -2998,20 +3186,32 @@
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       document.getElementById('game-container').appendChild(renderer.domElement);
 
-      // Lights
-      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+      // Lights - Enhanced for better visuals
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.65); // Slightly brighter ambient
       scene.add(ambientLight);
 
-      const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      // Main directional light (sun) - improved shadow quality
+      const dirLight = new THREE.DirectionalLight(0xfff4e6, 0.9); // Warm sunlight
       dirLight.position.set(50, 100, 50);
       dirLight.castShadow = true;
-      dirLight.shadow.mapSize.width = 2048;
-      dirLight.shadow.mapSize.height = 2048;
+      dirLight.shadow.mapSize.width = 4096; // Higher quality shadows
+      dirLight.shadow.mapSize.height = 4096;
       dirLight.shadow.camera.left = -100;
       dirLight.shadow.camera.right = 100;
       dirLight.shadow.camera.top = 100;
       dirLight.shadow.camera.bottom = -100;
+      dirLight.shadow.bias = -0.0001; // Reduce shadow acne
+      dirLight.shadow.normalBias = 0.02;
       scene.add(dirLight);
+      
+      // Add secondary fill light for softer shadows
+      const fillLight = new THREE.DirectionalLight(0x9eb4cc, 0.3); // Cool fill light
+      fillLight.position.set(-30, 50, -30);
+      scene.add(fillLight);
+      
+      // Add hemisphere light for sky/ground ambient
+      const hemiLight = new THREE.HemisphereLight(0x87ceeb, 0x90ee90, 0.4); // Sky blue to grass green
+      scene.add(hemiLight);
 
       // Setup
       createWorld();
@@ -3242,21 +3442,57 @@
     }
     
     function spawnWaterDroplet(pos) {
-      // Create small water droplet that falls and disappears
-      const geo = new THREE.SphereGeometry(0.1, 8, 8);
-      const mat = new THREE.MeshBasicMaterial({ color: COLORS.player, transparent: true, opacity: 0.6 });
+      // Create small water droplet that falls and spreads on ground
+      const geo = new THREE.SphereGeometry(0.12, 8, 8);
+      const mat = new THREE.MeshPhysicalMaterial({ 
+        color: COLORS.player, 
+        transparent: true, 
+        opacity: 0.7,
+        metalness: 0.1,
+        roughness: 0.3,
+        transmission: 0.2,
+        clearcoat: 0.8
+      });
       const mesh = new THREE.Mesh(geo, mat);
       mesh.position.copy(pos);
-      mesh.position.y = 0.3;
+      mesh.position.y = 0.4;
       scene.add(mesh);
       
-      // Animate falling
-      let life = 20;
+      // Add slight random offset for natural spread
+      const offsetX = (Math.random() - 0.5) * 0.3;
+      const offsetZ = (Math.random() - 0.5) * 0.3;
+      
+      // Animate falling with splash effect
+      let life = 25;
+      const maxLife = 25;
+      let phase = 0;
       const update = () => {
         life--;
-        mesh.position.y -= 0.02;
-        mat.opacity = life / 20;
-        if (life <= 0 || mesh.position.y <= 0.05) {
+        phase++;
+        
+        // Fall with slight wobble
+        mesh.position.y -= 0.03;
+        mesh.position.x += offsetX * 0.1;
+        mesh.position.z += offsetZ * 0.1;
+        
+        // Wobble effect
+        mesh.scale.x = 1 + Math.sin(phase * 0.5) * 0.2;
+        mesh.scale.z = 1 + Math.cos(phase * 0.5) * 0.2;
+        mesh.scale.y = 1.2 - Math.sin(phase * 0.5) * 0.2;
+        
+        // Fade and spread when near ground
+        const lifeFactor = life / maxLife;
+        if (mesh.position.y <= 0.1) {
+          mesh.position.y = 0.05;
+          mesh.scale.x = 2 - lifeFactor * 1.5; // Spread on ground
+          mesh.scale.z = 2 - lifeFactor * 1.5;
+          mesh.scale.y = 0.1; // Flatten
+          mat.opacity = lifeFactor * 0.5;
+        } else {
+          mat.opacity = 0.7;
+        }
+        
+        if (life <= 0) {
           scene.remove(mesh);
           mesh.geometry.dispose();
           mesh.material.dispose();
@@ -4373,6 +4609,8 @@ Total Gold Earned: ${saveData.totalGoldEarned}
       const zone = document.getElementById('joystick-zone');
       const joystickOuter = document.getElementById('joystick-outer');
       const joystickInner = document.getElementById('joystick-inner');
+      const joystickOuterRight = document.getElementById('joystick-outer-right');
+      const joystickInnerRight = document.getElementById('joystick-inner-right');
       const container = document.getElementById('game-container');
       
       let touchStartX = 0;
@@ -4399,20 +4637,17 @@ Total Gold Earned: ${saveData.totalGoldEarned}
           
           // Note: Top 60% of screen includes UI elements (filtered above at 0.6 threshold)
           // Playable area occupies the bottom 40% of screen height (from 60% to 100%)
-          // In portrait: split playable area vertically - upper half for aiming, lower half for movement
-          // In landscape: split horizontally - left half for movement, right half for aiming
           let isMovementZone = false;
           let isAimingZone = false;
           
           if (isPortrait) {
-            // Portrait mode: split vertically within playable area
-            const playableStart = screenHeight * 0.6;
-            const playableEnd = screenHeight;
-            const midY = (playableStart + playableEnd) / 2; // Midpoint of playable area (at 80% of screen height)
-            isMovementZone = touch.clientY >= midY && !joystickLeft.active;
-            isAimingZone = touch.clientY >= playableStart && touch.clientY < midY && !joystickRight.active;
+            // Portrait mode: ONLY movement joystick (anywhere in playable area)
+            // Auto-aim will be enabled in portrait mode
+            // Validate that touch is within playable bounds (bottom 40% of screen)
+            isMovementZone = touch.clientY >= screenHeight * 0.6 && !joystickLeft.active;
+            isAimingZone = false; // No manual aiming in portrait
           } else {
-            // Landscape mode: split horizontally
+            // Landscape mode: split horizontally - left half for movement, right half for aiming
             isMovementZone = touch.clientX < screenWidth / 2 && !joystickLeft.active;
             isAimingZone = touch.clientX >= screenWidth / 2 && !joystickRight.active;
           }
@@ -4429,14 +4664,17 @@ Total Gold Earned: ${saveData.totalGoldEarned}
             joystickOuter.style.left = (touch.clientX - 60) + 'px';
             joystickOuter.style.top = (touch.clientY - 60) + 'px';
           }
-          // Aiming joystick
+          // Aiming joystick (landscape only)
           else if (isAimingZone) {
             joystickRight.id = touch.identifier;
             joystickRight.active = true;
             joystickRight.originX = touch.clientX;
             joystickRight.originY = touch.clientY;
             
-            // Could add a second visual joystick here if desired
+            // Show second visual joystick for aiming
+            joystickOuterRight.style.display = 'block';
+            joystickOuterRight.style.left = (touch.clientX - 60) + 'px';
+            joystickOuterRight.style.top = (touch.clientY - 60) + 'px';
           }
         }
         
@@ -4483,6 +4721,11 @@ Total Gold Earned: ${saveData.totalGoldEarned}
             if (dist > 0) {
               joystickRight.x = (dx / dist) * (clampedDist / maxDist);
               joystickRight.y = (dy / dist) * (clampedDist / maxDist);
+              
+              // Update right joystick knob position
+              joystickInnerRight.style.left = '50%';
+              joystickInnerRight.style.top = '50%';
+              joystickInnerRight.style.transform = `translate(calc(-50% + ${joystickRight.x * 35}px), calc(-50% + ${joystickRight.y * 35}px))`;
             }
           }
         }
@@ -4507,6 +4750,10 @@ Total Gold Earned: ${saveData.totalGoldEarned}
             joystickRight.active = false;
             joystickRight.x = 0;
             joystickRight.y = 0;
+            
+            // Hide right joystick
+            joystickOuterRight.style.display = 'none';
+            joystickInnerRight.style.transform = 'translate(-50%, -50%)';
           }
         }
       };
@@ -4562,20 +4809,21 @@ Total Gold Earned: ${saveData.totalGoldEarned}
     function onWindowResize() {
       const aspect = window.innerWidth / window.innerHeight;
       const d = 20;
-      // In portrait mode (aspect < 1), ensure horizontal view isn't too narrow
-      // In landscape mode (aspect > 1), maintain the standard behavior
+      // In portrait mode (aspect < 1), ensure horizontal view isn't too narrow (PERFECT)
+      // In landscape mode (aspect > 1), zoom in closer for better feel
       if (aspect < 1) {
-        // Portrait mode: expand horizontal view
+        // Portrait mode: expand horizontal view (PERFECT - keep as is)
         camera.left = -d;
         camera.right = d;
         camera.top = d / aspect;
         camera.bottom = -d / aspect;
       } else {
-        // Landscape mode: standard behavior
-        camera.left = -d * aspect;
-        camera.right = d * aspect;
-        camera.top = d;
-        camera.bottom = -d;
+        // Landscape mode: zoom in more (closer camera) by reducing d
+        const landscapeD = d * 0.65; // 35% closer zoom for landscape
+        camera.left = -landscapeD * aspect;
+        camera.right = landscapeD * aspect;
+        camera.top = landscapeD;
+        camera.bottom = -landscapeD;
       }
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
@@ -4643,6 +4891,10 @@ Total Gold Earned: ${saveData.totalGoldEarned}
 
       // --- WEAPONS ---
       
+      // Determine orientation for control behavior
+      const aspect = window.innerWidth / window.innerHeight;
+      const isPortrait = aspect < 1;
+      
       // 1. GUN
       if (weapons.gun.active && time - weapons.gun.lastShot > weapons.gun.cooldown) {
         // Find nearest enemy
@@ -4659,10 +4911,33 @@ Total Gold Earned: ${saveData.totalGoldEarned}
         }
 
         if (nearest) {
+          let targetPosition = nearest.mesh.position;
+          
+          // In landscape mode with right joystick active, apply 25% aim assist
+          if (!isPortrait && joystickRight.active) {
+            // Manual aiming with right joystick
+            const aimAngle = Math.atan2(joystickRight.x, joystickRight.y);
+            const aimDistance = minDst; // Use distance to nearest enemy
+            
+            // Calculate manual aim position
+            const manualX = player.mesh.position.x + Math.sin(aimAngle) * aimDistance;
+            const manualZ = player.mesh.position.z + Math.cos(aimAngle) * aimDistance;
+            const manualTarget = new THREE.Vector3(manualX, nearest.mesh.position.y, manualZ);
+            
+            // Apply 25% aim assist: blend between manual aim and auto-aim
+            const assistFactor = 0.25;
+            targetPosition = new THREE.Vector3(
+              manualTarget.x * (1 - assistFactor) + nearest.mesh.position.x * assistFactor,
+              nearest.mesh.position.y,
+              manualTarget.z * (1 - assistFactor) + nearest.mesh.position.z * assistFactor
+            );
+          }
+          // In portrait mode: full auto-aim (default behavior)
+          
           // Fire based on barrels
           for(let i=0; i<weapons.gun.barrels; i++) {
             setTimeout(() => {
-              projectiles.push(new Projectile(player.mesh.position.x, player.mesh.position.z, nearest.mesh.position));
+              projectiles.push(new Projectile(player.mesh.position.x, player.mesh.position.z, targetPosition));
               
               // Muzzle flash light effect
               const flashLight = new THREE.PointLight(0xFFFF00, 2, 10);
@@ -4678,7 +4953,7 @@ Total Gold Earned: ${saveData.totalGoldEarned}
               // Lightning effect from gun
               const lightning = new LightningBolt(
                 player.mesh.position.clone(),
-                nearest.mesh.position.clone()
+                targetPosition.clone()
               );
               particles.push(lightning);
               
