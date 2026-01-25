@@ -3786,35 +3786,68 @@
     }
     
     class LightningBolt {
-      constructor(start, end) {
+      constructor(start, end, isChain = false) {
         const points = [];
-        const segments = 8;
+        const segments = 12; // More segments for more visible lightning
         
         for(let i=0; i<=segments; i++) {
           const t = i / segments;
-          const x = start.x + (end.x - start.x) * t + (Math.random() - 0.5) * 1.5;
-          const y = start.y + (end.y - start.y) * t + (Math.random() - 0.5) * 1.5;
-          const z = start.z + (end.z - start.z) * t + (Math.random() - 0.5) * 1.5;
+          const x = start.x + (end.x - start.x) * t + (Math.random() - 0.5) * (isChain ? 0.8 : 1.5);
+          const y = start.y + (end.y - start.y) * t + (Math.random() - 0.5) * (isChain ? 0.8 : 1.5);
+          const z = start.z + (end.z - start.z) * t + (Math.random() - 0.5) * (isChain ? 0.8 : 1.5);
           points.push(new THREE.Vector3(x, y, z));
         }
         
         const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        // Blue-purple tint for lightning
+        const lightningColor = isChain ? 0x9D4EDD : 0x7B68EE; // Purple for chain, blue-purple for main
         const material = new THREE.LineBasicMaterial({ 
-          color: 0x5DADE2, 
+          color: lightningColor, 
           transparent: true, 
           opacity: 1,
-          linewidth: 3
+          linewidth: isChain ? 2 : 4 // Thicker main bolt
         });
         
         this.mesh = new THREE.Line(geometry, material);
         scene.add(this.mesh);
-        this.life = 20;
-        this.maxLife = 20;
+        this.life = 15;
+        this.maxLife = 15;
+        this.isChain = isChain;
+        this.groundPos = end.clone();
+        
+        // Ground impact effect - sparks/particles where lightning hits
+        if (!isChain && end.y <= 1) {
+          this.createGroundImpact(end);
+        }
       }
       
-      update() {
+      createGroundImpact(pos) {
+        // Spawn bright particles at impact point
+        for(let i = 0; i < 8; i++) {
+          const particle = new Particle(pos, 0xFFFFFF);
+          particle.vel.y = Math.random() * 0.3 + 0.1;
+          particle.vel.x = (Math.random() - 0.5) * 0.3;
+          particle.vel.z = (Math.random() - 0.5) * 0.3;
+          particles.push(particle);
+        }
+        // Add purple/blue sparks
+        for(let i = 0; i < 6; i++) {
+          const particle = new Particle(pos, 0x9D4EDD);
+          particle.vel.y = Math.random() * 0.2;
+          particle.vel.x = (Math.random() - 0.5) * 0.4;
+          particle.vel.z = (Math.random() - 0.5) * 0.4;
+          particles.push(particle);
+        }
+      }
+      
+      update(dt = 1/60) {
         this.life--;
         this.mesh.material.opacity = this.life / this.maxLife;
+        
+        // Flicker effect for more dramatic lightning
+        if (Math.random() < 0.3) {
+          this.mesh.material.opacity *= 0.5;
+        }
         
         if (this.life <= 0) {
           scene.remove(this.mesh);
@@ -5028,19 +5061,19 @@ Total Gold Earned: ${saveData.totalGoldEarned}
           const enemy = shuffled[i];
           targets.push(enemy);
           
-          // Create lightning bolt from sky
+          // Create lightning bolt from sky with enhanced visuals
           const lightning = new LightningBolt(
             new THREE.Vector3(enemy.mesh.position.x, 15, enemy.mesh.position.z),
             enemy.mesh.position.clone()
           );
           particles.push(lightning);
           
-          // Flash effect
-          const flashLight = new THREE.PointLight(0x5DADE2, 3, 15);
+          // Flash effect with blue-purple light
+          const flashLight = new THREE.PointLight(0x7B68EE, 4, 20);
           flashLight.position.copy(enemy.mesh.position);
           flashLight.position.y += 2;
           scene.add(flashLight);
-          setTimeout(() => scene.remove(flashLight), 100);
+          setTimeout(() => scene.remove(flashLight), 150);
           
           // Damage enemy
           const dmg = weapons.lightning.damage * playerStats.strength;
@@ -5049,13 +5082,40 @@ Total Gold Earned: ${saveData.totalGoldEarned}
           enemy.takeDamage(finalDmg);
           createDamageNumber(finalDmg, enemy.mesh.position, isCrit);
           
-          // Particles
-          spawnParticles(enemy.mesh.position, 0x5DADE2, 10);
+          // Enhanced particles with purple tint
+          spawnParticles(enemy.mesh.position, 0x9D4EDD, 8);
+          spawnParticles(enemy.mesh.position, 0xFFFFFF, 5);
+          
+          // CHAIN LIGHTNING - Find nearest enemy within range and chain to them
+          const chainRange = 8;
+          const chainDmg = dmg * 0.6; // Chain does 60% damage
+          const nearestChainTarget = aliveEnemies
+            .filter(e => e !== enemy && !e.isDead)
+            .map(e => ({ enemy: e, dist: e.mesh.position.distanceTo(enemy.mesh.position) }))
+            .filter(obj => obj.dist < chainRange)
+            .sort((a, b) => a.dist - b.dist)[0];
+          
+          if (nearestChainTarget) {
+            const chainEnemy = nearestChainTarget.enemy;
+            // Create chain lightning bolt
+            const chainLightning = new LightningBolt(
+              enemy.mesh.position.clone(),
+              chainEnemy.mesh.position.clone(),
+              true // isChain flag
+            );
+            particles.push(chainLightning);
+            
+            // Chain damage
+            const chainFinalDmg = isCrit ? chainDmg * playerStats.critDmg : chainDmg;
+            chainEnemy.takeDamage(chainFinalDmg);
+            createDamageNumber(chainFinalDmg, chainEnemy.mesh.position, false);
+            spawnParticles(chainEnemy.mesh.position, 0x9D4EDD, 5);
+          }
         }
         
         weapons.lightning.lastShot = time;
         if (targets.length > 0) {
-          playSound('shoot');
+          playSound('shoot'); // TODO: Replace with realistic lightning sound
         }
       }
 
