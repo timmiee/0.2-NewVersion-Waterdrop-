@@ -140,7 +140,8 @@
     .stat-text {
       color: #8B4513;
       font-weight: bold;
-      text-shadow: 1px 1px 2px rgba(0,0,0,0.5), -1px -1px 1px rgba(255,255,255,0.3), 0 0 5px rgba(139,69,19,0.3);
+      font-family: 'M PLUS Rounded 1c', 'Comic Sans MS', 'Chalkboard', cursive, sans-serif;
+      text-shadow: 0 0 8px rgba(255,215,0,0.4), 0 0 15px rgba(255,215,0,0.2), 1px 1px 2px rgba(0,0,0,0.8);
       font-size: 14px;
       margin-top: 4px;
     }
@@ -527,27 +528,27 @@
       height: 60px;
     }
 
-    /* Position buttons over text in image - moved ~0.65cm (2.5%) lower to align with actual text */
+    /* Position buttons over text in image - moved 10% lower to align with actual text */
     #start-game-btn {
-      top: 42.5%;
+      top: 46.75%;
       left: 50%;
       transform: translateX(-50%);
     }
 
     #progression-btn {
-      top: 52.5%;
+      top: 57.75%;
       left: 50%;
       transform: translateX(-50%);
     }
 
     #achievements-btn {
-      top: 62.5%;
+      top: 68.75%;
       left: 50%;
       transform: translateX(-50%);
     }
 
     #credits-btn {
-      top: 72.5%;
+      top: 79.75%;
       left: 50%;
       transform: translateX(-50%);
     }
@@ -900,23 +901,23 @@
       <div class="bar-container" id="hp-bar-container">
         <div class="bar-fill" id="hp-fill"></div>
       </div>
-      <div class="stat-text" id="hp-text" style="color: #FF4444;">HP: 100/100</div>
+      <div class="stat-text" id="hp-text" style="color: #FF4444; text-shadow: 0 0 8px rgba(255,68,68,0.6), 0 0 15px rgba(255,68,68,0.3), 1px 1px 2px rgba(0,0,0,0.8);">HP: 100/100</div>
       
       <div class="bar-container" id="exp-bar-container" style="border-color: #2a2a2a;">
         <div class="bar-fill" id="exp-fill"></div>
       </div>
-      <div class="stat-text" id="exp-text" style="color: #5DADE2;">EXP: 0%</div>
-      <div class="stat-text" id="lvl-text" style="color: #5DADE2;">LVL: 1</div>
-      <div class="stat-text" id="score-text" style="color: #8B4513;">KILLS: 0</div>
-      <div class="stat-text" id="gold-text" style="color: #FFD700;">GOLD: 0</div>
+      <div class="stat-text" id="exp-text" style="color: #5DADE2; text-shadow: 0 0 8px rgba(93,173,226,0.6), 0 0 15px rgba(93,173,226,0.3), 1px 1px 2px rgba(0,0,0,0.8);">EXP: 0%</div>
+      <div class="stat-text" id="lvl-text" style="color: #5DADE2; text-shadow: 0 0 8px rgba(93,173,226,0.6), 0 0 15px rgba(93,173,226,0.3), 1px 1px 2px rgba(0,0,0,0.8);">LVL: 1</div>
+      <div class="stat-text" id="score-text" style="color: #ecf0f1; text-shadow: 0 0 8px rgba(236,240,241,0.4), 0 0 15px rgba(236,240,241,0.2), 1px 1px 2px rgba(0,0,0,0.8);">KILLS: 0</div>
+      <div class="stat-text" id="gold-text" style="color: #FFD700; text-shadow: 0 0 8px rgba(255,215,0,0.6), 0 0 15px rgba(255,215,0,0.3), 1px 1px 2px rgba(0,0,0,0.8);">GOLD: 0</div>
       
       <!-- Windmill Quest UI -->
       <div id="windmill-quest-ui" style="display: none; margin-top: 10px;">
         <div class="bar-container" style="border-color: #8B4513;">
           <div class="bar-fill" id="windmill-hp-fill" style="background: #8B4513; width: 100%;"></div>
         </div>
-        <div class="stat-text" id="windmill-hp-text" style="color: #8B4513;">WINDMILL: 600/600</div>
-        <div class="stat-text" id="windmill-timer-text" style="color: #FFD700; font-size: 18px;">DEFEND: 30s</div>
+        <div class="stat-text" id="windmill-hp-text" style="color: #8B4513; text-shadow: 0 0 8px rgba(139,69,19,0.6), 0 0 15px rgba(139,69,19,0.3), 1px 1px 2px rgba(0,0,0,0.8);">WINDMILL: 600/600</div>
+        <div class="stat-text" id="windmill-timer-text" style="color: #FFD700; font-size: 18px; text-shadow: 0 0 8px rgba(255,215,0,0.6), 0 0 15px rgba(255,215,0,0.3), 1px 1px 2px rgba(0,0,0,0.8);">DEFEND: 30s</div>
       </div>
     </div>
     <button id="stats-btn" class="btn-small" style="position: absolute; top: 20px; right: 20px; pointer-events: auto; z-index: 100;">STATS</button>
@@ -947,7 +948,7 @@
   <div id="stats-modal" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 25; align-items: center; justify-content: center; pointer-events: auto; flex-direction: column;">
     <div class="modal-content" style="max-height: 80vh; overflow-y: auto;">
       <h2>PLAYER STATS</h2>
-      <div id="stats-content" style="text-align: left; margin-bottom: 20px; font-family: monospace; font-size: 14px; line-height: 1.8; color: #ecf0f1;"></div>
+      <div id="stats-content" style="text-align: left; margin-bottom: 20px; font-family: 'M PLUS Rounded 1c', 'Comic Sans MS', 'Chalkboard', cursive, sans-serif; font-size: 14px; line-height: 1.8; color: #ecf0f1; text-shadow: 0 0 5px rgba(236,240,241,0.3), 1px 1px 2px rgba(0,0,0,0.8);"></div>
       <button class="btn" id="close-stats-btn">CLOSE</button>
     </div>
   </div>
@@ -2667,15 +2668,16 @@
             text-align: left;
             cursor: ${canClaim ? 'pointer' : 'default'};
             transition: all 0.2s;
+            font-family: 'M PLUS Rounded 1c', 'Comic Sans MS', 'Chalkboard', cursive, sans-serif;
             ${canClaim ? 'box-shadow: 0 0 15px rgba(255,215,0,0.6); animation: pulse-gold 1.5s infinite;' : ''}
           " ${canClaim ? `onclick="claimAchievement('${achievement.id}')"` : ''}>
-            <div style="color: ${isClaimed ? '#00FF00' : isEarned ? '#FFD700' : '#bbb'}; font-size: 20px; font-weight: bold; margin-bottom: 5px;">
+            <div style="color: ${isClaimed ? '#00FF00' : isEarned ? '#FFD700' : '#bbb'}; font-size: 20px; font-weight: bold; margin-bottom: 5px; text-shadow: 0 0 8px ${isClaimed ? 'rgba(0,255,0,0.6)' : isEarned ? 'rgba(255,215,0,0.6)' : 'rgba(187,187,187,0.3)'}, 1px 1px 2px rgba(0,0,0,0.8);">
               ${isClaimed ? '✓ ' : isEarned ? '! ' : ''}${achievement.name}
             </div>
-            <div style="color: ${isClaimed ? '#90ee90' : isEarned ? '#f0e68c' : '#888'}; font-size: 14px; margin-bottom: 8px;">
+            <div style="color: ${isClaimed ? '#90ee90' : isEarned ? '#f0e68c' : '#888'}; font-size: 14px; margin-bottom: 8px; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">
               ${achievement.desc}
             </div>
-            <div style="color: #FFD700; font-size: 16px; font-weight: bold;">
+            <div style="color: #FFD700; font-size: 16px; font-weight: bold; text-shadow: 0 0 8px rgba(255,215,0,0.6), 1px 1px 2px rgba(0,0,0,0.8);">
               Reward: ${achievement.reward} Gold ${isClaimed ? '(CLAIMED)' : isEarned ? '(CLICK TO CLAIM)' : ''}
             </div>
           </div>
