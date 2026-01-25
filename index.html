@@ -48,7 +48,7 @@
       margin: 0;
       padding: 0;
       overflow: hidden;
-      background-color: #FFF0F5; /* Lavender Blush */
+      background-color: #000000; /* Black background to avoid white space issues */
       font-family: 'M PLUS Rounded 1c', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       touch-action: none;
       user-select: none;
@@ -62,6 +62,7 @@
       width: 100%;
       height: 100%;
       z-index: 1;
+      background-color: #000000; /* Ensure no white space */
     }
 
     #ui-layer {
@@ -155,6 +156,24 @@
       left: 50%;
       transform: translate(-50%, -50%);
       pointer-events: none;
+    }
+
+    /* Tutorial Text */
+    #tutorial-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-size: 24px;
+      font-weight: bold;
+      text-align: center;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.9), 0 0 20px rgba(93,173,226,0.8);
+      opacity: 0;
+      transition: opacity 0.5s ease-in-out;
+      z-index: 30;
+      pointer-events: none;
+      max-width: 80%;
     }
 
     /* Level Up Modal */
@@ -366,7 +385,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-end;
       z-index: 10000;
       transition: opacity 0.5s ease-out;
       background-image: url('321E5768-E77B-4471-8C32-5D7C1D715A4B.png');
@@ -381,14 +400,7 @@
     }
 
     .loading-splash-logo {
-      max-width: 60%;
-      max-height: 40%;
-      width: auto;
-      height: auto;
-      object-fit: contain;
-      margin-bottom: 40px;
-      animation: pulse 2s infinite;
-      filter: drop-shadow(0 0 20px rgba(93,173,226,0.6));
+      display: none; /* Remove small centered image */
     }
 
     .game-title {
@@ -414,6 +426,7 @@
       overflow: hidden;
       border: 3px solid rgba(93, 173, 226, 0.8);
       backdrop-filter: blur(5px);
+      margin-bottom: 40px;
     }
 
     .loading-bar {
@@ -431,55 +444,75 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: linear-gradient(to bottom, #1a1a2e, #16213e);
+      background-image: url('654811F9-1760-4A74-B977-73ECB1A92913.png');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
       display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 50; /* Lower than UI layer buttons */
+      z-index: 50;
     }
 
     #main-menu::before {
-      content: '';
+      display: none; /* Remove duplicate background */
+    }
+
+    .menu-title {
+      display: none; /* Text is already in the image */
+    }
+
+    .menu-buttons {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background-image: url('654811F9-1760-4A74-B977-73ECB1A92913.png');
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
-      opacity: 0.6;
-      z-index: -1;
-    }
-
-    .menu-title {
-      font-size: 42px;
-      color: #5DADE2;
-      text-shadow: 0 0 20px rgba(93,173,226,0.8), 0 0 40px rgba(93,173,226,0.5);
-      margin-bottom: 40px;
-    }
-
-    .menu-buttons {
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      align-items: center;
+      justify-content: center;
     }
 
     .menu-btn {
-      background: linear-gradient(to bottom, #5DADE2, #3498DB);
-      color: white;
+      background: transparent;
+      color: transparent;
       border: none;
-      padding: 20px 60px;
-      font-size: 24px;
-      border-radius: 50px;
+      padding: 0;
+      font-size: 0;
+      border-radius: 0;
       font-weight: bold;
       cursor: pointer;
-      box-shadow: 0 6px 0 #2874A6, 0 0 0 rgba(93,173,226,0);
-      transition: all 0.15s ease;
-      position: relative;
-      overflow: hidden;
+      box-shadow: none;
+      transition: all 0.3s ease;
+      position: absolute;
+      overflow: visible;
+      /* Invisible clickable hotspots positioned over image text */
+      width: 300px;
+      height: 60px;
+    }
+
+    /* Position buttons over text in image - adjust these based on actual image layout */
+    #start-game-btn {
+      top: 40%;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    #progression-btn {
+      top: 50%;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    #achievements-btn {
+      top: 60%;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    #credits-btn {
+      top: 70%;
+      left: 50%;
+      transform: translateX(-50%);
     }
 
     .menu-btn::before {
@@ -490,20 +523,20 @@
       width: 0;
       height: 0;
       border-radius: 50%;
-      background: rgba(255, 255, 255, 0.5);
+      background: transparent;
       transform: translate(-50%, -50%);
       transition: width 0.6s, height 0.6s;
     }
 
     .menu-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 0 #2874A6, 0 0 20px rgba(93,173,226,0.6), 0 0 40px rgba(93,173,226,0.3);
-      filter: brightness(1.1);
+      transform: translateX(-50%);
+      box-shadow: 0 0 30px rgba(255,255,255,0.8), 0 0 60px rgba(93,173,226,0.6);
+      filter: drop-shadow(0 0 20px rgba(255,255,255,0.9));
     }
 
     .menu-btn:active {
-      transform: translateY(6px) scale(0.98);
-      box-shadow: 0 0 30px rgba(255,255,255,0.8), 0 0 50px rgba(93,173,226,0.8);
+      transform: translateX(-50%) scale(0.95);
+      box-shadow: 0 0 50px rgba(255,255,255,1), 0 0 100px rgba(93,173,226,0.9);
       animation: lightning-flash 0.3s ease;
     }
 
@@ -797,6 +830,9 @@
 
   <div id="game-container"></div>
 
+  <!-- Tutorial Text -->
+  <div id="tutorial-text"></div>
+
   <div id="ui-layer">
     <div class="hud-top">
       <div class="bar-container" id="hp-bar-container">
@@ -903,123 +939,28 @@
 
     // --- AUDIO SYSTEM (Oscillators) ---
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    // Music removed - keeping only sound effects
     let musicOscillators = [];
     let musicGain = null;
     let currentMusicLevel = 0;
     
     function initMusic() {
-      if (!musicGain) {
-        musicGain = audioCtx.createGain();
-        musicGain.gain.value = 0.05;
-        musicGain.connect(audioCtx.destination);
-      }
+      // Music disabled - no background music
     }
     
     function updateBackgroundMusic() {
-      initMusic();
-      const targetLevel = Math.min(playerStats.lvl, 10);
-      
-      if (targetLevel > currentMusicLevel) {
-        currentMusicLevel = targetLevel;
-        
-        // Add new layer with happier, more upbeat sounds
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        
-        osc.connect(gain);
-        gain.connect(musicGain);
-        
-        // Major key frequencies - happier, more dopamine-inducing (C Major scale)
-        const baseFreq = 261.63; // C4 (Middle C)
-        const majorScaleFreqs = [
-          baseFreq,           // C - Level 1
-          baseFreq * 1.125,   // D - Level 2
-          baseFreq * 1.26,    // E - Level 3
-          baseFreq * 1.33,    // F - Level 4
-          baseFreq * 1.5,     // G - Level 5
-          baseFreq * 1.68,    // A - Level 6
-          baseFreq * 1.89,    // B - Level 7
-          baseFreq * 2,       // C - Level 8 (octave up)
-          baseFreq * 2.25,    // D - Level 9
-          baseFreq * 2.52     // E - Level 10
-        ];
-        
-        // Use sine wave for happier, cleaner sound
-        osc.type = 'sine';
-        osc.frequency.value = majorScaleFreqs[currentMusicLevel - 1];
-        
-        // Add faster vibrato for more energetic feel
-        const lfo = audioCtx.createOscillator();
-        const lfoGain = audioCtx.createGain();
-        lfo.frequency.value = 6 + currentMusicLevel * 0.5; // Faster vibrato
-        lfoGain.gain.value = 8 + currentMusicLevel * 0.8; // More pronounced
-        lfo.connect(lfoGain);
-        lfoGain.connect(osc.frequency);
-        lfo.start();
-        
-        gain.gain.value = 0;
-        gain.gain.linearRampToValueAtTime(0.25 + currentMusicLevel * 0.02, audioCtx.currentTime + 0.8);
-        
-        osc.start();
-        musicOscillators.push({ osc, gain, lfo });
-        
-        // Add harmony layer (third above) for richer sound
-        const harmony = audioCtx.createOscillator();
-        const harmonyGain = audioCtx.createGain();
-        harmony.connect(harmonyGain);
-        harmonyGain.connect(musicGain);
-        harmony.type = 'sine';
-        harmony.frequency.value = majorScaleFreqs[currentMusicLevel - 1] * 1.26; // Major third
-        harmonyGain.gain.value = 0;
-        harmonyGain.gain.linearRampToValueAtTime(0.15, audioCtx.currentTime + 0.8);
-        harmony.start();
-        musicOscillators.push({ osc: harmony, gain: harmonyGain, lfo: null });
-        
-        // Add uplifting high melody for levels 3+
-        if (currentMusicLevel >= 3) {
-          const melody = audioCtx.createOscillator();
-          const melodyGain = audioCtx.createGain();
-          melody.connect(melodyGain);
-          melodyGain.connect(musicGain);
-          melody.type = 'triangle';
-          melody.frequency.value = majorScaleFreqs[currentMusicLevel - 1] * 2; // Octave up
-          melodyGain.gain.value = 0;
-          melodyGain.gain.linearRampToValueAtTime(0.12, audioCtx.currentTime + 0.8);
-          melody.start();
-          musicOscillators.push({ osc: melody, gain: melodyGain, lfo: null });
-        }
-        
-        // Add energetic rhythm layer for levels 5+
-        if (currentMusicLevel >= 5) {
-          const rhythm = audioCtx.createOscillator();
-          const rhythmGain = audioCtx.createGain();
-          rhythm.connect(rhythmGain);
-          rhythmGain.connect(musicGain);
-          rhythm.type = 'square';
-          rhythm.frequency.value = majorScaleFreqs[currentMusicLevel - 1] * 0.5; // Bass line
-          rhythmGain.gain.value = 0;
-          rhythmGain.gain.linearRampToValueAtTime(0.18, audioCtx.currentTime + 0.8);
-          rhythm.start();
-          musicOscillators.push({ osc: rhythm, gain: rhythmGain, lfo: null });
-        }
-        
-        // Add high frequency sparkle for levels 7+
-        if (currentMusicLevel >= 7) {
-          const sparkle = audioCtx.createOscillator();
-          const sparkleGain = audioCtx.createGain();
-          sparkle.connect(sparkleGain);
-          sparkleGain.connect(musicGain);
-          sparkle.type = 'sine';
-          sparkle.frequency.value = majorScaleFreqs[currentMusicLevel - 1] * 4; // High sparkle
-          sparkleGain.gain.value = 0;
-          sparkleGain.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.8);
-          sparkle.start();
-          musicOscillators.push({ osc: sparkle, gain: sparkleGain, lfo: null });
-        }
-      }
+      // Music disabled - no background music
     }
     
     function playSound(type) {
+      // TODO: Replace synthesized sounds with realistic audio samples
+      // For production: Use Web Audio API to load and play .mp3/.wav files
+      // Lightning: Thunder/lightning recordings with 2-3 variations
+      // Gun: Realistic firearm sounds
+      // Sword: Swoosh/slash sounds
+      // Hit: Punchy impact sounds
+      // Currently using synthesized placeholder sounds
+      
       if (audioCtx.state === 'suspended') audioCtx.resume();
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
@@ -1029,7 +970,7 @@
       const now = audioCtx.currentTime;
       
       if (type === 'shoot') {
-        // Realistic gun sound - sharper and snappier
+        // Placeholder - Replace with realistic gun sound
         osc.type = 'square';
         osc.frequency.setValueAtTime(800, now);
         osc.frequency.exponentialRampToValueAtTime(80, now + 0.03);
@@ -1038,7 +979,7 @@
         osc.start(now);
         osc.stop(now + 0.08);
       } else if (type === 'hit') {
-        // Punchy hit sound with more bass
+        // Placeholder - Replace with punchy impact sound
         osc.type = 'triangle';
         osc.frequency.setValueAtTime(200, now);
         osc.frequency.exponentialRampToValueAtTime(50, now + 0.08);
@@ -1071,8 +1012,7 @@
         osc.start(now);
         osc.stop(now + 0.6);
         
-        // Update background music
-        updateBackgroundMusic();
+        // Music disabled
       } else if (type === 'splash') {
         // Water splash sound
         osc.type = 'sine';
@@ -1134,6 +1074,21 @@
     let waveCount = 0;
     let windmillQuest = { active: false, timer: 0, duration: 30, windmill: null, hasCompleted: false };
     let runStartGold = 0;  // Track gold at start of run for end-of-run calculation
+
+    // Tutorial System
+    let tutorialActive = false;
+    let tutorialStep = 0;
+    let tutorialTimer = 0;
+    const tutorialMessages = [
+      "Move with joystick",
+      "Kill enemies, pick up EXP stars",
+      "Level up, choose upgrades - each has stat bonuses",
+      "Weapons add up - use 1-4 weapons at same time depending on level",
+      "Start with 1 weapon",
+      "Game is hard! Buy permanent upgrades between runs",
+      "Roguelite Survivor - Boss at Level 50, Stage Complete at Level 100",
+      "Good luck!"
+    ];
 
     // Shared geometries for particle pooling (performance optimization)
     const sharedGeometries = {
@@ -1313,8 +1268,8 @@
             targetVel.x = joystickLeft.x * speed;
             targetVel.z = joystickLeft.y * speed;
           
-            this.mesh.position.x += targetVel.x;
-            this.mesh.position.z += targetVel.z;
+            this.mesh.position.x += targetVel.x * dt;
+            this.mesh.position.z += targetVel.z * dt;
 
             // Water droplet trail when moving
             this.trailTimer += dt;
@@ -1610,19 +1565,37 @@
           }
           this.mesh.lookAt(targetPos);
         } else if (dist > 0.5) {
-          // Move towards target
+          // Move towards target with different patterns per enemy type
           let vx = (dx / dist) * this.speed;
           let vz = (dz / dist) * this.speed;
           
-          // Triangle moves erratically
-          if (this.type === 1) {
+          // Type 0 (Tank) - Direct chase, slow but steady
+          if (this.type === 0) {
+            // No special movement pattern
+          }
+          // Type 1 (Fast) - Zigzag erratic movement
+          else if (this.type === 1) {
             const wobble = Math.sin(gameTime * 10 + this.wobbleOffset) * 0.05;
             vx += wobble * (dz/dist); // Perpendicular
             vz -= wobble * (dx/dist);
           }
+          // Type 2 (Balanced) - Circle strafe pattern
+          else if (this.type === 2) {
+            const circleSpeed = 0.02;
+            const angle = Math.atan2(dz, dx);
+            const circleAngle = angle + Math.sin(gameTime * 2 + this.wobbleOffset) * 0.5;
+            vx = Math.cos(circleAngle) * this.speed;
+            vz = Math.sin(circleAngle) * this.speed;
+          }
+          // Type 3 (Slowing) - Weaving approach
+          else if (this.type === 3) {
+            const weave = Math.sin(gameTime * 4 + this.wobbleOffset) * 0.03;
+            vx += weave * (dz/dist);
+            vz -= weave * (dx/dist);
+          }
           
-          this.mesh.position.x += vx;
-          this.mesh.position.z += vz;
+          this.mesh.position.x += vx * dt;
+          this.mesh.position.z += vz * dt;
           this.mesh.lookAt(targetPos);
         }
 
@@ -1942,12 +1915,12 @@
         this.vz = (dz / dist) * this.speed;
       }
 
-      update() {
+      update(dt = 1/60) {
         if (!this.active) return;
         
         // Handle enemy projectiles separately
         if (this.isEnemyProjectile) {
-          this.mesh.position.add(this.direction.clone().multiplyScalar(this.speed));
+          this.mesh.position.add(this.direction.clone().multiplyScalar(this.speed * dt * 60));
           this.lifetime--;
           
           if (this.lifetime <= 0) {
@@ -1968,8 +1941,8 @@
         }
         
         // Player projectiles
-        this.mesh.position.x += this.vx;
-        this.mesh.position.z += this.vz;
+        this.mesh.position.x += this.vx * dt * 60;
+        this.mesh.position.z += this.vz * dt * 60;
         this.life--;
 
         if (this.life <= 0) {
@@ -2093,11 +2066,11 @@
         this.active = true;
       }
       
-      update() {
+      update(dt = 1/60) {
         if (!this.active) return false;
         
-        this.mesh.position.y -= this.speed;
-        this.speed += 0.05; // Gravity
+        this.mesh.position.y -= this.speed * dt * 60;
+        this.speed += 0.05 * dt * 60; // Gravity
         
         if (this.mesh.position.y <= 0) {
           this.explode();
@@ -2173,15 +2146,16 @@
         this.maxLife = 40;
       }
       
-      update() {
+      update(dt = 1/60) {
         this.life--;
-        this.mesh.position.add(this.vel);
-        this.vel.y -= 0.025; // Gravity with realistic feel
+        const dtFactor = dt * 60;
+        this.mesh.position.add(this.vel.clone().multiplyScalar(dtFactor));
+        this.vel.y -= 0.025 * dtFactor; // Gravity with realistic feel
         
         // Apply rotation
-        this.mesh.rotation.x += this.rotVel.x;
-        this.mesh.rotation.y += this.rotVel.y;
-        this.mesh.rotation.z += this.rotVel.z;
+        this.mesh.rotation.x += this.rotVel.x * dtFactor;
+        this.mesh.rotation.y += this.rotVel.y * dtFactor;
+        this.mesh.rotation.z += this.rotVel.z * dtFactor;
         
         // Bounce with energy loss
         if (this.mesh.position.y < 0.1) {
@@ -3168,8 +3142,8 @@
         top = d / aspect;
         bottom = -d / aspect;
       } else {
-        // Landscape mode: zoom in more (closer camera) by reducing d
-        const landscapeD = d * 0.65; // 35% closer zoom for landscape
+        // Landscape mode: zoom in MORE (closer camera) by reducing d
+        const landscapeD = d * 0.5; // 50% closer zoom for landscape (increased from 0.65)
         left = -landscapeD * aspect;
         right = landscapeD * aspect;
         top = landscapeD;
@@ -3217,8 +3191,7 @@
       createWorld();
       player = new Player();
       
-      // Initialize background music
-      updateBackgroundMusic();
+      // Music disabled
       
       // Listeners
       setupInputs();
@@ -3382,6 +3355,20 @@
 
     function spawnWave() {
       waveCount++;
+      
+      // Tutorial mode - only 3 enemies initially
+      if (tutorialActive) {
+        const count = 3;
+        for(let i=0; i<count; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const dist = 25 + Math.random() * 10;
+          const ex = player.mesh.position.x + Math.cos(angle) * dist;
+          const ez = player.mesh.position.z + Math.sin(angle) * dist;
+          enemies.push(new Enemy(0, ex, ez, 1)); // Only tank type, level 1
+        }
+        return;
+      }
+      
       // Scale spawn count with player level for increased difficulty
       const baseCount = 3 + Math.floor(waveCount / 2); // 3, 3, 4, 4, 5...
       const levelBonus = Math.floor(playerStats.lvl / 5); // +1 every 5 levels
@@ -3408,6 +3395,43 @@
         
         enemies.push(new Enemy(type, ex, ez, playerStats.lvl));
       }
+    }
+
+    function startTutorial() {
+      tutorialActive = true;
+      tutorialStep = 0;
+      tutorialTimer = 0;
+      showTutorialMessage(0);
+    }
+
+    function showTutorialMessage(step) {
+      if (step >= tutorialMessages.length) {
+        endTutorial();
+        return;
+      }
+      
+      const tutorialText = document.getElementById('tutorial-text');
+      tutorialText.textContent = tutorialMessages[step];
+      tutorialText.style.opacity = '1';
+      
+      // Auto-advance after 4 seconds
+      setTimeout(() => {
+        tutorialText.style.opacity = '0';
+        setTimeout(() => {
+          tutorialStep++;
+          if (tutorialStep < tutorialMessages.length) {
+            showTutorialMessage(tutorialStep);
+          } else {
+            endTutorial();
+          }
+        }, 500);
+      }, 4000);
+    }
+
+    function endTutorial() {
+      tutorialActive = false;
+      const tutorialText = document.getElementById('tutorial-text');
+      tutorialText.style.opacity = '0';
     }
 
     function spawnParticles(pos, color, count) {
@@ -3771,35 +3795,68 @@
     }
     
     class LightningBolt {
-      constructor(start, end) {
+      constructor(start, end, isChain = false) {
         const points = [];
-        const segments = 8;
+        const segments = 12; // More segments for more visible lightning
         
         for(let i=0; i<=segments; i++) {
           const t = i / segments;
-          const x = start.x + (end.x - start.x) * t + (Math.random() - 0.5) * 1.5;
-          const y = start.y + (end.y - start.y) * t + (Math.random() - 0.5) * 1.5;
-          const z = start.z + (end.z - start.z) * t + (Math.random() - 0.5) * 1.5;
+          const x = start.x + (end.x - start.x) * t + (Math.random() - 0.5) * (isChain ? 0.8 : 1.5);
+          const y = start.y + (end.y - start.y) * t + (Math.random() - 0.5) * (isChain ? 0.8 : 1.5);
+          const z = start.z + (end.z - start.z) * t + (Math.random() - 0.5) * (isChain ? 0.8 : 1.5);
           points.push(new THREE.Vector3(x, y, z));
         }
         
         const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        // Blue-purple tint for lightning
+        const lightningColor = isChain ? 0x9D4EDD : 0x7B68EE; // Purple for chain, blue-purple for main
         const material = new THREE.LineBasicMaterial({ 
-          color: 0x5DADE2, 
+          color: lightningColor, 
           transparent: true, 
           opacity: 1,
-          linewidth: 3
+          linewidth: isChain ? 2 : 4 // Thicker main bolt
         });
         
         this.mesh = new THREE.Line(geometry, material);
         scene.add(this.mesh);
-        this.life = 20;
-        this.maxLife = 20;
+        this.life = 15;
+        this.maxLife = 15;
+        this.isChain = isChain;
+        this.groundPos = end.clone();
+        
+        // Ground impact effect - sparks/particles where lightning hits
+        if (!isChain && end.y <= 1) {
+          this.createGroundImpact(end);
+        }
       }
       
-      update() {
+      createGroundImpact(pos) {
+        // Spawn bright particles at impact point
+        for(let i = 0; i < 8; i++) {
+          const particle = new Particle(pos, 0xFFFFFF);
+          particle.vel.y = Math.random() * 0.3 + 0.1;
+          particle.vel.x = (Math.random() - 0.5) * 0.3;
+          particle.vel.z = (Math.random() - 0.5) * 0.3;
+          particles.push(particle);
+        }
+        // Add purple/blue sparks
+        for(let i = 0; i < 6; i++) {
+          const particle = new Particle(pos, 0x9D4EDD);
+          particle.vel.y = Math.random() * 0.2;
+          particle.vel.x = (Math.random() - 0.5) * 0.4;
+          particle.vel.z = (Math.random() - 0.5) * 0.4;
+          particles.push(particle);
+        }
+      }
+      
+      update(dt = 1/60) {
         this.life--;
         this.mesh.material.opacity = this.life / this.maxLife;
+        
+        // Flicker effect for more dramatic lightning
+        if (Math.random() < 0.3) {
+          this.mesh.material.opacity *= 0.5;
+        }
         
         if (this.life <= 0) {
           scene.remove(this.mesh);
@@ -4472,7 +4529,7 @@
       });
       musicOscillators = [];
       currentMusicLevel = 0;
-      updateBackgroundMusic();
+      // Music disabled
 
       // Clear Entities
       enemies.forEach(e => {
@@ -4529,6 +4586,9 @@
       isGameActive = true;
       document.getElementById('gameover-screen').style.display = 'none';
       updateHUD();
+      
+      // Start tutorial
+      startTutorial();
     }
 
     function toggleStats() {
@@ -4659,6 +4719,11 @@ Total Gold Earned: ${saveData.totalGoldEarned}
             joystickLeft.originX = touch.clientX;
             joystickLeft.originY = touch.clientY;
             
+            // Store for dash detection
+            touchStartX = touch.clientX;
+            touchStartY = touch.clientY;
+            touchStartTime = Date.now();
+            
             // Show dynamic joystick at touch position
             joystickOuter.style.display = 'block';
             joystickOuter.style.left = (touch.clientX - 60) + 'px';
@@ -4737,6 +4802,17 @@ Total Gold Earned: ${saveData.totalGoldEarned}
           const touch = e.changedTouches[i];
           
           if (touch.identifier === joystickLeft.id) {
+            // Check for dash swipe - fast swipe in any 360° direction
+            const dx = touch.clientX - touchStartX;
+            const dy = touch.clientY - touchStartY;
+            const dt = Date.now() - touchStartTime;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            
+            // Quick swipe for dash (at least 60 pixels, less than 250ms for responsive feel)
+            if (dt < 250 && dist > 60) {
+              player.dash(dx/dist, dy/dist);
+            }
+            
             joystickLeft.active = false;
             joystickLeft.x = 0;
             joystickLeft.y = 0;
@@ -4770,40 +4846,6 @@ Total Gold Earned: ${saveData.totalGoldEarned}
       // Stats Button
       document.getElementById('stats-btn').addEventListener('click', toggleStats);
       document.getElementById('close-stats-btn').addEventListener('click', toggleStats);
-      
-      // Swipe Detection (Global - for dash)
-      container.addEventListener('touchstart', (e) => {
-        const t = e.changedTouches[0];
-        touchStartX = t.clientX;
-        touchStartY = t.clientY;
-        touchStartTime = Date.now();
-        swipeDetected = false;
-      }, { passive: false });
-
-      container.addEventListener('touchmove', (e) => {
-        const t = e.changedTouches[0];
-        const dx = t.clientX - touchStartX;
-        const dy = t.clientY - touchStartY;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        
-        // If moved enough, mark as swipe
-        if (dist > 30) {
-          swipeDetected = true;
-        }
-      }, { passive: false });
-
-      container.addEventListener('touchend', (e) => {
-        const t = e.changedTouches[0];
-        const dx = t.clientX - touchStartX;
-        const dy = t.clientY - touchStartY;
-        const dt = Date.now() - touchStartTime;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        
-        // Quick swipe for dash (at least 40 pixels, less than 400ms)
-        if (dt < 400 && dist > 40 && swipeDetected) {
-           player.dash(dx/dist, dy/dist);
-        }
-      }, { passive: false });
     }
 
     function onWindowResize() {
@@ -4818,8 +4860,8 @@ Total Gold Earned: ${saveData.totalGoldEarned}
         camera.top = d / aspect;
         camera.bottom = -d / aspect;
       } else {
-        // Landscape mode: zoom in more (closer camera) by reducing d
-        const landscapeD = d * 0.65; // 35% closer zoom for landscape
+        // Landscape mode: zoom in MORE (closer camera) by reducing d
+        const landscapeD = d * 0.5; // 50% closer zoom for landscape (increased from 0.65)
         camera.left = -landscapeD * aspect;
         camera.right = landscapeD * aspect;
         camera.top = landscapeD;
@@ -5028,19 +5070,19 @@ Total Gold Earned: ${saveData.totalGoldEarned}
           const enemy = shuffled[i];
           targets.push(enemy);
           
-          // Create lightning bolt from sky
+          // Create lightning bolt from sky with enhanced visuals
           const lightning = new LightningBolt(
             new THREE.Vector3(enemy.mesh.position.x, 15, enemy.mesh.position.z),
             enemy.mesh.position.clone()
           );
           particles.push(lightning);
           
-          // Flash effect
-          const flashLight = new THREE.PointLight(0x5DADE2, 3, 15);
+          // Flash effect with blue-purple light
+          const flashLight = new THREE.PointLight(0x7B68EE, 4, 20);
           flashLight.position.copy(enemy.mesh.position);
           flashLight.position.y += 2;
           scene.add(flashLight);
-          setTimeout(() => scene.remove(flashLight), 100);
+          setTimeout(() => scene.remove(flashLight), 150);
           
           // Damage enemy
           const dmg = weapons.lightning.damage * playerStats.strength;
@@ -5049,13 +5091,40 @@ Total Gold Earned: ${saveData.totalGoldEarned}
           enemy.takeDamage(finalDmg);
           createDamageNumber(finalDmg, enemy.mesh.position, isCrit);
           
-          // Particles
-          spawnParticles(enemy.mesh.position, 0x5DADE2, 10);
+          // Enhanced particles with purple tint
+          spawnParticles(enemy.mesh.position, 0x9D4EDD, 8);
+          spawnParticles(enemy.mesh.position, 0xFFFFFF, 5);
+          
+          // CHAIN LIGHTNING - Find nearest enemy within range and chain to them
+          const chainRange = 8;
+          const chainDmg = dmg * 0.6; // Chain does 60% damage
+          const nearestChainTarget = aliveEnemies
+            .filter(e => e !== enemy && !e.isDead)
+            .map(e => ({ enemy: e, dist: e.mesh.position.distanceTo(enemy.mesh.position) }))
+            .filter(obj => obj.dist < chainRange)
+            .sort((a, b) => a.dist - b.dist)[0];
+          
+          if (nearestChainTarget) {
+            const chainEnemy = nearestChainTarget.enemy;
+            // Create chain lightning bolt
+            const chainLightning = new LightningBolt(
+              enemy.mesh.position.clone(),
+              chainEnemy.mesh.position.clone(),
+              true // isChain flag
+            );
+            particles.push(chainLightning);
+            
+            // Chain damage
+            const chainFinalDmg = isCrit ? chainDmg * playerStats.critDmg : chainDmg;
+            chainEnemy.takeDamage(chainFinalDmg);
+            createDamageNumber(chainFinalDmg, chainEnemy.mesh.position, false);
+            spawnParticles(chainEnemy.mesh.position, 0x9D4EDD, 5);
+          }
         }
         
         weapons.lightning.lastShot = time;
         if (targets.length > 0) {
-          playSound('shoot');
+          playSound('shoot'); // TODO: Replace with realistic lightning sound
         }
       }
 
@@ -5118,11 +5187,11 @@ Total Gold Earned: ${saveData.totalGoldEarned}
       // Entities Update
       enemies.forEach(e => e.update(dt, player.mesh.position));
       // Projectiles update returns false if dead
-      projectiles = projectiles.filter(p => p.update() !== false);
-      meteors = meteors.filter(m => m.update() !== false);
+      projectiles = projectiles.filter(p => p.update(dt) !== false);
+      meteors = meteors.filter(m => m.update(dt) !== false);
       expGems.forEach(g => g.update(player.mesh.position));
       goldCoins.forEach(g => g.update(player.mesh.position));
-      particles = particles.filter(p => p.update() !== false);
+      particles = particles.filter(p => p.update(dt) !== false);
       
       // Windmill Rotation and Light Animation
       scene.children.forEach(c => {
