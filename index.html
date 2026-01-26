@@ -1349,7 +1349,7 @@
         this.mesh.add(this.glow);
         
         // Aura Circle (visible when aura weapon is active)
-        const auraGeo = new THREE.RingGeometry(3.5, 4, 32);
+        const auraGeo = new THREE.RingGeometry(2.5, 3, 32); // Initial range 3
         const auraMat = new THREE.MeshBasicMaterial({ 
           color: 0x5DADE2, 
           transparent: true, 
@@ -1402,9 +1402,9 @@
         
           // Movement with LEFT stick
           if (joystickLeft.active) {
-            const speed = GAME_CONFIG.playerSpeedBase * (playerStats.walkSpeed / 25); // Normalize 25 to base
-            targetVel.x = joystickLeft.x * speed * dt * 60; // Multiply by dt * 60 for frame-rate independence
-            targetVel.z = joystickLeft.y * speed * dt * 60;
+            const speed = GAME_CONFIG.playerSpeedBase * (playerStats.walkSpeed / 25) * 60; // Base speed for 60fps
+            targetVel.x = joystickLeft.x * speed * dt; // Frame-rate independent
+            targetVel.z = joystickLeft.y * speed * dt;
           
             this.mesh.position.x += targetVel.x;
             this.mesh.position.z += targetVel.z;
