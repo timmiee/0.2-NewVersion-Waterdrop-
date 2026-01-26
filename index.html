@@ -1395,6 +1395,28 @@
         this.smile.rotation.z = Math.PI;
         this.mesh.add(this.smile);
         
+        // Cigar accessory with glowing tip
+        const cigarGeo = new THREE.CylinderGeometry(0.02, 0.025, 0.25, 8);
+        const cigarMat = new THREE.MeshToonMaterial({ color: 0x8B4513 }); // Brown
+        this.cigar = new THREE.Mesh(cigarGeo, cigarMat);
+        this.cigar.position.set(0.2, -0.1, 0.35);
+        this.cigar.rotation.z = -Math.PI / 6; // Angled
+        this.mesh.add(this.cigar);
+        
+        // Glowing cigar tip
+        const tipGeo = new THREE.SphereGeometry(0.03, 8, 8);
+        const tipMat = new THREE.MeshBasicMaterial({ 
+          color: 0xFF4500, // Orange-red
+          transparent: true,
+          opacity: 1
+        });
+        this.cigarTip = new THREE.Mesh(tipGeo, tipMat);
+        this.cigarTip.position.set(0.28, -0.05, 0.35);
+        this.mesh.add(this.cigarTip);
+        
+        // Smoke particles timer
+        this.smokeTimer = 0;
+        
         // Pulsing glow
         const glowGeo = new THREE.SphereGeometry(0.55, 16, 16);
         const glowMat = new THREE.MeshBasicMaterial({ 
@@ -1527,6 +1549,53 @@
           1 + Math.sin(gameTime * 2) * 0.05,
           1 + Math.sin(gameTime * 2) * 0.05
         );
+        
+        // Animate cigar tip (pulsing emissive glow)
+        if (this.cigarTip) {
+          const tipBrightness = 0.7 + Math.sin(gameTime * 8) * 0.3;
+          this.cigarTip.material.opacity = tipBrightness;
+          
+          // Smoke particles from cigar
+          this.smokeTimer += dt;
+          if (this.smokeTimer > 0.2) { // Every 0.2 seconds
+            this.smokeTimer = 0;
+            
+            // Create smoke particle
+            const smokeGeo = new THREE.SphereGeometry(0.05, 6, 6);
+            const smokeMat = new THREE.MeshBasicMaterial({ 
+              color: 0xCCCCCC,
+              transparent: true,
+              opacity: 0.5
+            });
+            const smoke = new THREE.Mesh(smokeGeo, smokeMat);
+            
+            // Position at cigar tip
+            const tipWorldPos = new THREE.Vector3();
+            this.cigarTip.getWorldPosition(tipWorldPos);
+            smoke.position.copy(tipWorldPos);
+            scene.add(smoke);
+            
+            // Animate smoke rising
+            let smokeLife = 80;
+            const updateSmoke = () => {
+              smokeLife--;
+              smoke.position.y += 0.02; // Rise up
+              smoke.position.x += (Math.random() - 0.5) * 0.01; // Drift
+              smoke.position.z += (Math.random() - 0.5) * 0.01;
+              smoke.scale.multiplyScalar(1.02); // Expand
+              smoke.material.opacity = (smokeLife / 80) * 0.5; // Fade out
+              
+              if (smokeLife <= 0) {
+                scene.remove(smoke);
+                smoke.geometry.dispose();
+                smoke.material.dispose();
+              } else {
+                requestAnimationFrame(updateSmoke);
+              }
+            };
+            updateSmoke();
+          }
+        }
         
         // Update aura circle
         if (weapons.aura.active) {
@@ -5543,9 +5612,48 @@ Total Gold Earned: ${saveData.totalGoldEarned}
           enemy.takeDamage(finalDmg);
           createDamageNumber(finalDmg, enemy.mesh.position, isCrit);
           
-          // Particles - blue-purple color
-          spawnParticles(enemy.mesh.position, 0x7B68EE, 10);
-          spawnParticles(enemy.mesh.position, 0xFFFFFF, 3); // White flash
+          // Ground impact particles - 8 white + 6 purple sparks
+          spawnParticles(enemy.mesh.position, 0xFFFFFF, 8); // White sparks
+          spawnParticles(enemy.mesh.position, 0x7B68EE, 6); // Purple sparks
+          
+          // Chain Lightning - Find nearest enemy within 8 units at 60% damage
+          const chainRange = 8;
+          let chainTarget = null;
+          let minChainDist = Infinity;
+          
+          for (let e of aliveEnemies) {
+            if (e === enemy || e.isDead) continue;
+            const dist = enemy.mesh.position.distanceTo(e.mesh.position);
+            if (dist < chainRange && dist < minChainDist) {
+              minChainDist = dist;
+              chainTarget = e;
+            }
+          }
+          
+          if (chainTarget) {
+            // Create chain lightning visual
+            const chainLightning = new LightningBolt(
+              enemy.mesh.position.clone(),
+              chainTarget.mesh.position.clone()
+            );
+            chainLightning.mesh.material.color.setHex(0xADD8E6); // Light blue for chain
+            particles.push(chainLightning);
+            
+            // Chain damage (60% of original)
+            const chainDmg = finalDmg * 0.6;
+            chainTarget.takeDamage(chainDmg);
+            createDamageNumber(chainDmg, chainTarget.mesh.position, false);
+            
+            // Chain impact particles
+            spawnParticles(chainTarget.mesh.position, 0xADD8E6, 8);
+            
+            // Chain flash
+            const chainFlashLight = new THREE.PointLight(0xADD8E6, 2, 10);
+            chainFlashLight.position.copy(chainTarget.mesh.position);
+            chainFlashLight.position.y += 1;
+            scene.add(chainFlashLight);
+            setTimeout(() => scene.remove(chainFlashLight), 80);
+          }
         }
         
         weapons.lightning.lastShot = time;
