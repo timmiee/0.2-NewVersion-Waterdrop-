@@ -185,9 +185,31 @@
       border: 4px solid #5DADE2;
       width: 80%;
       max-width: 400px;
+      max-height: 85vh; /* Scrollable modals */
+      overflow-y: auto; /* Enable scrolling */
       text-align: center;
       box-shadow: 0 15px 30px rgba(0,0,0,0.7), 0 0 40px rgba(93,173,226,0.5), inset 0 0 30px rgba(93,173,226,0.1);
       pointer-events: auto; /* Modal content should receive clicks */
+    }
+
+    /* Custom scrollbar styling */
+    .modal-content::-webkit-scrollbar {
+      width: 10px;
+    }
+    
+    .modal-content::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 10px;
+    }
+    
+    .modal-content::-webkit-scrollbar-thumb {
+      background: linear-gradient(to bottom, #5DADE2, #4A9CCF);
+      border-radius: 10px;
+      border: 2px solid rgba(0, 0, 0, 0.3);
+    }
+    
+    .modal-content::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(to bottom, #6BBDEF, #5DADE2);
     }
 
     h2 {
@@ -731,6 +753,32 @@
       text-align: center;
       line-height: 1.8;
       max-width: 600px;
+    }
+
+    /* Responsive Media Queries */
+    @media (orientation: portrait) {
+      /* Portrait mode adjustments */
+      .modal-content {
+        width: 90%;
+        max-width: 350px;
+      }
+      
+      #joystick-outer-right {
+        display: none !important; /* Hide right joystick in portrait */
+      }
+    }
+
+    @media (orientation: landscape) {
+      /* Landscape mode adjustments */
+      .modal-content {
+        width: 70%;
+        max-width: 500px;
+      }
+      
+      .hud-top {
+        flex-direction: row;
+        justify-content: space-between;
+      }
     }
 
   </style>
