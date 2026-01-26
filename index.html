@@ -4295,6 +4295,11 @@
       const countdownText = document.getElementById('tutorial-text');
       countdownText.style.opacity = '0';
       countdownText.style.fontSize = '36px'; // Reset to default
+      
+      // Ensure game is properly active and not frozen
+      isPaused = false;
+      isGameActive = true;
+      gameStartTime = Date.now(); // Reset game start time
     }
 
     function spawnParticles(pos, color, count) {
