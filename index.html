@@ -43,12 +43,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="screen-orientation" content="portrait">
   <title>Water Drop Survivor</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800;900&display=swap" rel="stylesheet">
   <style>
     body {
       margin: 0;
       padding: 0;
       overflow: hidden;
-      background-color: #FFF0F5; /* Lavender Blush */
+      background-color: #000000; /* Black background - no white space */
       font-family: 'M PLUS Rounded 1c', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       touch-action: none;
       user-select: none;
@@ -131,6 +135,7 @@
       height: 100%;
       pointer-events: auto;
       touch-action: none;
+      z-index: 50;
     }
     
     .joystick-outer {
@@ -819,6 +824,9 @@
     <div id="joystick-zone">
       <div class="joystick-outer" id="joystick-outer">
         <div class="joystick-inner" id="joystick-inner"></div>
+      </div>
+      <div class="joystick-outer" id="joystick-outer-right">
+        <div class="joystick-inner" id="joystick-inner-right"></div>
       </div>
     </div>
   </div>
@@ -4186,9 +4194,11 @@
       
       const gunCooldown = 1000 * (1 - cdReduction);
       weapons.gun = { active: true, level: 1, damage: 15, cooldown: gunCooldown, lastShot: 0, range: 12, barrels: 1 };
-      weapons.sword.active = false;
-      weapons.aura.active = false;
-      weapons.meteor.active = false;
+      weapons.sword = { active: false, level: 0, damage: 30, cooldown: 1500, lastShot: 0, range: 3.5 };
+      weapons.aura = { active: false, level: 0, damage: 5, cooldown: 500, lastShot: 0, range: 4 };
+      weapons.meteor = { active: false, level: 0, damage: 60, cooldown: 2500, lastShot: 0, area: 5 };
+      weapons.lightning = { active: false, level: 0, damage: 25, cooldown: 3000, lastShot: 0, targets: 4 };
+      weapons.doubleBarrel = { active: false, level: 0, damage: 25, cooldown: 1200, lastShot: 0, range: 12, spread: 0.3 };
       
       windmillQuest = { active: false, timer: 0, duration: 15, windmill: null, hasCompleted: false };
       document.getElementById('windmill-quest-ui').style.display = 'none';
