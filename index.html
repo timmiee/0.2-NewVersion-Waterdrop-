@@ -277,6 +277,18 @@
       100% { transform: translateY(-60px) scale(1.3); opacity: 0; }
     }
 
+    @keyframes goldBagPop {
+      0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+      50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(1) translateY(-50px); opacity: 0; }
+    }
+
+    @keyframes goldTextFloat {
+      0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+      50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(1) translateY(-30px); opacity: 0; }
+    }
+
     /* Game Over Screen */
     #gameover-screen {
       position: absolute;
@@ -1242,7 +1254,11 @@
       walkSpeed: 25, // Display value
       kills: 0,
       hpRegen: 0,
-      gold: 0
+      gold: 0,
+      survivalTime: 0,
+      dashesPerformed: 0,
+      damageTaken: 0,
+      weaponsUnlocked: 0
     };
 
     // Weapons State
@@ -2453,6 +2469,7 @@
         this.vx = 0;
         this.vz = 0;
         this.wobblePhase = Math.random() * Math.PI * 2;
+        this.bounceTime = 0;
         
         // Play gold drop sound
         playSound('coinDrop');
@@ -2465,10 +2482,18 @@
       update(playerPos) {
         if (!this.active) return;
         
-        // Rotate and wobble for visual effect
-        this.mesh.rotation.z += 0.15;
-        this.wobblePhase += 0.1;
-        this.mesh.position.y = 0.3 + Math.sin(this.wobblePhase) * 0.1;
+        // Spinning
+        this.mesh.rotation.y += 0.15;
+        
+        // Bounce physics on spawn
+        if (this.bounceTime < 1) {
+          this.mesh.position.y = 0.3 + Math.abs(Math.sin(this.bounceTime * Math.PI * 3)) * 0.5 * (1 - this.bounceTime);
+          this.bounceTime += 0.02;
+        } else {
+          // Wobble after bounce
+          this.wobblePhase += 0.1;
+          this.mesh.position.y = 0.3 + Math.sin(this.wobblePhase) * 0.1;
+        }
         
         // NO MAGNET - player must walk over gold to collect it
         const dx = playerPos.x - this.mesh.position.x;
@@ -2502,6 +2527,17 @@
         this.mesh.material.dispose();
       }
     }
+
+    // --- NOTIFICATION/INBOX SYSTEM ---
+    const notifications = [];
+    const inventory = [];
+    const RARITY = {
+      COMMON: { name: 'Common', color: 0xAAAAAA, multiplier: 1.0 },
+      RARE: { name: 'Rare', color: 0x5DADE2, multiplier: 1.25 },
+      EPIC: { name: 'Epic', color: 0x9B59B6, multiplier: 1.5 },
+      LEGENDARY: { name: 'Legendary', color: 0xF39C12, multiplier: 2.0 },
+      MYTHIC: { name: 'Mythic', color: 0xE74C3C, multiplier: 3.0 }
+    };
 
     // --- SAVE SYSTEM ---
     const SAVE_KEY = 'waterDropSurvivorSave';
@@ -2555,12 +2591,24 @@
 
     // --- ACHIEVEMENTS SYSTEM ---
     const ACHIEVEMENTS = {
-      kills100: { id: 'kills100', name: '100 Kills', desc: 'Kill 100 enemies', reward: 50, check: () => playerStats.kills >= 100 },
-      level10: { id: 'level10', name: 'Level 10', desc: 'Reach Level 10', reward: 100, check: () => playerStats.lvl >= 10 },
-      level25: { id: 'level25', name: 'Level 25', desc: 'Reach Level 25', reward: 250, check: () => playerStats.lvl >= 25 },
-      level50: { id: 'level50', name: 'Level 50', desc: 'Reach Level 50', reward: 500, check: () => playerStats.lvl >= 50 },
-      level75: { id: 'level75', name: 'Level 75', desc: 'Reach Level 75', reward: 750, check: () => playerStats.lvl >= 75 },
-      level100: { id: 'level100', name: 'Level 100', desc: 'Reach Level 100', reward: 1000, check: () => playerStats.lvl >= 100 }
+      kills10: { id: 'kills10', name: 'First Blood', desc: 'Kill 10 enemies', reward: 25, check: () => playerStats.kills >= 10, claimed: false },
+      kills50: { id: 'kills50', name: 'Killer Instinct', desc: 'Kill 50 enemies', reward: 50, check: () => playerStats.kills >= 50, claimed: false },
+      kills100: { id: 'kills100', name: 'Century Slayer', desc: 'Kill 100 enemies', reward: 100, check: () => playerStats.kills >= 100, claimed: false },
+      kills500: { id: 'kills500', name: 'Mass Destroyer', desc: 'Kill 500 enemies', reward: 250, check: () => playerStats.kills >= 500, claimed: false },
+      kills1000: { id: 'kills1000', name: 'Legendary Warrior', desc: 'Kill 1000 enemies', reward: 500, check: () => playerStats.kills >= 1000, claimed: false },
+      
+      gold100: { id: 'gold100', name: 'Small Fortune', desc: 'Collect 100 gold in one run', reward: 50, check: () => playerStats.gold >= 100, claimed: false },
+      gold500: { id: 'gold500', name: 'Treasure Hunter', desc: 'Collect 500 gold in one run', reward: 150, check: () => playerStats.gold >= 500, claimed: false },
+      gold1000: { id: 'gold1000', name: 'Gold Baron', desc: 'Collect 1000 gold in one run', reward: 300, check: () => playerStats.gold >= 1000, claimed: false },
+      
+      dasher: { id: 'dasher', name: 'Dash Master', desc: 'Perform 50 dashes in one run', reward: 100, check: () => playerStats.dashesPerformed >= 50, claimed: false },
+      survivor: { id: 'survivor', name: 'Time Warrior', desc: 'Survive for 10 minutes', reward: 200, check: () => playerStats.survivalTime >= 600, claimed: false },
+      weaponMaster: { id: 'weaponMaster', name: 'Weapon Master', desc: 'Unlock all 3 weapons', reward: 150, check: () => playerStats.weaponsUnlocked >= 3, claimed: false },
+      untouchable: { id: 'untouchable', name: 'Untouchable', desc: 'Take no damage for 3 minutes', reward: 300, check: () => playerStats.survivalTime >= 180 && playerStats.damageTaken === 0, claimed: false },
+      
+      level10: { id: 'level10', name: 'Rising Star', desc: 'Reach Level 10', reward: 100, check: () => playerStats.lvl >= 10, claimed: false },
+      level25: { id: 'level25', name: 'Experienced Fighter', desc: 'Reach Level 25', reward: 250, check: () => playerStats.lvl >= 25, claimed: false },
+      level50: { id: 'level50', name: 'Master Champion', desc: 'Reach Level 50', reward: 500, check: () => playerStats.lvl >= 50, claimed: false }
     };
 
     function updateAchievementsScreen() {
@@ -2569,26 +2617,34 @@
       
       let html = '<div style="display: grid; gap: 15px; width: 100%; max-width: 600px; margin: 0 auto;">';
       
+      let unclaimedCount = 0;
       for (const key in ACHIEVEMENTS) {
         const achievement = ACHIEVEMENTS[key];
-        const isEarned = saveData.achievements && saveData.achievements.includes(achievement.id);
+        const isClaimed = saveData.achievements && saveData.achievements.includes(achievement.id);
+        const canClaim = !isClaimed && achievement.check();
+        
+        if (canClaim) unclaimedCount++;
         
         html += `
           <div style="
-            background: linear-gradient(to bottom, ${isEarned ? '#2c5530' : '#3a3a3a'}, ${isEarned ? '#1a3020' : '#2a2a2a'});
-            border: 3px solid ${isEarned ? '#FFD700' : '#5a5a5a'};
+            background: linear-gradient(to bottom, ${isClaimed ? '#2c5530' : (canClaim ? '#4a4a2a' : '#3a3a3a')}, ${isClaimed ? '#1a3020' : (canClaim ? '#3a3a1a' : '#2a2a2a')});
+            border: 3px solid ${isClaimed ? '#FFD700' : (canClaim ? '#FFFF00' : '#5a5a5a')};
             border-radius: 15px;
             padding: 15px;
             text-align: left;
-          ">
-            <div style="color: ${isEarned ? '#FFD700' : '#bbb'}; font-size: 20px; font-weight: bold; margin-bottom: 5px;">
-              ${isEarned ? '✓ ' : ''}${achievement.name}
+            position: relative;
+            cursor: ${canClaim ? 'pointer' : 'default'};
+            transition: all 0.2s ease;
+            ${canClaim ? 'box-shadow: 0 0 15px rgba(255, 255, 0, 0.5);' : ''}
+          " ${canClaim ? `onclick="claimAchievement('${achievement.id}')"` : ''}>
+            <div style="color: ${isClaimed ? '#FFD700' : (canClaim ? '#FFFF00' : '#bbb')}; font-size: 20px; font-weight: bold; margin-bottom: 5px;">
+              ${isClaimed ? '✓ ' : ''}${achievement.name}
             </div>
-            <div style="color: ${isEarned ? '#90ee90' : '#888'}; font-size: 14px; margin-bottom: 8px;">
+            <div style="color: ${isClaimed ? '#90ee90' : (canClaim ? '#dddd00' : '#888')}; font-size: 14px; margin-bottom: 8px;">
               ${achievement.desc}
             </div>
             <div style="color: #FFD700; font-size: 16px; font-weight: bold;">
-              Reward: ${achievement.reward} Gold
+              Reward: ${achievement.reward} Gold ${canClaim ? '- CLICK TO CLAIM!' : ''}
             </div>
           </div>
         `;
@@ -2596,41 +2652,139 @@
       
       html += '</div>';
       content.innerHTML = html;
+      
+      // Update notification badge on achievements button
+      updateAchievementBadge(unclaimedCount);
+    }
+
+    function updateAchievementBadge(count) {
+      let badge = document.getElementById('achievement-badge');
+      if (count > 0) {
+        if (!badge) {
+          badge = document.createElement('div');
+          badge.id = 'achievement-badge';
+          badge.style.cssText = `
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #FF0000;
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.8);
+            z-index: 100;
+          `;
+          document.getElementById('achievements-btn').appendChild(badge);
+        }
+        badge.textContent = count;
+      } else if (badge) {
+        badge.remove();
+      }
+    }
+
+    function claimAchievement(achievementId) {
+      const achievement = Object.values(ACHIEVEMENTS).find(a => a.id === achievementId);
+      if (!achievement) return;
+      
+      const isClaimed = saveData.achievements && saveData.achievements.includes(achievement.id);
+      const canClaim = !isClaimed && achievement.check();
+      
+      if (!canClaim) return;
+      
+      // Mark as claimed
+      if (!saveData.achievements) saveData.achievements = [];
+      saveData.achievements.push(achievement.id);
+      
+      // Award gold
+      addGold(achievement.reward);
+      
+      // Play sound
+      playSound('coin');
+      
+      // Show gold bag animation
+      showGoldBagAnimation(achievement.reward);
+      
+      // Save
+      saveSaveData();
+      
+      // Refresh screen
+      updateAchievementsScreen();
+    }
+
+    function showGoldBagAnimation(amount) {
+      const bag = document.createElement('div');
+      bag.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 64px;
+        z-index: 10000;
+        pointer-events: none;
+        animation: goldBagPop 1s ease-out forwards;
+      `;
+      bag.textContent = '💰';
+      document.body.appendChild(bag);
+      
+      const text = document.createElement('div');
+      text.style.cssText = `
+        position: fixed;
+        top: 55%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 32px;
+        font-weight: bold;
+        color: #FFD700;
+        text-shadow: 0 0 10px rgba(255, 215, 0, 0.8), -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000;
+        z-index: 10000;
+        pointer-events: none;
+        animation: goldTextFloat 1s ease-out forwards;
+      `;
+      text.textContent = `+${amount} GOLD!`;
+      document.body.appendChild(text);
+      
+      setTimeout(() => {
+        bag.remove();
+        text.remove();
+      }, 1000);
     }
 
     function checkAchievements() {
+      // This function just checks if achievements are unlocked (not auto-claiming)
+      // Players must click to claim in the achievements menu
+      let hasNewAchievement = false;
+      
       for (const key in ACHIEVEMENTS) {
         const achievement = ACHIEVEMENTS[key];
         
-        // Skip if already earned
+        // Skip if already claimed
         if (saveData.achievements && saveData.achievements.includes(achievement.id)) {
           continue;
         }
         
-        // Check if achieved
+        // Check if achieved - mark internally but don't auto-claim
         if (achievement.check()) {
-          // Award achievement
-          if (!saveData.achievements) saveData.achievements = [];
-          saveData.achievements.push(achievement.id);
+          hasNewAchievement = true;
           
-          // Award gold
-          addGold(achievement.reward);
-          
-          // Show achievement notification
-          createFloatingText(`ACHIEVEMENT: ${achievement.name}`, player.mesh.position);
-          createFloatingText(`+${achievement.reward} GOLD`, player.mesh.position);
-          
-          // Save
-          saveSaveData();
-          
-          // Play sound
-          playSound('levelup');
-          
-          // Visual effect
-          for(let i=0; i<30; i++) {
-            spawnParticles(player.mesh.position, 0xFFD700, 5);
+          // Show notification that achievement is available
+          if (!achievement.notified) {
+            achievement.notified = true;
+            createFloatingText(`NEW ACHIEVEMENT UNLOCKED!`, player.mesh.position);
+            createFloatingText(`Check Achievements Menu`, player.mesh.position);
+            playSound('levelup');
           }
         }
+      }
+      
+      // Update achievement badge
+      if (hasNewAchievement) {
+        updateAchievementsScreen();
       }
     }
 
