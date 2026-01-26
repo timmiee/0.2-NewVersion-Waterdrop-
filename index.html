@@ -1092,16 +1092,59 @@
         osc2.start(now);
         osc2.stop(now + 0.06);
       } else if (type === 'levelup') {
-        // Epic level up sound
+        // Enhanced epic level up sound - ascending arpeggio with multiple oscillators
+        // First oscillator - main melody
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(400, now);
-        osc.frequency.linearRampToValueAtTime(800, now + 0.1);
-        osc.frequency.linearRampToValueAtTime(1200, now + 0.3);
-        gain.gain.setValueAtTime(0.2, now);
-        gain.gain.linearRampToValueAtTime(0.15, now + 0.2);
-        gain.gain.linearRampToValueAtTime(0, now + 0.6);
+        osc.frequency.setValueAtTime(523, now); // C5
+        osc.frequency.linearRampToValueAtTime(659, now + 0.1); // E5
+        osc.frequency.linearRampToValueAtTime(784, now + 0.2); // G5
+        osc.frequency.linearRampToValueAtTime(1047, now + 0.3); // C6
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.linearRampToValueAtTime(0.2, now + 0.3);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
         osc.start(now);
-        osc.stop(now + 0.6);
+        osc.stop(now + 0.8);
+        
+        // Second oscillator - harmony (offset by a third)
+        const osc2 = audioCtx.createOscillator();
+        const gain2 = audioCtx.createGain();
+        osc2.connect(gain2);
+        gain2.connect(audioCtx.destination);
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(659, now + 0.05); // E5
+        osc2.frequency.linearRampToValueAtTime(784, now + 0.15); // G5
+        osc2.frequency.linearRampToValueAtTime(988, now + 0.25); // B5
+        osc2.frequency.linearRampToValueAtTime(1319, now + 0.35); // E6
+        gain2.gain.setValueAtTime(0.15, now + 0.05);
+        gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
+        osc2.start(now + 0.05);
+        osc2.stop(now + 0.8);
+        
+        // Third oscillator - bass note for depth
+        const osc3 = audioCtx.createOscillator();
+        const gain3 = audioCtx.createGain();
+        osc3.connect(gain3);
+        gain3.connect(audioCtx.destination);
+        osc3.type = 'sine';
+        osc3.frequency.setValueAtTime(131, now); // C3
+        osc3.frequency.linearRampToValueAtTime(262, now + 0.3); // C4
+        gain3.gain.setValueAtTime(0.2, now);
+        gain3.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
+        osc3.start(now);
+        osc3.stop(now + 0.8);
+        
+        // Fourth oscillator - sparkle/shimmer effect
+        const osc4 = audioCtx.createOscillator();
+        const gain4 = audioCtx.createGain();
+        osc4.connect(gain4);
+        gain4.connect(audioCtx.destination);
+        osc4.type = 'triangle';
+        osc4.frequency.setValueAtTime(2093, now + 0.1); // C7
+        osc4.frequency.exponentialRampToValueAtTime(3136, now + 0.3); // G7
+        gain4.gain.setValueAtTime(0.1, now + 0.1);
+        gain4.gain.exponentialRampToValueAtTime(0.01, now + 0.7);
+        osc4.start(now + 0.1);
+        osc4.stop(now + 0.7);
         
         // Music disabled
       } else if (type === 'splash') {
@@ -1142,6 +1185,65 @@
         gain.gain.linearRampToValueAtTime(0, now + 0.1);
         osc.start(now);
         osc.stop(now + 0.1);
+      } else if (type === 'goldDrop') {
+        // Metallic coin drop sound - multiple bounces
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(1200, now);
+        osc.frequency.exponentialRampToValueAtTime(600, now + 0.05);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+        osc.start(now);
+        osc.stop(now + 0.05);
+        
+        // Second bounce
+        const osc2 = audioCtx.createOscillator();
+        const gain2 = audioCtx.createGain();
+        osc2.connect(gain2);
+        gain2.connect(audioCtx.destination);
+        osc2.type = 'triangle';
+        osc2.frequency.setValueAtTime(1000, now + 0.08);
+        osc2.frequency.exponentialRampToValueAtTime(500, now + 0.12);
+        gain2.gain.setValueAtTime(0.1, now + 0.08);
+        gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+        osc2.start(now + 0.08);
+        osc2.stop(now + 0.12);
+        
+        // Third bounce (softer)
+        const osc3 = audioCtx.createOscillator();
+        const gain3 = audioCtx.createGain();
+        osc3.connect(gain3);
+        gain3.connect(audioCtx.destination);
+        osc3.type = 'triangle';
+        osc3.frequency.setValueAtTime(800, now + 0.14);
+        osc3.frequency.exponentialRampToValueAtTime(400, now + 0.17);
+        gain3.gain.setValueAtTime(0.06, now + 0.14);
+        gain3.gain.exponentialRampToValueAtTime(0.01, now + 0.17);
+        osc3.start(now + 0.14);
+        osc3.stop(now + 0.17);
+      } else if (type === 'goldPickup') {
+        // Rewarding collection jingle - ascending notes
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1500, now);
+        osc.frequency.linearRampToValueAtTime(2000, now + 0.08);
+        osc.frequency.linearRampToValueAtTime(2500, now + 0.15);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.linearRampToValueAtTime(0.08, now + 0.1);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+        osc.start(now);
+        osc.stop(now + 0.2);
+        
+        // Sparkle layer
+        const osc2 = audioCtx.createOscillator();
+        const gain2 = audioCtx.createGain();
+        osc2.connect(gain2);
+        gain2.connect(audioCtx.destination);
+        osc2.type = 'triangle';
+        osc2.frequency.setValueAtTime(3000, now + 0.05);
+        osc2.frequency.exponentialRampToValueAtTime(4000, now + 0.15);
+        gain2.gain.setValueAtTime(0.08, now + 0.05);
+        gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        osc2.start(now + 0.05);
+        osc2.stop(now + 0.15);
       }
     }
 
@@ -2617,15 +2719,51 @@
         this.vx = 0;
         this.vz = 0;
         this.wobblePhase = Math.random() * Math.PI * 2;
+        
+        // Drop animation properties
+        this.spawnTime = Date.now();
+        this.dropHeight = 2.0; // Start higher
+        this.bounceVelocity = 0;
+        this.gravity = -15;
+        this.bounceCount = 0;
+        this.maxBounces = 2;
+        this.hasLanded = false;
+        
+        // Spawn sparkle particles
+        spawnParticles({ x: x, y: 0.3, z: z }, 0xFFD700, 8);
+        
+        // Play gold drop sound
+        playSound('goldDrop');
       }
       
       update(playerPos) {
         if (!this.active) return;
         
-        // Rotate and wobble for visual effect
+        // Drop and bounce animation
+        if (!this.hasLanded && this.bounceCount < this.maxBounces) {
+          this.bounceVelocity += this.gravity * 0.016; // Approximate dt
+          this.dropHeight += this.bounceVelocity * 0.016;
+          
+          if (this.dropHeight <= 0.3) {
+            this.dropHeight = 0.3;
+            this.bounceVelocity = -this.bounceVelocity * 0.5; // Bounce with energy loss
+            this.bounceCount++;
+            
+            if (this.bounceCount >= this.maxBounces) {
+              this.hasLanded = true;
+            }
+          }
+          
+          this.mesh.position.y = this.dropHeight;
+        } else {
+          // Normal wobble after landing
+          this.wobblePhase += 0.1;
+          this.mesh.position.y = 0.3 + Math.sin(this.wobblePhase) * 0.1;
+        }
+        
+        // Enhanced spinning animation
         this.mesh.rotation.z += 0.15;
-        this.wobblePhase += 0.1;
-        this.mesh.position.y = 0.3 + Math.sin(this.wobblePhase) * 0.1;
+        this.mesh.rotation.y += 0.05;
         
         // NO MAGNET - player must walk over gold to collect it
         const dx = playerPos.x - this.mesh.position.x;
@@ -2636,10 +2774,11 @@
         if (dist < this.collectRange) {
           addGold(this.amount);
           this.destroy();
-          playSound('coin');
+          playSound('goldPickup');
           
-          // Gold collect particles
-          spawnParticles(this.mesh.position, 0xFFD700, 15);
+          // Enhanced gold collect particles with sparkle burst
+          spawnParticles(this.mesh.position, 0xFFD700, 20);
+          spawnParticles(this.mesh.position, 0xFFFFFF, 10); // White sparkles
         }
       }
       
@@ -4295,6 +4434,11 @@
       const countdownText = document.getElementById('tutorial-text');
       countdownText.style.opacity = '0';
       countdownText.style.fontSize = '36px'; // Reset to default
+      
+      // Ensure game is properly active and not frozen
+      isPaused = false;
+      isGameActive = true;
+      gameStartTime = Date.now(); // Reset game start time
     }
 
     function spawnParticles(pos, color, count) {
@@ -4888,6 +5032,7 @@
       const commonUpgrades = [
         { 
           id: 'str', 
+          icon: '💪',
           title: 'MUSCLE JUICE', 
           desc: 'Damage +10%', 
           apply: () => { 
@@ -4897,6 +5042,7 @@
         },
         { 
           id: 'aspd', 
+          icon: '⚡',
           title: 'SPEEDY TRIGGER', 
           desc: 'Atk Speed +10%', 
           apply: () => { 
@@ -4908,6 +5054,7 @@
         },
         { 
           id: 'armor', 
+          icon: '🛡️',
           title: 'THICC ARMOR', 
           desc: 'Damage Taken -10%', 
           apply: () => { 
@@ -4917,6 +5064,7 @@
         },
         { 
           id: 'hp', 
+          icon: '❤️',
           title: 'CHONKY BODY', 
           desc: 'Max HP +20', 
           apply: () => { 
@@ -4927,6 +5075,7 @@
         },
         { 
           id: 'crit', 
+          icon: '🎯',
           title: 'CRIT MACHINE', 
           desc: 'Crit Chance +5%', 
           apply: () => { 
@@ -4936,6 +5085,7 @@
         },
         { 
           id: 'regen', 
+          icon: '💚',
           title: 'HEALING VIBES', 
           desc: 'HP Regen +1/sec', 
           apply: () => { 
@@ -4945,6 +5095,7 @@
         },
         { 
           id: 'speed', 
+          icon: '👟',
           title: 'SPEEDY BOI', 
           desc: 'Move Speed +10%', 
           apply: () => { 
@@ -4954,6 +5105,7 @@
         },
         { 
           id: 'critdmg', 
+          icon: '💥',
           title: 'GLASS CANNON', 
           desc: 'Crit Damage +20%', 
           apply: () => { 
@@ -4963,6 +5115,7 @@
         },
         { 
           id: 'magnet', 
+          icon: '🧲',
           title: 'XP MAGNET', 
           desc: 'Magnet Range +1', 
           apply: () => { 
@@ -4972,6 +5125,7 @@
         },
         { 
           id: 'cooldown', 
+          icon: '⏱️',
           title: 'COOLDOWN MASTER', 
           desc: 'All Weapon CD -5%', 
           apply: () => { 
@@ -5000,6 +5154,7 @@
           const nextLevel = weapons.gun.level + 1;
           choices.push({ 
             id: 'gun_upgrade', 
+            icon: '🔫',
             title: `GUN Level ${nextLevel}`, 
             desc: `Damage +10, Fire Rate +15%`, 
             apply: () => { 
@@ -5015,6 +5170,7 @@
           const nextLevel = weapons.sword.level + 1;
           choices.push({ 
             id: 'sword_upgrade', 
+            icon: '⚔️',
             title: `SWORD Level ${nextLevel}`, 
             desc: `Damage +15, Range +0.5`, 
             apply: () => { 
@@ -5031,6 +5187,7 @@
           const rangeIncrease = INITIAL_AURA_RANGE * AURA_RANGE_INCREASE_MULTIPLIER; // 10% increase per level
           choices.push({ 
             id: 'aura_upgrade', 
+            icon: '✨',
             title: `AURA Level ${nextLevel}`, 
             desc: `Damage +3, Range +10% (${rangeIncrease.toFixed(1)})`, 
             apply: () => { 
@@ -5046,6 +5203,7 @@
           const nextLevel = weapons.meteor.level + 1;
           choices.push({ 
             id: 'meteor_upgrade', 
+            icon: '☄️',
             title: `METEOR Level ${nextLevel}`, 
             desc: `Damage +20, Area +1`, 
             apply: () => { 
@@ -5062,6 +5220,7 @@
           const targetIncrease = nextLevel === 2 ? 3 : (nextLevel === 3 ? 2 : 1);
           choices.push({ 
             id: 'lightning_upgrade', 
+            icon: '⚡',
             title: `LIGHTNING Level ${nextLevel}`, 
             desc: `Damage +10, Targets +${targetIncrease}`, 
             apply: () => { 
@@ -5077,6 +5236,7 @@
           const nextLevel = weapons.doubleBarrel.level + 1;
           choices.push({ 
             id: 'doublebarrel_upgrade', 
+            icon: '🔫',
             title: `DOUBLE BARREL Level ${nextLevel}`, 
             desc: `Damage +12, Fire Rate +10%`, 
             apply: () => { 
@@ -5099,6 +5259,7 @@
         choices = [
           { 
             id: 'sword', 
+            icon: '⚔️',
             title: 'SLASHY SLASH', 
             desc: 'Slash enemies in front', 
             apply: () => { 
@@ -5109,6 +5270,7 @@
           },
           { 
             id: 'aura', 
+            icon: '✨',
             title: 'ZAP ZONE', 
             desc: 'Damage aura around you', 
             apply: () => { 
@@ -5119,6 +5281,7 @@
           },
           { 
             id: 'meteor', 
+            icon: '☄️',
             title: 'SPACE ROCKS', 
             desc: 'Call meteors from sky', 
             apply: () => { 
@@ -5129,6 +5292,7 @@
           },
           { 
             id: 'lightning', 
+            icon: '⚡',
             title: 'LIGHTNING STRIKES', 
             desc: 'Random lightning hits 4 enemies', 
             apply: () => { 
@@ -5139,6 +5303,7 @@
           },
           { 
             id: 'doublebarrel', 
+            icon: '🔫',
             title: 'DOUBLE BARREL', 
             desc: 'Powerful shotgun spread', 
             apply: () => { 
@@ -5157,6 +5322,7 @@
         choices = [
           { 
             id: 'class_tank', 
+            icon: '🛡️',
             title: 'TANK', 
             desc: 'HP+50, Regen+2, Armor+20%, Speed-15%', 
             apply: () => { 
@@ -5170,6 +5336,7 @@
           },
           { 
             id: 'class_berserker', 
+            icon: '💪',
             title: 'BERSERKER', 
             desc: 'Str+30%, Crit+10%, Attack Speed+20%, Armor-10%', 
             apply: () => { 
@@ -5183,6 +5350,7 @@
           },
           { 
             id: 'class_rogue', 
+            icon: '🗡️',
             title: 'ROGUE', 
             desc: 'Speed+25%, Crit+15%, Crit Dmg+30%, HP-20', 
             apply: () => { 
@@ -5196,6 +5364,7 @@
           },
           { 
             id: 'class_mage', 
+            icon: '🔮',
             title: 'MAGE', 
             desc: 'Aura Range+2, Meteor CD-1s, Regen+3, Move Speed+10%', 
             apply: () => { 
@@ -5216,7 +5385,10 @@
       choices.forEach((u, index) => {
         const card = document.createElement('div');
         card.className = 'upgrade-card';
-        card.innerHTML = `<div class="upgrade-title">${u.title}</div><div class="upgrade-desc">${u.desc}</div>`;
+        
+        // Add icon if available
+        const iconHTML = u.icon ? `<div style="font-size: 48px; margin-bottom: 10px;">${u.icon}</div>` : '';
+        card.innerHTML = `${iconHTML}<div class="upgrade-title">${u.title}</div><div class="upgrade-desc">${u.desc}</div>`;
         
         // Add dramatic entrance animation - alternate left/right
         card.style.opacity = '0';
