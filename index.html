@@ -1092,6 +1092,79 @@
         osc2.start(now);
         osc2.stop(now + 0.06);
       } else if (type === 'levelup') {
+        // Epic level up sound - exciting ascending arpeggio with dopamine/adrenaline feel
+        // Multiple notes in quick succession creating an uplifting melody
+        const notes = [400, 500, 633, 800, 1000]; // Major pentatonic scale
+        notes.forEach((freq, i) => {
+          const noteOsc = audioCtx.createOscillator();
+          const noteGain = audioCtx.createGain();
+          noteOsc.connect(noteGain);
+          noteGain.connect(audioCtx.destination);
+          
+          noteOsc.type = 'sine';
+          const startTime = now + i * 0.08; // Stagger each note
+          noteOsc.frequency.setValueAtTime(freq, startTime);
+          noteOsc.frequency.linearRampToValueAtTime(freq * 1.1, startTime + 0.1); // Slight pitch rise
+          noteGain.gain.setValueAtTime(0.15, startTime);
+          noteGain.gain.linearRampToValueAtTime(0, startTime + 0.3);
+          noteOsc.start(startTime);
+          noteOsc.stop(startTime + 0.3);
+        });
+        
+        // Add harmonic layer for richness
+        const harmOsc = audioCtx.createOscillator();
+        const harmGain = audioCtx.createGain();
+        harmOsc.connect(harmGain);
+        harmGain.connect(audioCtx.destination);
+        harmOsc.type = 'triangle';
+        harmOsc.frequency.setValueAtTime(800, now);
+        harmOsc.frequency.linearRampToValueAtTime(1600, now + 0.5);
+        harmGain.gain.setValueAtTime(0.1, now);
+        harmGain.gain.linearRampToValueAtTime(0, now + 0.6);
+        harmOsc.start(now);
+        harmOsc.stop(now + 0.6);
+        
+        // Music disabled
+      } else if (type === 'goldDrop') {
+        // Metallic coin drop sound
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(800, now);
+        osc.frequency.exponentialRampToValueAtTime(200, now + 0.15);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        osc.start(now);
+        osc.stop(now + 0.15);
+        
+        // Add metallic ring
+        const osc2 = audioCtx.createOscillator();
+        const gain2 = audioCtx.createGain();
+        osc2.connect(gain2);
+        gain2.connect(audioCtx.destination);
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(2400, now);
+        osc2.frequency.exponentialRampToValueAtTime(1800, now + 0.2);
+        gain2.gain.setValueAtTime(0.08, now);
+        gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+        osc2.start(now);
+        osc2.stop(now + 0.2);
+      } else if (type === 'goldPickup') {
+        // Rewarding collection jingle - happy ascending notes
+        const pickupNotes = [600, 800, 1000, 1200];
+        pickupNotes.forEach((freq, i) => {
+          const noteOsc = audioCtx.createOscillator();
+          const noteGain = audioCtx.createGain();
+          noteOsc.connect(noteGain);
+          noteGain.connect(audioCtx.destination);
+          
+          noteOsc.type = 'sine';
+          const startTime = now + i * 0.05;
+          noteOsc.frequency.setValueAtTime(freq, startTime);
+          noteGain.gain.setValueAtTime(0.12, startTime);
+          noteGain.gain.linearRampToValueAtTime(0, startTime + 0.15);
+          noteOsc.start(startTime);
+          noteOsc.stop(startTime + 0.15);
+        });
+      } else if (type === 'levelup') {
         // Epic level up sound
         osc.type = 'sine';
         osc.frequency.setValueAtTime(400, now);
@@ -1167,16 +1240,7 @@
     let runStartGold = 0;  // Track gold at start of run for end-of-run calculation
     let sessionDamagesTaken = 0;  // Session-specific damage tracking for Untouchable achievement
 
-    // Countdown System (replaces tutorial)
-    let countdownActive = false;
-    let countdownStep = 0;
-    let countdownTimer = 0;
-    const countdownMessages = [
-      "Good luck!",
-      "3",
-      "2",
-      "1"
-    ];
+
 
     // Shared geometries for particle pooling (performance optimization)
     const sharedGeometries = {
@@ -1296,6 +1360,63 @@
         this.highlight = new THREE.Mesh(highlightGeo, highlightMat);
         this.highlight.position.set(-0.2, 0.3, 0.2);
         this.mesh.add(this.highlight);
+        
+        // Add cute face to match loading screen
+        // Left eye
+        const leftEyeWhiteGeo = new THREE.SphereGeometry(0.12, 16, 16);
+        const eyeWhiteMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
+        this.leftEyeWhite = new THREE.Mesh(leftEyeWhiteGeo, eyeWhiteMat);
+        this.leftEyeWhite.position.set(-0.15, 0.15, 0.4);
+        this.mesh.add(this.leftEyeWhite);
+        
+        // Left pupil
+        const leftPupilGeo = new THREE.SphereGeometry(0.06, 16, 16);
+        const pupilMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+        this.leftPupil = new THREE.Mesh(leftPupilGeo, pupilMat);
+        this.leftPupil.position.set(0, 0, 0.08);
+        this.leftEyeWhite.add(this.leftPupil);
+        
+        // Right eye
+        const rightEyeWhiteGeo = new THREE.SphereGeometry(0.12, 16, 16);
+        this.rightEyeWhite = new THREE.Mesh(rightEyeWhiteGeo, eyeWhiteMat.clone());
+        this.rightEyeWhite.position.set(0.15, 0.15, 0.4);
+        this.mesh.add(this.rightEyeWhite);
+        
+        // Right pupil
+        const rightPupilGeo = new THREE.SphereGeometry(0.06, 16, 16);
+        this.rightPupil = new THREE.Mesh(rightPupilGeo, pupilMat.clone());
+        this.rightPupil.position.set(0, 0, 0.08);
+        this.rightEyeWhite.add(this.rightPupil);
+        
+        // Smile (curved line using small spheres)
+        this.smileParts = [];
+        const smilePoints = 7;
+        for (let i = 0; i < smilePoints; i++) {
+          const t = i / (smilePoints - 1);
+          const angle = Math.PI * 0.6 * (t - 0.5); // 108 degree arc
+          const radius = 0.25;
+          const smileGeo = new THREE.SphereGeometry(0.04, 8, 8);
+          const smileMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+          const smilePart = new THREE.Mesh(smileGeo, smileMat);
+          smilePart.position.set(
+            Math.sin(angle) * radius,
+            -0.05 - Math.cos(angle) * radius * 0.4, // Curved down
+            0.38
+          );
+          this.mesh.add(smilePart);
+          this.smileParts.push(smilePart);
+        }
+        
+        // Add outer glow effect
+        const glowGeo = new THREE.SphereGeometry(0.6, 16, 16);
+        const glowMat = new THREE.MeshBasicMaterial({ 
+          color: 0x4FC3F7, 
+          transparent: true, 
+          opacity: 0.15,
+          side: THREE.BackSide
+        });
+        this.glow = new THREE.Mesh(glowGeo, glowMat);
+        this.mesh.add(this.glow);
         
         // Add cigar accessory
         const cigarGeo = new THREE.CylinderGeometry(0.03, 0.04, 0.25, 8);
@@ -1446,6 +1567,16 @@
         
         // Pulse highlight with deterministic variation based on gameTime
         this.highlight.material.opacity = 0.6 + Math.sin(gameTime * 3) * 0.2 + Math.sin(gameTime * 7) * 0.1;
+        
+        // Pulse glow effect
+        if (this.glow) {
+          this.glow.material.opacity = 0.1 + Math.sin(gameTime * 2) * 0.05;
+          this.glow.scale.set(
+            1 + Math.sin(gameTime * 2) * 0.1,
+            1 + Math.sin(gameTime * 2) * 0.1,
+            1 + Math.sin(gameTime * 2) * 0.1
+          );
+        }
         
         // Animate cigar tip glow
         if (this.cigarTip) {
@@ -2617,15 +2748,48 @@
         this.vx = 0;
         this.vz = 0;
         this.wobblePhase = Math.random() * Math.PI * 2;
+        this.spawnTime = gameTime;
+        this.bounceHeight = 0.3;
+        this.isFlying = false;
+        this.flySpeed = 0;
+        
+        // Play drop sound
+        playSound('goldDrop');
+        
+        // Spawn sparkle particles
+        for (let i = 0; i < 8; i++) {
+          spawnParticles(this.mesh.position, 0xFFD700, 1);
+        }
       }
       
       update(playerPos) {
         if (!this.active) return;
         
-        // Rotate and wobble for visual effect
-        this.mesh.rotation.z += 0.15;
-        this.wobblePhase += 0.1;
-        this.mesh.position.y = 0.3 + Math.sin(this.wobblePhase) * 0.1;
+        // Calculate time since spawn for bounce effect
+        const timeSinceSpawn = gameTime - this.spawnTime;
+        
+        if (!this.isFlying) {
+          // Rotate for spinning animation
+          this.mesh.rotation.z += 0.15;
+          
+          // Wobble effect
+          this.wobblePhase += 0.1;
+          
+          // Bounce effect when first spawned (first 1 second)
+          if (timeSinceSpawn < 1.0) {
+            const bounceProgress = timeSinceSpawn / 1.0;
+            const bounce = Math.abs(Math.sin(bounceProgress * Math.PI * 3)) * this.bounceHeight * (1 - bounceProgress);
+            this.mesh.position.y = this.bounceHeight + bounce + Math.sin(this.wobblePhase) * 0.05;
+          } else {
+            // Normal wobble after bounce
+            this.mesh.position.y = this.bounceHeight + Math.sin(this.wobblePhase) * 0.1;
+          }
+          
+          // Occasional sparkle
+          if (Math.random() < 0.02) {
+            spawnParticles(this.mesh.position, 0xFFD700, 1);
+          }
+        }
         
         // NO MAGNET - player must walk over gold to collect it
         const dx = playerPos.x - this.mesh.position.x;
@@ -2636,10 +2800,35 @@
         if (dist < this.collectRange) {
           addGold(this.amount);
           this.destroy();
-          playSound('coin');
+          playSound('goldPickup');
           
-          // Gold collect particles
-          spawnParticles(this.mesh.position, 0xFFD700, 15);
+          // Sparkle burst effect
+          spawnParticles(this.mesh.position, 0xFFD700, 20);
+          
+          // Create larger golden flash particle
+          const flashGeo = new THREE.SphereGeometry(0.5, 8, 8);
+          const flashMat = new THREE.MeshBasicMaterial({ 
+            color: 0xFFD700, 
+            transparent: true, 
+            opacity: 0.6
+          });
+          const flash = new THREE.Mesh(flashGeo, flashMat);
+          flash.position.copy(this.mesh.position);
+          scene.add(flash);
+          
+          // Animate flash
+          let flashLife = 0.3;
+          const flashInterval = setInterval(() => {
+            flashLife -= 0.016;
+            flash.scale.multiplyScalar(1.1);
+            flash.material.opacity *= 0.9;
+            if (flashLife <= 0) {
+              scene.remove(flash);
+              flash.geometry.dispose();
+              flash.material.dispose();
+              clearInterval(flashInterval);
+            }
+          }, 16);
         }
       }
       
@@ -4215,19 +4404,6 @@
     function spawnWave() {
       waveCount++;
       
-      // Tutorial mode - only 3 enemies initially
-      if (countdownActive) {
-        const count = 3;
-        for(let i=0; i<count; i++) {
-          const angle = Math.random() * Math.PI * 2;
-          const dist = 25 + Math.random() * 10;
-          const ex = player.mesh.position.x + Math.cos(angle) * dist;
-          const ez = player.mesh.position.z + Math.sin(angle) * dist;
-          enemies.push(new Enemy(0, ex, ez, 1)); // Only tank type, level 1
-        }
-        return;
-      }
-      
       // Scale spawn count with player level for increased difficulty
       const baseCount = 3 + Math.floor(waveCount / 2); // 3, 3, 4, 4, 5...
       const levelBonus = Math.floor(playerStats.lvl / 5); // +1 every 5 levels
@@ -4256,51 +4432,7 @@
       }
     }
 
-    function startCountdown() {
-      countdownActive = true;
-      countdownStep = 0;
-      countdownTimer = 0;
-      showCountdownMessage(0);
-    }
 
-    function showCountdownMessage(step) {
-      if (step >= countdownMessages.length) {
-        endCountdown();
-        return;
-      }
-      
-      const countdownText = document.getElementById('tutorial-text');
-      countdownText.textContent = countdownMessages[step];
-      countdownText.style.opacity = '1';
-      countdownText.style.fontSize = step === 0 ? '48px' : '96px'; // Larger for countdown numbers
-      
-      // Duration based on step: "Good luck!" = 1.5s, numbers = 1s each
-      const duration = step === 0 ? 1500 : 1000;
-      
-      setTimeout(() => {
-        countdownText.style.opacity = '0';
-        setTimeout(() => {
-          countdownStep++;
-          if (countdownStep < countdownMessages.length) {
-            showCountdownMessage(countdownStep);
-          } else {
-            endCountdown();
-          }
-        }, 300);
-      }, duration);
-    }
-
-    function endCountdown() {
-      countdownActive = false;
-      const countdownText = document.getElementById('tutorial-text');
-      countdownText.style.opacity = '0';
-      countdownText.style.fontSize = '36px'; // Reset to default
-      
-      // Ensure game is properly active and not frozen
-      isPaused = false;
-      isGameActive = true;
-      gameStartTime = Date.now(); // Reset game start time
-    }
 
     function spawnParticles(pos, color, count) {
       for(let i=0; i<count; i++) particles.push(new Particle(pos, color));
@@ -4893,7 +5025,8 @@
       const commonUpgrades = [
         { 
           id: 'str', 
-          title: 'MUSCLE JUICE', 
+          title: 'MUSCLE JUICE',
+          icon: '⚔️',
           desc: 'Damage +10%', 
           apply: () => { 
             playerStats.strength += 0.1; 
@@ -4902,7 +5035,8 @@
         },
         { 
           id: 'aspd', 
-          title: 'SPEEDY TRIGGER', 
+          title: 'SPEEDY TRIGGER',
+          icon: '⚡',
           desc: 'Atk Speed +10%', 
           apply: () => { 
             playerStats.atkSpeed += 0.1; 
@@ -4913,7 +5047,8 @@
         },
         { 
           id: 'armor', 
-          title: 'THICC ARMOR', 
+          title: 'THICC ARMOR',
+          icon: '🛡️',
           desc: 'Damage Taken -10%', 
           apply: () => { 
             playerStats.armor = Math.min(80, playerStats.armor + 10); 
@@ -4922,7 +5057,8 @@
         },
         { 
           id: 'hp', 
-          title: 'CHONKY BODY', 
+          title: 'CHONKY BODY',
+          icon: '❤️',
           desc: 'Max HP +20', 
           apply: () => { 
             playerStats.maxHp += 20; 
@@ -4932,7 +5068,8 @@
         },
         { 
           id: 'crit', 
-          title: 'CRIT MACHINE', 
+          title: 'CRIT MACHINE',
+          icon: '🎯',
           desc: 'Crit Chance +5%', 
           apply: () => { 
             playerStats.critChance += 0.05; 
@@ -4941,7 +5078,8 @@
         },
         { 
           id: 'regen', 
-          title: 'HEALING VIBES', 
+          title: 'HEALING VIBES',
+          icon: '💚',
           desc: 'HP Regen +1/sec', 
           apply: () => { 
             playerStats.hpRegen += 1; 
@@ -4950,7 +5088,8 @@
         },
         { 
           id: 'speed', 
-          title: 'SPEEDY BOI', 
+          title: 'SPEEDY BOI',
+          icon: '🏃',
           desc: 'Move Speed +10%', 
           apply: () => { 
             playerStats.walkSpeed += 2.5; 
@@ -4959,7 +5098,8 @@
         },
         { 
           id: 'critdmg', 
-          title: 'GLASS CANNON', 
+          title: 'GLASS CANNON',
+          icon: '💥',
           desc: 'Crit Damage +20%', 
           apply: () => { 
             playerStats.critDmg += 0.2; 
@@ -4968,7 +5108,8 @@
         },
         { 
           id: 'magnet', 
-          title: 'XP MAGNET', 
+          title: 'XP MAGNET',
+          icon: '🧲',
           desc: 'Magnet Range +1', 
           apply: () => { 
             magnetRange += 1; 
@@ -4977,7 +5118,8 @@
         },
         { 
           id: 'cooldown', 
-          title: 'COOLDOWN MASTER', 
+          title: 'COOLDOWN MASTER',
+          icon: '⏱️',
           desc: 'All Weapon CD -5%', 
           apply: () => { 
             weapons.gun.cooldown *= 0.95;
@@ -5004,7 +5146,8 @@
         if (weapons.gun.active && weapons.gun.level < 4) {
           const nextLevel = weapons.gun.level + 1;
           choices.push({ 
-            id: 'gun_upgrade', 
+            id: 'gun_upgrade',
+            icon: '🔫',
             title: `GUN Level ${nextLevel}`, 
             desc: `Damage +10, Fire Rate +15%`, 
             apply: () => { 
@@ -5019,7 +5162,8 @@
         if (weapons.sword.active && weapons.sword.level < 4) {
           const nextLevel = weapons.sword.level + 1;
           choices.push({ 
-            id: 'sword_upgrade', 
+            id: 'sword_upgrade',
+            icon: '⚔️',
             title: `SWORD Level ${nextLevel}`, 
             desc: `Damage +15, Range +0.5`, 
             apply: () => { 
@@ -5035,7 +5179,8 @@
           const nextLevel = weapons.aura.level + 1;
           const rangeIncrease = INITIAL_AURA_RANGE * AURA_RANGE_INCREASE_MULTIPLIER; // 10% increase per level
           choices.push({ 
-            id: 'aura_upgrade', 
+            id: 'aura_upgrade',
+            icon: '🌀',
             title: `AURA Level ${nextLevel}`, 
             desc: `Damage +3, Range +10% (${rangeIncrease.toFixed(1)})`, 
             apply: () => { 
@@ -5050,7 +5195,8 @@
         if (weapons.meteor.active && weapons.meteor.level < 4) {
           const nextLevel = weapons.meteor.level + 1;
           choices.push({ 
-            id: 'meteor_upgrade', 
+            id: 'meteor_upgrade',
+            icon: '☄️',
             title: `METEOR Level ${nextLevel}`, 
             desc: `Damage +20, Area +1`, 
             apply: () => { 
@@ -5066,7 +5212,8 @@
           const nextLevel = weapons.lightning.level + 1;
           const targetIncrease = nextLevel === 2 ? 3 : (nextLevel === 3 ? 2 : 1);
           choices.push({ 
-            id: 'lightning_upgrade', 
+            id: 'lightning_upgrade',
+            icon: '⚡',
             title: `LIGHTNING Level ${nextLevel}`, 
             desc: `Damage +10, Targets +${targetIncrease}`, 
             apply: () => { 
@@ -5081,7 +5228,8 @@
         if (weapons.doubleBarrel.active && weapons.doubleBarrel.level < 4) {
           const nextLevel = weapons.doubleBarrel.level + 1;
           choices.push({ 
-            id: 'doublebarrel_upgrade', 
+            id: 'doublebarrel_upgrade',
+            icon: '💥',
             title: `DOUBLE BARREL Level ${nextLevel}`, 
             desc: `Damage +12, Fire Rate +10%`, 
             apply: () => { 
@@ -5103,7 +5251,8 @@
       else if (playerStats.lvl === 5) {
         choices = [
           { 
-            id: 'sword', 
+            id: 'sword',
+            icon: '⚔️',
             title: 'SLASHY SLASH', 
             desc: 'Slash enemies in front', 
             apply: () => { 
@@ -5113,7 +5262,8 @@
             } 
           },
           { 
-            id: 'aura', 
+            id: 'aura',
+            icon: '🌀',
             title: 'ZAP ZONE', 
             desc: 'Damage aura around you', 
             apply: () => { 
@@ -5123,7 +5273,8 @@
             } 
           },
           { 
-            id: 'meteor', 
+            id: 'meteor',
+            icon: '☄️',
             title: 'SPACE ROCKS', 
             desc: 'Call meteors from sky', 
             apply: () => { 
@@ -5133,7 +5284,8 @@
             } 
           },
           { 
-            id: 'lightning', 
+            id: 'lightning',
+            icon: '⚡',
             title: 'LIGHTNING STRIKES', 
             desc: 'Random lightning hits 4 enemies', 
             apply: () => { 
@@ -5143,7 +5295,8 @@
             } 
           },
           { 
-            id: 'doublebarrel', 
+            id: 'doublebarrel',
+            icon: '💥',
             title: 'DOUBLE BARREL', 
             desc: 'Powerful shotgun spread', 
             apply: () => { 
@@ -5161,7 +5314,8 @@
         
         choices = [
           { 
-            id: 'class_tank', 
+            id: 'class_tank',
+            icon: '🛡️',
             title: 'TANK', 
             desc: 'HP+50, Regen+2, Armor+20%, Speed-15%', 
             apply: () => { 
@@ -5174,7 +5328,8 @@
             } 
           },
           { 
-            id: 'class_berserker', 
+            id: 'class_berserker',
+            icon: '⚔️',
             title: 'BERSERKER', 
             desc: 'Str+30%, Crit+10%, Attack Speed+20%, Armor-10%', 
             apply: () => { 
@@ -5187,7 +5342,8 @@
             } 
           },
           { 
-            id: 'class_rogue', 
+            id: 'class_rogue',
+            icon: '🏃',
             title: 'ROGUE', 
             desc: 'Speed+25%, Crit+15%, Crit Dmg+30%, HP-20', 
             apply: () => { 
@@ -5200,7 +5356,8 @@
             } 
           },
           { 
-            id: 'class_mage', 
+            id: 'class_mage',
+            icon: '🔮',
             title: 'MAGE', 
             desc: 'Aura Range+2, Meteor CD-1s, Regen+3, Move Speed+10%', 
             apply: () => { 
@@ -5221,7 +5378,8 @@
       choices.forEach((u, index) => {
         const card = document.createElement('div');
         card.className = 'upgrade-card';
-        card.innerHTML = `<div class="upgrade-title">${u.title}</div><div class="upgrade-desc">${u.desc}</div>`;
+        const icon = u.icon ? u.icon : '🎮'; // Default icon if none specified
+        card.innerHTML = `<div class="upgrade-icon" style="font-size: 48px; margin-bottom: 10px;">${icon}</div><div class="upgrade-title">${u.title}</div><div class="upgrade-desc">${u.desc}</div>`;
         
         // Add dramatic entrance animation - alternate left/right
         card.style.opacity = '0';
@@ -5586,11 +5744,11 @@
       isGameOver = false;
       isPaused = false;
       isGameActive = true;
+      gameStartTime = Date.now();
       document.getElementById('gameover-screen').style.display = 'none';
+      document.getElementById('tutorial-text').style.opacity = '0';
       updateHUD();
-      
-      // Start countdown (replaces tutorial)
-      startCountdown();
+      // Game starts immediately - no countdown
     }
 
     function toggleStats() {
