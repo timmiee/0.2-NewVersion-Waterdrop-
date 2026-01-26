@@ -43,12 +43,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="screen-orientation" content="portrait">
   <title>Water Drop Survivor</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800;900&display=swap" rel="stylesheet">
   <style>
     body {
       margin: 0;
       padding: 0;
       overflow: hidden;
-      background-color: #FFF0F5; /* Lavender Blush */
+      background-color: #000000; /* Black background - no white space */
       font-family: 'M PLUS Rounded 1c', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       touch-action: none;
       user-select: none;
@@ -131,6 +135,7 @@
       height: 100%;
       pointer-events: auto;
       touch-action: none;
+      z-index: 50;
     }
     
     .joystick-outer {
@@ -169,7 +174,7 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      pointer-events: auto;
+      pointer-events: none; /* Modal background should not block clicks */
       z-index: 20;
     }
 
@@ -180,8 +185,31 @@
       border: 4px solid #5DADE2;
       width: 80%;
       max-width: 400px;
+      max-height: 85vh; /* Scrollable modals */
+      overflow-y: auto; /* Enable scrolling */
       text-align: center;
       box-shadow: 0 15px 30px rgba(0,0,0,0.7), 0 0 40px rgba(93,173,226,0.5), inset 0 0 30px rgba(93,173,226,0.1);
+      pointer-events: auto; /* Modal content should receive clicks */
+    }
+
+    /* Custom scrollbar styling */
+    .modal-content::-webkit-scrollbar {
+      width: 10px;
+    }
+    
+    .modal-content::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 10px;
+    }
+    
+    .modal-content::-webkit-scrollbar-thumb {
+      background: linear-gradient(to bottom, #5DADE2, #4A9CCF);
+      border-radius: 10px;
+      border: 2px solid rgba(0, 0, 0, 0.3);
+    }
+    
+    .modal-content::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(to bottom, #6BBDEF, #5DADE2);
     }
 
     h2 {
@@ -727,6 +755,32 @@
       max-width: 600px;
     }
 
+    /* Responsive Media Queries */
+    @media (orientation: portrait) {
+      /* Portrait mode adjustments */
+      .modal-content {
+        width: 90%;
+        max-width: 350px;
+      }
+      
+      #joystick-outer-right {
+        display: none !important; /* Hide right joystick in portrait */
+      }
+    }
+
+    @media (orientation: landscape) {
+      /* Landscape mode adjustments */
+      .modal-content {
+        width: 70%;
+        max-width: 500px;
+      }
+      
+      .hud-top {
+        flex-direction: row;
+        justify-content: space-between;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -795,15 +849,15 @@
       <div class="bar-container" id="hp-bar-container">
         <div class="bar-fill" id="hp-fill"></div>
       </div>
-      <div class="stat-text" id="hp-text" style="color: #FF4444;">HP: 100/100</div>
+      <div class="stat-text" id="hp-text" style="color: #FF4444; text-shadow: 0 0 8px rgba(255,68,68,0.8), 0 0 12px rgba(255,68,68,0.5), 1px 1px 2px rgba(0,0,0,0.5);">HP: 100/100</div>
       
       <div class="bar-container" id="exp-bar-container" style="border-color: #2a2a2a;">
         <div class="bar-fill" id="exp-fill"></div>
       </div>
-      <div class="stat-text" id="exp-text" style="color: #5DADE2;">EXP: 0%</div>
-      <div class="stat-text" id="lvl-text" style="color: #5DADE2;">LVL: 1</div>
+      <div class="stat-text" id="exp-text" style="color: #5DADE2; text-shadow: 0 0 8px rgba(93,173,226,0.8), 0 0 12px rgba(93,173,226,0.5), 1px 1px 2px rgba(0,0,0,0.5);">EXP: 0%</div>
+      <div class="stat-text" id="lvl-text" style="color: #5DADE2; text-shadow: 0 0 8px rgba(93,173,226,0.8), 0 0 12px rgba(93,173,226,0.5), 1px 1px 2px rgba(0,0,0,0.5);">LVL: 1</div>
       <div class="stat-text" id="score-text" style="color: #8B4513;">KILLS: 0</div>
-      <div class="stat-text" id="gold-text" style="color: #FFD700;">GOLD: 0</div>
+      <div class="stat-text" id="gold-text" style="color: #FFD700; text-shadow: 0 0 10px rgba(255,215,0,0.9), 0 0 15px rgba(255,215,0,0.6), 1px 1px 2px rgba(0,0,0,0.5);">GOLD: 0</div>
       
       <!-- Windmill Quest UI -->
       <div id="windmill-quest-ui" style="display: none; margin-top: 10px;">
@@ -819,6 +873,9 @@
     <div id="joystick-zone">
       <div class="joystick-outer" id="joystick-outer">
         <div class="joystick-inner" id="joystick-inner"></div>
+      </div>
+      <div class="joystick-outer" id="joystick-outer-right">
+        <div class="joystick-inner" id="joystick-inner-right"></div>
       </div>
     </div>
   </div>
@@ -1022,7 +1079,7 @@
         osc.frequency.setValueAtTime(800, now);
         osc.frequency.exponentialRampToValueAtTime(80, now + 0.03);
         gain.gain.setValueAtTime(0.2, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
         osc.start(now);
         osc.stop(now + 0.08);
       } else if (type === 'hit') {
@@ -1031,7 +1088,7 @@
         osc.frequency.setValueAtTime(200, now);
         osc.frequency.exponentialRampToValueAtTime(50, now + 0.08);
         gain.gain.setValueAtTime(0.3, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
         osc.start(now);
         osc.stop(now + 0.08);
         
@@ -1044,17 +1101,19 @@
         osc2.frequency.setValueAtTime(80, now);
         osc2.frequency.exponentialRampToValueAtTime(30, now + 0.06);
         gain2.gain.setValueAtTime(0.25, now);
-        gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.06);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
         osc2.start(now);
         osc2.stop(now + 0.06);
       } else if (type === 'levelup') {
-        // Epic level up sound
+        // Hi-Fi Level Up Sound - Ascending arpeggio
         osc.type = 'sine';
         osc.frequency.setValueAtTime(400, now);
-        osc.frequency.linearRampToValueAtTime(800, now + 0.1);
-        osc.frequency.linearRampToValueAtTime(1200, now + 0.3);
-        gain.gain.setValueAtTime(0.2, now);
-        gain.gain.linearRampToValueAtTime(0.15, now + 0.2);
+        osc.frequency.linearRampToValueAtTime(500, now + 0.08);
+        osc.frequency.linearRampToValueAtTime(633, now + 0.16);
+        osc.frequency.linearRampToValueAtTime(800, now + 0.24);
+        osc.frequency.linearRampToValueAtTime(1000, now + 0.32);
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.linearRampToValueAtTime(0.2, now + 0.3);
         gain.gain.linearRampToValueAtTime(0, now + 0.6);
         osc.start(now);
         osc.stop(now + 0.6);
@@ -1067,7 +1126,7 @@
         osc.frequency.setValueAtTime(800, now);
         osc.frequency.exponentialRampToValueAtTime(100, now + 0.2);
         gain.gain.setValueAtTime(0.2, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
         osc.start(now);
         osc.stop(now + 0.2);
         
@@ -1080,7 +1139,7 @@
         osc2.frequency.setValueAtTime(1500, now);
         osc2.frequency.exponentialRampToValueAtTime(500, now + 0.15);
         gain2.gain.setValueAtTime(0.15, now);
-        gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
         osc2.start(now);
         osc2.stop(now + 0.15);
       } else if (type === 'collect') {
@@ -1092,13 +1151,25 @@
         osc.start(now);
         osc.stop(now + 0.1);
       } else if (type === 'coin') {
+        // Gold Pickup Sound - Ascending jingle
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(1500, now);
-        osc.frequency.linearRampToValueAtTime(2500, now + 0.1);
-        gain.gain.setValueAtTime(0.05, now);
-        gain.gain.linearRampToValueAtTime(0, now + 0.1);
+        osc.frequency.setValueAtTime(600, now);
+        osc.frequency.linearRampToValueAtTime(800, now + 0.05);
+        osc.frequency.linearRampToValueAtTime(1000, now + 0.08);
+        osc.frequency.linearRampToValueAtTime(1200, now + 0.11);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.linearRampToValueAtTime(0, now + 0.15);
         osc.start(now);
-        osc.stop(now + 0.1);
+        osc.stop(now + 0.15);
+      } else if (type === 'coinDrop') {
+        // Gold Drop Sound - Metallic coin drop
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, now);
+        osc.frequency.exponentialRampToValueAtTime(200, now + 0.15);
+        gain.gain.setValueAtTime(0.06, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15); // Use 0.001 instead of 0.01 for exponential ramps
+        osc.start(now);
+        osc.stop(now + 0.15);
       }
     }
 
@@ -1151,7 +1222,7 @@
     const weapons = {
       gun: { active: true, level: 1, damage: 15, cooldown: 1000, lastShot: 0, range: 12, barrels: 1 },
       sword: { active: false, level: 0, damage: 30, cooldown: 1500, lastShot: 0, range: 3.5 },
-      aura: { active: false, level: 0, damage: 5, cooldown: 500, lastShot: 0, range: 4 },
+      aura: { active: false, level: 0, damage: 5, cooldown: 500, lastShot: 0, range: 3 },
       meteor: { active: false, level: 0, damage: 60, cooldown: 2500, lastShot: 0, area: 5 },
       lightning: { active: false, level: 0, damage: 25, cooldown: 3000, lastShot: 0, targets: 4 },
       doubleBarrel: { active: false, level: 0, damage: 25, cooldown: 1200, lastShot: 0, range: 12, spread: 0.3 }
@@ -1233,8 +1304,52 @@
         this.highlight.position.set(-0.2, 0.3, 0.2);
         this.mesh.add(this.highlight);
         
+        // Add player face: eyes (white spheres + black pupils)
+        const eyeGeo = new THREE.SphereGeometry(0.08, 8, 8);
+        const eyeMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
+        
+        this.leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+        this.leftEye.position.set(-0.12, 0.1, 0.4);
+        this.mesh.add(this.leftEye);
+        
+        this.rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+        this.rightEye.position.set(0.12, 0.1, 0.4);
+        this.mesh.add(this.rightEye);
+        
+        // Pupils (black)
+        const pupilGeo = new THREE.SphereGeometry(0.04, 8, 8);
+        const pupilMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+        
+        this.leftPupil = new THREE.Mesh(pupilGeo, pupilMat);
+        this.leftPupil.position.set(-0.12, 0.1, 0.45);
+        this.mesh.add(this.leftPupil);
+        
+        this.rightPupil = new THREE.Mesh(pupilGeo, pupilMat);
+        this.rightPupil.position.set(0.12, 0.1, 0.45);
+        this.mesh.add(this.rightPupil);
+        
+        // Smile (curved shape using torus segment)
+        const smileGeo = new THREE.TorusGeometry(0.15, 0.02, 8, 16, Math.PI);
+        const smileMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+        this.smile = new THREE.Mesh(smileGeo, smileMat);
+        this.smile.position.set(0, -0.05, 0.4);
+        this.smile.rotation.x = Math.PI / 2;
+        this.smile.rotation.z = Math.PI;
+        this.mesh.add(this.smile);
+        
+        // Pulsing glow
+        const glowGeo = new THREE.SphereGeometry(0.55, 16, 16);
+        const glowMat = new THREE.MeshBasicMaterial({ 
+          color: 0x4FC3F7, 
+          transparent: true, 
+          opacity: 0.2,
+          side: THREE.BackSide
+        });
+        this.glow = new THREE.Mesh(glowGeo, glowMat);
+        this.mesh.add(this.glow);
+        
         // Aura Circle (visible when aura weapon is active)
-        const auraGeo = new THREE.RingGeometry(3.5, 4, 32);
+        const auraGeo = new THREE.RingGeometry(2.5, 3, 32); // Initial range 3
         const auraMat = new THREE.MeshBasicMaterial({ 
           color: 0x5DADE2, 
           transparent: true, 
@@ -1287,9 +1402,9 @@
         
           // Movement with LEFT stick
           if (joystickLeft.active) {
-            const speed = GAME_CONFIG.playerSpeedBase * (playerStats.walkSpeed / 25); // Normalize 25 to base
-            targetVel.x = joystickLeft.x * speed;
-            targetVel.z = joystickLeft.y * speed;
+            const speed = GAME_CONFIG.playerSpeedBase * (playerStats.walkSpeed / 25) * 60; // Base speed for 60fps
+            targetVel.x = joystickLeft.x * speed * dt; // Frame-rate independent
+            targetVel.z = joystickLeft.y * speed * dt;
           
             this.mesh.position.x += targetVel.x;
             this.mesh.position.z += targetVel.z;
@@ -1346,6 +1461,14 @@
         
         // Pulse highlight
         this.highlight.material.opacity = 0.6 + Math.sin(gameTime * 3) * 0.2;
+        
+        // Pulse glow effect
+        this.glow.material.opacity = 0.15 + Math.sin(gameTime * 2) * 0.1;
+        this.glow.scale.set(
+          1 + Math.sin(gameTime * 2) * 0.05,
+          1 + Math.sin(gameTime * 2) * 0.05,
+          1 + Math.sin(gameTime * 2) * 0.05
+        );
         
         // Update aura circle
         if (weapons.aura.active) {
@@ -1452,6 +1575,35 @@
         shakeAnim();
 
         if (playerStats.hp <= 0) {
+          // Death splash: 30 particles + ground pool with fade
+          spawnParticles(this.mesh.position, COLORS.player, 30);
+          
+          // Create ground pool (flat circle that fades out)
+          const poolGeo = new THREE.CircleGeometry(1.5, 16);
+          const poolMat = new THREE.MeshBasicMaterial({ 
+            color: COLORS.player, 
+            transparent: true, 
+            opacity: 0.6,
+            side: THREE.DoubleSide
+          });
+          const pool = new THREE.Mesh(poolGeo, poolMat);
+          pool.rotation.x = -Math.PI / 2;
+          pool.position.set(this.mesh.position.x, 0.05, this.mesh.position.z);
+          scene.add(pool);
+          
+          // Fade out pool over time
+          const fadePool = () => {
+            poolMat.opacity -= 0.01;
+            if (poolMat.opacity > 0) {
+              setTimeout(fadePool, 50);
+            } else {
+              scene.remove(pool);
+              poolGeo.dispose();
+              poolMat.dispose();
+            }
+          };
+          setTimeout(fadePool, 500);
+          
           gameOver();
         }
       }
@@ -2274,6 +2426,13 @@
         this.vx = 0;
         this.vz = 0;
         this.wobblePhase = Math.random() * Math.PI * 2;
+        
+        // Play gold drop sound
+        playSound('coinDrop');
+        
+        // Spawn 8 sparkles on creation
+        spawnParticles(this.mesh.position, 0xFFD700, 8);
+        spawnParticles(this.mesh.position, 0xFFFFFF, 2);
       }
       
       update(playerPos) {
@@ -2292,11 +2451,20 @@
         // Collect ONLY when player is very close
         if (dist < this.collectRange) {
           addGold(this.amount);
-          this.destroy();
           playSound('coin');
           
-          // Gold collect particles
+          // Gold collect particles - 20 sparkles + flash
           spawnParticles(this.mesh.position, 0xFFD700, 15);
+          spawnParticles(this.mesh.position, 0xFFFFFF, 5); // White flash sparkles
+          
+          // Flash effect - bright point light
+          const flashLight = new THREE.PointLight(0xFFD700, 4, 8);
+          flashLight.position.copy(this.mesh.position);
+          flashLight.position.y += 1;
+          scene.add(flashLight);
+          setTimeout(() => scene.remove(flashLight), 100);
+          
+          this.destroy();
         }
       }
       
@@ -3522,7 +3690,7 @@
         
         const geometry = new THREE.BufferGeometry().setFromPoints(points);
         const material = new THREE.LineBasicMaterial({ 
-          color: 0x5DADE2, 
+          color: 0x7B68EE, // Blue-purple color for lightning
           transparent: true, 
           opacity: 1,
           linewidth: 3
@@ -3647,6 +3815,7 @@
       const commonUpgrades = [
         { 
           id: 'str', 
+          icon: '⚔️',
           title: 'MUSCLE JUICE', 
           desc: 'Damage +10%', 
           apply: () => { 
@@ -3656,6 +3825,7 @@
         },
         { 
           id: 'aspd', 
+          icon: '⚡',
           title: 'SPEEDY TRIGGER', 
           desc: 'Atk Speed +10%', 
           apply: () => { 
@@ -3667,6 +3837,7 @@
         },
         { 
           id: 'armor', 
+          icon: '🛡️',
           title: 'THICC ARMOR', 
           desc: 'Damage Taken -10%', 
           apply: () => { 
@@ -3676,6 +3847,7 @@
         },
         { 
           id: 'hp', 
+          icon: '❤️',
           title: 'CHONKY BODY', 
           desc: 'Max HP +20', 
           apply: () => { 
@@ -3686,6 +3858,7 @@
         },
         { 
           id: 'crit', 
+          icon: '🎯',
           title: 'CRIT MACHINE', 
           desc: 'Crit Chance +5%', 
           apply: () => { 
@@ -3695,6 +3868,7 @@
         },
         { 
           id: 'regen', 
+          icon: '💚',
           title: 'HEALING VIBES', 
           desc: 'HP Regen +1/sec', 
           apply: () => { 
@@ -3704,6 +3878,7 @@
         },
         { 
           id: 'speed', 
+          icon: '🏃',
           title: 'SPEEDY BOI', 
           desc: 'Move Speed +10%', 
           apply: () => { 
@@ -3713,6 +3888,7 @@
         },
         { 
           id: 'critdmg', 
+          icon: '💥',
           title: 'GLASS CANNON', 
           desc: 'Crit Damage +20%', 
           apply: () => { 
@@ -3722,6 +3898,7 @@
         },
         { 
           id: 'magnet', 
+          icon: '🧲',
           title: 'XP MAGNET', 
           desc: 'Magnet Range +1', 
           apply: () => { 
@@ -3731,6 +3908,7 @@
         },
         { 
           id: 'cooldown', 
+          icon: '⏱️',
           title: 'COOLDOWN MASTER', 
           desc: 'All Weapon CD -5%', 
           apply: () => { 
@@ -3759,6 +3937,7 @@
           const nextLevel = weapons.gun.level + 1;
           choices.push({ 
             id: 'gun_upgrade', 
+            icon: '🔫',
             title: `GUN Level ${nextLevel}`, 
             desc: `Damage +10, Fire Rate +15%`, 
             apply: () => { 
@@ -3774,6 +3953,7 @@
           const nextLevel = weapons.sword.level + 1;
           choices.push({ 
             id: 'sword_upgrade', 
+            icon: '⚔️',
             title: `SWORD Level ${nextLevel}`, 
             desc: `Damage +15, Range +0.5`, 
             apply: () => { 
@@ -3787,14 +3967,20 @@
         
         if (weapons.aura.active && weapons.aura.level < 4) {
           const nextLevel = weapons.aura.level + 1;
+          const baseRange = 3; // Initial range
+          const currentRange = weapons.aura.range;
+          const nextRange = Math.min(5, baseRange * (1 + (nextLevel * 0.10))); // +10% per level, cap at 5
+          const rangeIncrease = Math.round((nextRange - currentRange) * 10) / 10;
+          
           choices.push({ 
             id: 'aura_upgrade', 
+            icon: '🌀',
             title: `AURA Level ${nextLevel}`, 
-            desc: `Damage +3, Range +0.5`, 
+            desc: `Damage +3, Range +${rangeIncrease.toFixed(1)}`, 
             apply: () => { 
               weapons.aura.level++;
               weapons.aura.damage += 3;
-              weapons.aura.range += 0.5;
+              weapons.aura.range = Math.min(5, baseRange * (1 + (weapons.aura.level * 0.10)));
               showStatChange(`Aura Level ${weapons.aura.level}`);
             } 
           });
@@ -3804,6 +3990,7 @@
           const nextLevel = weapons.meteor.level + 1;
           choices.push({ 
             id: 'meteor_upgrade', 
+            icon: '☄️',
             title: `METEOR Level ${nextLevel}`, 
             desc: `Damage +20, Area +1`, 
             apply: () => { 
@@ -3820,6 +4007,7 @@
           const targetIncrease = nextLevel === 2 ? 3 : (nextLevel === 3 ? 2 : 1);
           choices.push({ 
             id: 'lightning_upgrade', 
+            icon: '⚡',
             title: `LIGHTNING Level ${nextLevel}`, 
             desc: `Damage +10, Targets +${targetIncrease}`, 
             apply: () => { 
@@ -3835,6 +4023,7 @@
           const nextLevel = weapons.doubleBarrel.level + 1;
           choices.push({ 
             id: 'doublebarrel_upgrade', 
+            icon: '🔫',
             title: `DOUBLE BARREL Level ${nextLevel}`, 
             desc: `Damage +12, Fire Rate +10%`, 
             apply: () => { 
@@ -3857,6 +4046,7 @@
         choices = [
           { 
             id: 'sword', 
+            icon: '⚔️',
             title: 'SLASHY SLASH', 
             desc: 'Slash enemies in front', 
             apply: () => { 
@@ -3867,6 +4057,7 @@
           },
           { 
             id: 'aura', 
+            icon: '🌀',
             title: 'ZAP ZONE', 
             desc: 'Damage aura around you', 
             apply: () => { 
@@ -3877,6 +4068,7 @@
           },
           { 
             id: 'meteor', 
+            icon: '☄️',
             title: 'SPACE ROCKS', 
             desc: 'Call meteors from sky', 
             apply: () => { 
@@ -3887,6 +4079,7 @@
           },
           { 
             id: 'lightning', 
+            icon: '⚡',
             title: 'LIGHTNING STRIKES', 
             desc: 'Random lightning hits 4 enemies', 
             apply: () => { 
@@ -3897,6 +4090,7 @@
           },
           { 
             id: 'doublebarrel', 
+            icon: '🔫',
             title: 'DOUBLE BARREL', 
             desc: 'Powerful shotgun spread', 
             apply: () => { 
@@ -3974,7 +4168,8 @@
       choices.forEach((u, index) => {
         const card = document.createElement('div');
         card.className = 'upgrade-card';
-        card.innerHTML = `<div class="upgrade-title">${u.title}</div><div class="upgrade-desc">${u.desc}</div>`;
+        const iconHTML = u.icon ? `<div style="font-size: 48px; margin-bottom: 10px;">${u.icon}</div>` : '';
+        card.innerHTML = `${iconHTML}<div class="upgrade-title">${u.title}</div><div class="upgrade-desc">${u.desc}</div>`;
         
         // Add dramatic entrance animation - alternate left/right
         card.style.opacity = '0';
@@ -4186,9 +4381,11 @@
       
       const gunCooldown = 1000 * (1 - cdReduction);
       weapons.gun = { active: true, level: 1, damage: 15, cooldown: gunCooldown, lastShot: 0, range: 12, barrels: 1 };
-      weapons.sword.active = false;
-      weapons.aura.active = false;
-      weapons.meteor.active = false;
+      weapons.sword = { active: false, level: 0, damage: 30, cooldown: 1500, lastShot: 0, range: 3.5 };
+      weapons.aura = { active: false, level: 0, damage: 5, cooldown: 500, lastShot: 0, range: 3 };
+      weapons.meteor = { active: false, level: 0, damage: 60, cooldown: 2500, lastShot: 0, area: 5 };
+      weapons.lightning = { active: false, level: 0, damage: 25, cooldown: 3000, lastShot: 0, targets: 4 };
+      weapons.doubleBarrel = { active: false, level: 0, damage: 25, cooldown: 1200, lastShot: 0, range: 12, spread: 0.3 };
       
       windmillQuest = { active: false, timer: 0, duration: 15, windmill: null, hasCompleted: false };
       document.getElementById('windmill-quest-ui').style.display = 'none';
@@ -4346,6 +4543,8 @@ Total Gold Earned: ${saveData.totalGoldEarned}
       const zone = document.getElementById('joystick-zone');
       const joystickOuter = document.getElementById('joystick-outer');
       const joystickInner = document.getElementById('joystick-inner');
+      const joystickOuterRight = document.getElementById('joystick-outer-right');
+      const joystickInnerRight = document.getElementById('joystick-inner-right');
       const container = document.getElementById('game-container');
       
       let touchStartX = 0;
@@ -4385,7 +4584,10 @@ Total Gold Earned: ${saveData.totalGoldEarned}
             joystickRight.originX = touch.clientX;
             joystickRight.originY = touch.clientY;
             
-            // Could add a second visual joystick here if desired
+            // Show dynamic right joystick at touch position
+            joystickOuterRight.style.display = 'block';
+            joystickOuterRight.style.left = (touch.clientX - 60) + 'px';
+            joystickOuterRight.style.top = (touch.clientY - 60) + 'px';
           }
         }
         
@@ -4432,6 +4634,11 @@ Total Gold Earned: ${saveData.totalGoldEarned}
             if (dist > 0) {
               joystickRight.x = (dx / dist) * (clampedDist / maxDist);
               joystickRight.y = (dy / dist) * (clampedDist / maxDist);
+              
+              // Update inner joystick knob position for right stick
+              joystickInnerRight.style.left = '50%';
+              joystickInnerRight.style.top = '50%';
+              joystickInnerRight.style.transform = `translate(calc(-50% + ${joystickRight.x * 35}px), calc(-50% + ${joystickRight.y * 35}px))`;
             }
           }
         }
@@ -4456,6 +4663,10 @@ Total Gold Earned: ${saveData.totalGoldEarned}
             joystickRight.active = false;
             joystickRight.x = 0;
             joystickRight.y = 0;
+            
+            // Hide right joystick
+            joystickOuterRight.style.display = 'none';
+            joystickInnerRight.style.transform = 'translate(-50%, -50%)';
           }
         }
       };
@@ -4699,7 +4910,7 @@ Total Gold Earned: ${saveData.totalGoldEarned}
           particles.push(lightning);
           
           // Flash effect
-          const flashLight = new THREE.PointLight(0x5DADE2, 3, 15);
+          const flashLight = new THREE.PointLight(0x7B68EE, 3, 15); // Blue-purple
           flashLight.position.copy(enemy.mesh.position);
           flashLight.position.y += 2;
           scene.add(flashLight);
@@ -4712,8 +4923,9 @@ Total Gold Earned: ${saveData.totalGoldEarned}
           enemy.takeDamage(finalDmg);
           createDamageNumber(finalDmg, enemy.mesh.position, isCrit);
           
-          // Particles
-          spawnParticles(enemy.mesh.position, 0x5DADE2, 10);
+          // Particles - blue-purple color
+          spawnParticles(enemy.mesh.position, 0x7B68EE, 10);
+          spawnParticles(enemy.mesh.position, 0xFFFFFF, 3); // White flash
         }
         
         weapons.lightning.lastShot = time;
