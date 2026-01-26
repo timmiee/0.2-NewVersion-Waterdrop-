@@ -1123,8 +1123,6 @@
         harmGain.gain.linearRampToValueAtTime(0, now + 0.6);
         harmOsc.start(now);
         harmOsc.stop(now + 0.6);
-        
-        // Music disabled
       } else if (type === 'goldDrop') {
         // Metallic coin drop sound
         osc.type = 'square';
@@ -2803,10 +2801,11 @@
           flash.position.copy(this.mesh.position);
           scene.add(flash);
           
-          // Animate flash
+          // Animate flash (60fps approximation)
+          const FRAME_DURATION = 0.016; // ~60fps
           let flashLife = 0.3;
           const flashInterval = setInterval(() => {
-            flashLife -= 0.016;
+            flashLife -= FRAME_DURATION;
             flash.scale.multiplyScalar(1.1);
             flash.material.opacity *= 0.9;
             if (flashLife <= 0) {
@@ -5006,6 +5005,7 @@
       const list = document.getElementById('upgrade-list');
       list.innerHTML = '';
       
+      const DEFAULT_UPGRADE_ICON = '🎮';
       let choices = [];
 
       // --- POOL OF UPGRADES ---
@@ -5365,7 +5365,7 @@
       choices.forEach((u, index) => {
         const card = document.createElement('div');
         card.className = 'upgrade-card';
-        const icon = u.icon ? u.icon : '🎮'; // Default icon if none specified
+        const icon = u.icon ? u.icon : DEFAULT_UPGRADE_ICON;
         card.innerHTML = `<div class="upgrade-icon" style="font-size: 48px; margin-bottom: 10px;">${icon}</div><div class="upgrade-title">${u.title}</div><div class="upgrade-desc">${u.desc}</div>`;
         
         // Add dramatic entrance animation - alternate left/right
