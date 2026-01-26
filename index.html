@@ -174,7 +174,7 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      pointer-events: auto;
+      pointer-events: none; /* Modal background should not block clicks */
       z-index: 20;
     }
 
@@ -187,6 +187,7 @@
       max-width: 400px;
       text-align: center;
       box-shadow: 0 15px 30px rgba(0,0,0,0.7), 0 0 40px rgba(93,173,226,0.5), inset 0 0 30px rgba(93,173,226,0.1);
+      pointer-events: auto; /* Modal content should receive clicks */
     }
 
     h2 {
@@ -800,15 +801,15 @@
       <div class="bar-container" id="hp-bar-container">
         <div class="bar-fill" id="hp-fill"></div>
       </div>
-      <div class="stat-text" id="hp-text" style="color: #FF4444;">HP: 100/100</div>
+      <div class="stat-text" id="hp-text" style="color: #FF4444; text-shadow: 0 0 8px rgba(255,68,68,0.8), 0 0 12px rgba(255,68,68,0.5), 1px 1px 2px rgba(0,0,0,0.5);">HP: 100/100</div>
       
       <div class="bar-container" id="exp-bar-container" style="border-color: #2a2a2a;">
         <div class="bar-fill" id="exp-fill"></div>
       </div>
-      <div class="stat-text" id="exp-text" style="color: #5DADE2;">EXP: 0%</div>
-      <div class="stat-text" id="lvl-text" style="color: #5DADE2;">LVL: 1</div>
+      <div class="stat-text" id="exp-text" style="color: #5DADE2; text-shadow: 0 0 8px rgba(93,173,226,0.8), 0 0 12px rgba(93,173,226,0.5), 1px 1px 2px rgba(0,0,0,0.5);">EXP: 0%</div>
+      <div class="stat-text" id="lvl-text" style="color: #5DADE2; text-shadow: 0 0 8px rgba(93,173,226,0.8), 0 0 12px rgba(93,173,226,0.5), 1px 1px 2px rgba(0,0,0,0.5);">LVL: 1</div>
       <div class="stat-text" id="score-text" style="color: #8B4513;">KILLS: 0</div>
-      <div class="stat-text" id="gold-text" style="color: #FFD700;">GOLD: 0</div>
+      <div class="stat-text" id="gold-text" style="color: #FFD700; text-shadow: 0 0 10px rgba(255,215,0,0.9), 0 0 15px rgba(255,215,0,0.6), 1px 1px 2px rgba(0,0,0,0.5);">GOLD: 0</div>
       
       <!-- Windmill Quest UI -->
       <div id="windmill-quest-ui" style="display: none; margin-top: 10px;">
@@ -4460,6 +4461,8 @@ Total Gold Earned: ${saveData.totalGoldEarned}
       const zone = document.getElementById('joystick-zone');
       const joystickOuter = document.getElementById('joystick-outer');
       const joystickInner = document.getElementById('joystick-inner');
+      const joystickOuterRight = document.getElementById('joystick-outer-right');
+      const joystickInnerRight = document.getElementById('joystick-inner-right');
       const container = document.getElementById('game-container');
       
       let touchStartX = 0;
@@ -4499,7 +4502,10 @@ Total Gold Earned: ${saveData.totalGoldEarned}
             joystickRight.originX = touch.clientX;
             joystickRight.originY = touch.clientY;
             
-            // Could add a second visual joystick here if desired
+            // Show dynamic right joystick at touch position
+            joystickOuterRight.style.display = 'block';
+            joystickOuterRight.style.left = (touch.clientX - 60) + 'px';
+            joystickOuterRight.style.top = (touch.clientY - 60) + 'px';
           }
         }
         
@@ -4546,6 +4552,11 @@ Total Gold Earned: ${saveData.totalGoldEarned}
             if (dist > 0) {
               joystickRight.x = (dx / dist) * (clampedDist / maxDist);
               joystickRight.y = (dy / dist) * (clampedDist / maxDist);
+              
+              // Update inner joystick knob position for right stick
+              joystickInnerRight.style.left = '50%';
+              joystickInnerRight.style.top = '50%';
+              joystickInnerRight.style.transform = `translate(calc(-50% + ${joystickRight.x * 35}px), calc(-50% + ${joystickRight.y * 35}px))`;
             }
           }
         }
@@ -4570,6 +4581,10 @@ Total Gold Earned: ${saveData.totalGoldEarned}
             joystickRight.active = false;
             joystickRight.x = 0;
             joystickRight.y = 0;
+            
+            // Hide right joystick
+            joystickOuterRight.style.display = 'none';
+            joystickInnerRight.style.transform = 'translate(-50%, -50%)';
           }
         }
       };
