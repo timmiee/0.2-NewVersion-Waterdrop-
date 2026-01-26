@@ -1079,7 +1079,7 @@
         osc.frequency.setValueAtTime(800, now);
         osc.frequency.exponentialRampToValueAtTime(80, now + 0.03);
         gain.gain.setValueAtTime(0.2, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
         osc.start(now);
         osc.stop(now + 0.08);
       } else if (type === 'hit') {
@@ -1088,7 +1088,7 @@
         osc.frequency.setValueAtTime(200, now);
         osc.frequency.exponentialRampToValueAtTime(50, now + 0.08);
         gain.gain.setValueAtTime(0.3, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
         osc.start(now);
         osc.stop(now + 0.08);
         
@@ -1101,7 +1101,7 @@
         osc2.frequency.setValueAtTime(80, now);
         osc2.frequency.exponentialRampToValueAtTime(30, now + 0.06);
         gain2.gain.setValueAtTime(0.25, now);
-        gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.06);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
         osc2.start(now);
         osc2.stop(now + 0.06);
       } else if (type === 'levelup') {
@@ -1126,7 +1126,7 @@
         osc.frequency.setValueAtTime(800, now);
         osc.frequency.exponentialRampToValueAtTime(100, now + 0.2);
         gain.gain.setValueAtTime(0.2, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
         osc.start(now);
         osc.stop(now + 0.2);
         
@@ -1139,7 +1139,7 @@
         osc2.frequency.setValueAtTime(1500, now);
         osc2.frequency.exponentialRampToValueAtTime(500, now + 0.15);
         gain2.gain.setValueAtTime(0.15, now);
-        gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
         osc2.start(now);
         osc2.stop(now + 0.15);
       } else if (type === 'collect') {
@@ -1167,7 +1167,7 @@
         osc.frequency.setValueAtTime(800, now);
         osc.frequency.exponentialRampToValueAtTime(200, now + 0.15);
         gain.gain.setValueAtTime(0.06, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15); // Use 0.001 instead of 0.01 for exponential ramps
         osc.start(now);
         osc.stop(now + 0.15);
       }
