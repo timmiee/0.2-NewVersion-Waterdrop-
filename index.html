@@ -1174,7 +1174,7 @@
     const weapons = {
       gun: { active: true, level: 1, damage: 15, cooldown: 1000, lastShot: 0, range: 12, barrels: 1 },
       sword: { active: false, level: 0, damage: 30, cooldown: 1500, lastShot: 0, range: 3.5 },
-      aura: { active: false, level: 0, damage: 5, cooldown: 500, lastShot: 0, range: 4 },
+      aura: { active: false, level: 0, damage: 5, cooldown: 500, lastShot: 0, range: 3 },
       meteor: { active: false, level: 0, damage: 60, cooldown: 2500, lastShot: 0, area: 5 },
       lightning: { active: false, level: 0, damage: 25, cooldown: 3000, lastShot: 0, targets: 4 },
       doubleBarrel: { active: false, level: 0, damage: 25, cooldown: 1200, lastShot: 0, range: 12, spread: 0.3 }
@@ -1527,6 +1527,35 @@
         shakeAnim();
 
         if (playerStats.hp <= 0) {
+          // Death splash: 30 particles + ground pool with fade
+          spawnParticles(this.mesh.position, COLORS.player, 30);
+          
+          // Create ground pool (flat circle that fades out)
+          const poolGeo = new THREE.CircleGeometry(1.5, 16);
+          const poolMat = new THREE.MeshBasicMaterial({ 
+            color: COLORS.player, 
+            transparent: true, 
+            opacity: 0.6,
+            side: THREE.DoubleSide
+          });
+          const pool = new THREE.Mesh(poolGeo, poolMat);
+          pool.rotation.x = -Math.PI / 2;
+          pool.position.set(this.mesh.position.x, 0.05, this.mesh.position.z);
+          scene.add(pool);
+          
+          // Fade out pool over time
+          const fadePool = () => {
+            poolMat.opacity -= 0.01;
+            if (poolMat.opacity > 0) {
+              setTimeout(fadePool, 50);
+            } else {
+              scene.remove(pool);
+              poolGeo.dispose();
+              poolMat.dispose();
+            }
+          };
+          setTimeout(fadePool, 500);
+          
           gameOver();
         }
       }
@@ -3613,7 +3642,7 @@
         
         const geometry = new THREE.BufferGeometry().setFromPoints(points);
         const material = new THREE.LineBasicMaterial({ 
-          color: 0x5DADE2, 
+          color: 0x7B68EE, // Blue-purple color for lightning
           transparent: true, 
           opacity: 1,
           linewidth: 3
@@ -3890,15 +3919,20 @@
         
         if (weapons.aura.active && weapons.aura.level < 4) {
           const nextLevel = weapons.aura.level + 1;
+          const baseRange = 3; // Initial range
+          const currentRange = weapons.aura.range;
+          const nextRange = Math.min(5, baseRange * (1 + (nextLevel * 0.10))); // +10% per level, cap at 5
+          const rangeIncrease = Math.round((nextRange - currentRange) * 10) / 10;
+          
           choices.push({ 
             id: 'aura_upgrade', 
             icon: '🌀',
             title: `AURA Level ${nextLevel}`, 
-            desc: `Damage +3, Range +0.5`, 
+            desc: `Damage +3, Range +${rangeIncrease.toFixed(1)}`, 
             apply: () => { 
               weapons.aura.level++;
               weapons.aura.damage += 3;
-              weapons.aura.range += 0.5;
+              weapons.aura.range = Math.min(5, baseRange * (1 + (weapons.aura.level * 0.10)));
               showStatChange(`Aura Level ${weapons.aura.level}`);
             } 
           });
@@ -4300,7 +4334,7 @@
       const gunCooldown = 1000 * (1 - cdReduction);
       weapons.gun = { active: true, level: 1, damage: 15, cooldown: gunCooldown, lastShot: 0, range: 12, barrels: 1 };
       weapons.sword = { active: false, level: 0, damage: 30, cooldown: 1500, lastShot: 0, range: 3.5 };
-      weapons.aura = { active: false, level: 0, damage: 5, cooldown: 500, lastShot: 0, range: 4 };
+      weapons.aura = { active: false, level: 0, damage: 5, cooldown: 500, lastShot: 0, range: 3 };
       weapons.meteor = { active: false, level: 0, damage: 60, cooldown: 2500, lastShot: 0, area: 5 };
       weapons.lightning = { active: false, level: 0, damage: 25, cooldown: 3000, lastShot: 0, targets: 4 };
       weapons.doubleBarrel = { active: false, level: 0, damage: 25, cooldown: 1200, lastShot: 0, range: 12, spread: 0.3 };
@@ -4828,7 +4862,7 @@ Total Gold Earned: ${saveData.totalGoldEarned}
           particles.push(lightning);
           
           // Flash effect
-          const flashLight = new THREE.PointLight(0x5DADE2, 3, 15);
+          const flashLight = new THREE.PointLight(0x7B68EE, 3, 15); // Blue-purple
           flashLight.position.copy(enemy.mesh.position);
           flashLight.position.y += 2;
           scene.add(flashLight);
@@ -4841,8 +4875,9 @@ Total Gold Earned: ${saveData.totalGoldEarned}
           enemy.takeDamage(finalDmg);
           createDamageNumber(finalDmg, enemy.mesh.position, isCrit);
           
-          // Particles
-          spawnParticles(enemy.mesh.position, 0x5DADE2, 10);
+          // Particles - blue-purple color
+          spawnParticles(enemy.mesh.position, 0x7B68EE, 10);
+          spawnParticles(enemy.mesh.position, 0xFFFFFF, 3); // White flash
         }
         
         weapons.lightning.lastShot = time;
