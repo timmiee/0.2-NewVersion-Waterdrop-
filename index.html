@@ -3165,6 +3165,215 @@
       
       scene.add(mayanGroup);
 
+      // Water Statue in Center - Replace brown square
+      const statueGroup = new THREE.Group();
+      statueGroup.position.set(0, 0, 0); // Center of map
+      
+      // Pedestal
+      const pedestalGeo = new THREE.CylinderGeometry(1.5, 2, 1.5, 8);
+      const pedestalMat = new THREE.MeshToonMaterial({ color: 0xD3D3D3 }); // Light gray stone
+      const pedestal = new THREE.Mesh(pedestalGeo, pedestalMat);
+      pedestal.position.y = 0.75;
+      pedestal.castShadow = true;
+      statueGroup.add(pedestal);
+      
+      // Water droplet statue (large blue droplet)
+      const statueGeo = new THREE.SphereGeometry(1, 16, 16);
+      const statueMat = new THREE.MeshPhysicalMaterial({ 
+        color: COLORS.player,
+        metalness: 0.3,
+        roughness: 0.2,
+        clearcoat: 1,
+        clearcoatRoughness: 0.1
+      });
+      const statue = new THREE.Mesh(statueGeo, statueMat);
+      statue.position.y = 2.5;
+      statue.scale.y = 1.3; // Elongate to droplet shape
+      statue.castShadow = true;
+      statueGroup.add(statue);
+      
+      scene.add(statueGroup);
+
+      // Farm Area near windmill
+      const farmGroup = new THREE.Group();
+      farmGroup.position.set(35, 0, 35); // Near windmill
+      
+      // Wheat field (50 stalks)
+      const wheatGeo = new THREE.ConeGeometry(0.1, 0.8, 4);
+      const wheatMat = new THREE.MeshToonMaterial({ color: 0xF4A460 }); // Sandy brown
+      for(let i=0; i<50; i++) {
+        const wheat = new THREE.Mesh(wheatGeo, wheatMat);
+        wheat.position.set(
+          (Math.random() - 0.5) * 8,
+          0.4,
+          (Math.random() - 0.5) * 8
+        );
+        wheat.rotation.z = (Math.random() - 0.5) * 0.2;
+        farmGroup.add(wheat);
+      }
+      
+      // Barn (8x6x10)
+      const barnGeo = new THREE.BoxGeometry(8, 6, 10);
+      const barnMat = new THREE.MeshToonMaterial({ color: 0x8B0000 }); // Dark red
+      const barn = new THREE.Mesh(barnGeo, barnMat);
+      barn.position.set(12, 3, 0);
+      barn.castShadow = true;
+      farmGroup.add(barn);
+      
+      // Barn roof
+      const roofGeo = new THREE.ConeGeometry(7, 3, 4);
+      const roofMat = new THREE.MeshToonMaterial({ color: 0x654321 }); // Brown
+      const roof = new THREE.Mesh(roofGeo, roofMat);
+      roof.position.set(12, 7.5, 0);
+      roof.rotation.y = Math.PI/4;
+      farmGroup.add(roof);
+      
+      // Tractor with wheels
+      const tractorBody = new THREE.Mesh(
+        new THREE.BoxGeometry(2, 1.5, 3),
+        new THREE.MeshToonMaterial({ color: 0x228B22 }) // Forest green
+      );
+      tractorBody.position.set(-8, 0.75, 0);
+      farmGroup.add(tractorBody);
+      
+      // Tractor wheels (4 wheels)
+      const wheelGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.3, 8);
+      const wheelMat = new THREE.MeshToonMaterial({ color: 0x333333 });
+      const wheelPositions = [
+        [-8.8, 0.5, 1.2], [-8.8, 0.5, -1.2],
+        [-7.2, 0.5, 1.2], [-7.2, 0.5, -1.2]
+      ];
+      wheelPositions.forEach(pos => {
+        const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+        wheel.position.set(...pos);
+        wheel.rotation.z = Math.PI/2;
+        farmGroup.add(wheel);
+      });
+      
+      scene.add(farmGroup);
+
+      // Crystal Tower - 6 floating crystals with animation
+      const crystalGroup = new THREE.Group();
+      crystalGroup.position.set(-50, 0, 0);
+      
+      const crystalGeo = new THREE.OctahedronGeometry(1);
+      for(let i=0; i<6; i++) {
+        const crystalMat = new THREE.MeshPhysicalMaterial({
+          color: 0x9B59B6, // Purple
+          metalness: 0.5,
+          roughness: 0.1,
+          emissive: 0x9B59B6,
+          emissiveIntensity: 0.3,
+          transparent: true,
+          opacity: 0.9
+        });
+        const crystal = new THREE.Mesh(crystalGeo, crystalMat);
+        const angle = (i / 6) * Math.PI * 2;
+        crystal.position.set(
+          Math.cos(angle) * 5,
+          3 + i * 1.5,
+          Math.sin(angle) * 5
+        );
+        crystal.rotation.x = Math.random() * Math.PI;
+        crystal.rotation.y = Math.random() * Math.PI;
+        crystal.userData = { 
+          isCrystal: true, 
+          phase: i * Math.PI / 3,
+          orbitSpeed: 0.5 + Math.random() * 0.5
+        };
+        crystal.castShadow = true;
+        crystalGroup.add(crystal);
+      }
+      
+      scene.add(crystalGroup);
+
+      // Enhanced Waterfall - 3-tier cliffs with water drops and mist
+      const waterfallGroup = new THREE.Group();
+      waterfallGroup.position.set(20, 0, -50);
+      
+      // 3-tier cliffs
+      const cliffMat = new THREE.MeshToonMaterial({ color: 0x708090 }); // Slate gray
+      for(let tier=0; tier<3; tier++) {
+        const cliffGeo = new THREE.BoxGeometry(10, 3, 2);
+        const cliff = new THREE.Mesh(cliffGeo, cliffMat);
+        cliff.position.set(0, tier * 3 + 1.5, tier * 2);
+        cliff.castShadow = true;
+        waterfallGroup.add(cliff);
+        
+        // Water flow (blue plane)
+        const waterGeo = new THREE.PlaneGeometry(8, 3);
+        const waterMat = new THREE.MeshBasicMaterial({ 
+          color: COLORS.lake,
+          transparent: true,
+          opacity: 0.6
+        });
+        const water = new THREE.Mesh(waterGeo, waterMat);
+        water.position.set(0, tier * 3 + 1.5, tier * 2 + 1.1);
+        water.userData = { isWaterfall: true, tier: tier };
+        waterfallGroup.add(water);
+      }
+      
+      scene.add(waterfallGroup);
+
+      // Reflective Lake - Enhanced with metalness and sparkles
+      const enhancedLakeGeo = new THREE.CircleGeometry(18, 32);
+      const enhancedLakeMat = new THREE.MeshPhysicalMaterial({ 
+        color: COLORS.lake,
+        metalness: 0.9,
+        roughness: 0.1,
+        transparent: true,
+        opacity: 0.9,
+        reflectivity: 1
+      });
+      const enhancedLake = new THREE.Mesh(enhancedLakeGeo, enhancedLakeMat);
+      enhancedLake.rotation.x = -Math.PI / 2;
+      enhancedLake.position.set(30, 0.01, -30);
+      scene.add(enhancedLake);
+      
+      // Sun sparkles on lake
+      for(let i=0; i<10; i++) {
+        const sparkleGeo = new THREE.CircleGeometry(0.3, 6);
+        const sparkleMat = new THREE.MeshBasicMaterial({ 
+          color: 0xFFFFFF,
+          transparent: true,
+          opacity: 0.8
+        });
+        const sparkle = new THREE.Mesh(sparkleGeo, sparkleMat);
+        const angle = Math.random() * Math.PI * 2;
+        const dist = Math.random() * 15;
+        sparkle.position.set(
+          30 + Math.cos(angle) * dist,
+          0.02,
+          -30 + Math.sin(angle) * dist
+        );
+        sparkle.rotation.x = -Math.PI/2;
+        sparkle.userData = { 
+          isSparkle: true,
+          phase: Math.random() * Math.PI * 2,
+          speed: 1 + Math.random() * 2
+        };
+        scene.add(sparkle);
+      }
+
+      // More fences around farm area
+      for(let i=0; i<20; i++) {
+        const angle = (i / 20) * Math.PI * 2;
+        const x = 35 + Math.cos(angle) * 15;
+        const z = 35 + Math.sin(angle) * 15;
+        
+        const post = new THREE.Mesh(postGeo, fenceMat);
+        post.position.set(x, 1, z);
+        post.castShadow = true;
+        scene.add(post);
+        
+        if (i % 2 === 0) {
+          const rail = new THREE.Mesh(railGeo, fenceMat);
+          rail.position.set(x, 1, z);
+          rail.rotation.y = angle;
+          scene.add(rail);
+        }
+      }
+
       // Forest (Various tree types with better shadows)
       const trunkGeo = new THREE.CylinderGeometry(0.5, 0.7, 2, 6);
       const trunkMat = new THREE.MeshToonMaterial({ color: 0x8B4513 });
@@ -3306,7 +3515,7 @@
       const flowerGeo = new THREE.ConeGeometry(0.2, 0.5, 6);
       const flowerColors = [0xFF69B4, 0xFFFF00, 0xFF0000, 0xFFA500, 0xFFFFFF];
       
-      for(let i=0; i<100; i++) {
+      for(let i=0; i<250; i++) {
         const flower = new THREE.Mesh(flowerGeo, new THREE.MeshBasicMaterial({ 
           color: flowerColors[Math.floor(Math.random() * flowerColors.length)] 
         }));
@@ -5256,6 +5465,35 @@ Total Gold Earned: ${saveData.totalGoldEarned}
           const scale = 1 + Math.sin(c.userData.phase) * 0.1;
           c.scale.set(scale, 1, scale);
           c.material.opacity = 0.3 + Math.sin(c.userData.phase) * 0.2;
+        }
+        // Lake sparkles animation
+        if (c.userData.isSparkle) {
+          c.userData.phase += 0.02 * c.userData.speed;
+          c.material.opacity = 0.3 + Math.abs(Math.sin(c.userData.phase)) * 0.7;
+          c.scale.set(
+            1 + Math.sin(c.userData.phase * 2) * 0.5,
+            1,
+            1 + Math.sin(c.userData.phase * 2) * 0.5
+          );
+        }
+      });
+      
+      // Crystal tower animation
+      scene.traverse(obj => {
+        if (obj.userData.isCrystal) {
+          // Rotate crystals
+          obj.rotation.x += 0.01;
+          obj.rotation.y += 0.02;
+          
+          // Orbit animation
+          obj.userData.phase += 0.01 * obj.userData.orbitSpeed;
+          const offsetY = Math.sin(obj.userData.phase) * 0.5;
+          obj.position.y += offsetY * 0.05;
+          
+          // Pulsing emissive
+          if (obj.material.emissiveIntensity !== undefined) {
+            obj.material.emissiveIntensity = 0.3 + Math.sin(obj.userData.phase * 2) * 0.2;
+          }
         }
       });
       
