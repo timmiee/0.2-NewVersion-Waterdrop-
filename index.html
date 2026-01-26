@@ -1296,8 +1296,8 @@
           // Movement with LEFT stick
           if (joystickLeft.active) {
             const speed = GAME_CONFIG.playerSpeedBase * (playerStats.walkSpeed / 25); // Normalize 25 to base
-            targetVel.x = joystickLeft.x * speed;
-            targetVel.z = joystickLeft.y * speed;
+            targetVel.x = joystickLeft.x * speed * dt * 60; // Multiply by dt * 60 for frame-rate independence
+            targetVel.z = joystickLeft.y * speed * dt * 60;
           
             this.mesh.position.x += targetVel.x;
             this.mesh.position.z += targetVel.z;
@@ -3655,6 +3655,7 @@
       const commonUpgrades = [
         { 
           id: 'str', 
+          icon: '⚔️',
           title: 'MUSCLE JUICE', 
           desc: 'Damage +10%', 
           apply: () => { 
@@ -3664,6 +3665,7 @@
         },
         { 
           id: 'aspd', 
+          icon: '⚡',
           title: 'SPEEDY TRIGGER', 
           desc: 'Atk Speed +10%', 
           apply: () => { 
@@ -3675,6 +3677,7 @@
         },
         { 
           id: 'armor', 
+          icon: '🛡️',
           title: 'THICC ARMOR', 
           desc: 'Damage Taken -10%', 
           apply: () => { 
@@ -3684,6 +3687,7 @@
         },
         { 
           id: 'hp', 
+          icon: '❤️',
           title: 'CHONKY BODY', 
           desc: 'Max HP +20', 
           apply: () => { 
@@ -3694,6 +3698,7 @@
         },
         { 
           id: 'crit', 
+          icon: '🎯',
           title: 'CRIT MACHINE', 
           desc: 'Crit Chance +5%', 
           apply: () => { 
@@ -3703,6 +3708,7 @@
         },
         { 
           id: 'regen', 
+          icon: '💚',
           title: 'HEALING VIBES', 
           desc: 'HP Regen +1/sec', 
           apply: () => { 
@@ -3712,6 +3718,7 @@
         },
         { 
           id: 'speed', 
+          icon: '🏃',
           title: 'SPEEDY BOI', 
           desc: 'Move Speed +10%', 
           apply: () => { 
@@ -3721,6 +3728,7 @@
         },
         { 
           id: 'critdmg', 
+          icon: '💥',
           title: 'GLASS CANNON', 
           desc: 'Crit Damage +20%', 
           apply: () => { 
@@ -3730,6 +3738,7 @@
         },
         { 
           id: 'magnet', 
+          icon: '🧲',
           title: 'XP MAGNET', 
           desc: 'Magnet Range +1', 
           apply: () => { 
@@ -3739,6 +3748,7 @@
         },
         { 
           id: 'cooldown', 
+          icon: '⏱️',
           title: 'COOLDOWN MASTER', 
           desc: 'All Weapon CD -5%', 
           apply: () => { 
@@ -3767,6 +3777,7 @@
           const nextLevel = weapons.gun.level + 1;
           choices.push({ 
             id: 'gun_upgrade', 
+            icon: '🔫',
             title: `GUN Level ${nextLevel}`, 
             desc: `Damage +10, Fire Rate +15%`, 
             apply: () => { 
@@ -3782,6 +3793,7 @@
           const nextLevel = weapons.sword.level + 1;
           choices.push({ 
             id: 'sword_upgrade', 
+            icon: '⚔️',
             title: `SWORD Level ${nextLevel}`, 
             desc: `Damage +15, Range +0.5`, 
             apply: () => { 
@@ -3797,6 +3809,7 @@
           const nextLevel = weapons.aura.level + 1;
           choices.push({ 
             id: 'aura_upgrade', 
+            icon: '🌀',
             title: `AURA Level ${nextLevel}`, 
             desc: `Damage +3, Range +0.5`, 
             apply: () => { 
@@ -3812,6 +3825,7 @@
           const nextLevel = weapons.meteor.level + 1;
           choices.push({ 
             id: 'meteor_upgrade', 
+            icon: '☄️',
             title: `METEOR Level ${nextLevel}`, 
             desc: `Damage +20, Area +1`, 
             apply: () => { 
@@ -3828,6 +3842,7 @@
           const targetIncrease = nextLevel === 2 ? 3 : (nextLevel === 3 ? 2 : 1);
           choices.push({ 
             id: 'lightning_upgrade', 
+            icon: '⚡',
             title: `LIGHTNING Level ${nextLevel}`, 
             desc: `Damage +10, Targets +${targetIncrease}`, 
             apply: () => { 
@@ -3843,6 +3858,7 @@
           const nextLevel = weapons.doubleBarrel.level + 1;
           choices.push({ 
             id: 'doublebarrel_upgrade', 
+            icon: '🔫',
             title: `DOUBLE BARREL Level ${nextLevel}`, 
             desc: `Damage +12, Fire Rate +10%`, 
             apply: () => { 
@@ -3865,6 +3881,7 @@
         choices = [
           { 
             id: 'sword', 
+            icon: '⚔️',
             title: 'SLASHY SLASH', 
             desc: 'Slash enemies in front', 
             apply: () => { 
@@ -3875,6 +3892,7 @@
           },
           { 
             id: 'aura', 
+            icon: '🌀',
             title: 'ZAP ZONE', 
             desc: 'Damage aura around you', 
             apply: () => { 
@@ -3885,6 +3903,7 @@
           },
           { 
             id: 'meteor', 
+            icon: '☄️',
             title: 'SPACE ROCKS', 
             desc: 'Call meteors from sky', 
             apply: () => { 
@@ -3895,6 +3914,7 @@
           },
           { 
             id: 'lightning', 
+            icon: '⚡',
             title: 'LIGHTNING STRIKES', 
             desc: 'Random lightning hits 4 enemies', 
             apply: () => { 
@@ -3905,6 +3925,7 @@
           },
           { 
             id: 'doublebarrel', 
+            icon: '🔫',
             title: 'DOUBLE BARREL', 
             desc: 'Powerful shotgun spread', 
             apply: () => { 
@@ -3982,7 +4003,8 @@
       choices.forEach((u, index) => {
         const card = document.createElement('div');
         card.className = 'upgrade-card';
-        card.innerHTML = `<div class="upgrade-title">${u.title}</div><div class="upgrade-desc">${u.desc}</div>`;
+        const iconHTML = u.icon ? `<div style="font-size: 48px; margin-bottom: 10px;">${u.icon}</div>` : '';
+        card.innerHTML = `${iconHTML}<div class="upgrade-title">${u.title}</div><div class="upgrade-desc">${u.desc}</div>`;
         
         // Add dramatic entrance animation - alternate left/right
         card.style.opacity = '0';
