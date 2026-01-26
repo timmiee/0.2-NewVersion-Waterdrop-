@@ -1788,11 +1788,28 @@
           let vx = (dx / dist) * this.speed;
           let vz = (dz / dist) * this.speed;
           
-          // Triangle moves erratically
+          // Type 1 (Fast) - Zigzag perpendicular oscillation
           if (this.type === 1) {
-            const wobble = Math.sin(gameTime * 10 + this.wobbleOffset) * 0.05;
-            vx += wobble * (dz/dist); // Perpendicular
+            const wobble = Math.sin(gameTime * 12 + this.wobbleOffset) * 0.08;
+            vx += wobble * (dz/dist); // Perpendicular oscillation
             vz -= wobble * (dx/dist);
+          }
+          
+          // Type 2 (Balanced) - Circle strafe with sine wave
+          if (this.type === 2) {
+            const strafeAngle = gameTime * 2 + this.wobbleOffset;
+            const strafeRadius = 2;
+            const sineWave = Math.sin(strafeAngle) * strafeRadius;
+            vx += sineWave * (-dz/dist) * 0.3; // Circle strafe
+            vz += sineWave * (dx/dist) * 0.3;
+          }
+          
+          // Type 0 (Tank/Slow) - Weaving approach pattern
+          if (this.type === 0) {
+            const weavePhase = gameTime * 3 + this.wobbleOffset;
+            const weave = Math.sin(weavePhase) * 0.06;
+            vx += weave * (-dz/dist); // Weave side to side
+            vz += weave * (dx/dist);
           }
           
           this.mesh.position.x += vx;
@@ -1887,11 +1904,92 @@
         this.hp -= amount;
         createDamageNumber(amount, this.mesh.position, isCrit);
         
-        // Destruction effect at 20% HP threshold
         const hpPercent = this.hp / this.maxHp;
         const oldHpPercent = oldHp / this.maxHp;
         
-        // First hit below 20% - destroy part of body
+        // 75% HP: Blood spots, darken color by 20%
+        if (oldHpPercent >= 0.75 && hpPercent < 0.75 && !this.stage1Damage) {
+          this.stage1Damage = true;
+          
+          // Darken color
+          const currentColor = this.mesh.material.color;
+          currentColor.r *= 0.8;
+          currentColor.g *= 0.8;
+          currentColor.b *= 0.8;
+          
+          // Blood spots (small red particles)
+          spawnParticles(this.mesh.position, 0x8B0000, 10);
+          playSound('hit');
+        }
+        
+        // 50% HP: Add flesh/hole meshes
+        if (oldHpPercent >= 0.5 && hpPercent < 0.5 && !this.stage2Damage) {
+          this.stage2Damage = true;
+          
+          // Add visible wounds/holes
+          for(let i=0; i<3; i++) {
+            const holeGeo = new THREE.SphereGeometry(0.1, 6, 6);
+            const holeMat = new THREE.MeshBasicMaterial({ color: 0x220000 }); // Dark red
+            const hole = new THREE.Mesh(holeGeo, holeMat);
+            hole.position.set(
+              (Math.random() - 0.5) * 0.5,
+              (Math.random() - 0.5) * 0.5,
+              (Math.random() - 0.5) * 0.5
+            );
+            this.mesh.add(hole);
+          }
+          
+          spawnParticles(this.mesh.position, 0x8B0000, 15);
+          playSound('hit');
+        }
+        
+        // 25% HP: Limbs fly off, walkSpeed *= 0.6
+        if (oldHpPercent >= 0.25 && hpPercent < 0.25 && !this.stage3Damage) {
+          this.stage3Damage = true;
+          
+          // Reduce speed
+          this.speed *= 0.6;
+          
+          // Spawn limb pieces
+          const enemyColor = this.mesh.material.color.getHex();
+          for(let i = 0; i < 4; i++) {
+            const limb = new THREE.Mesh(
+              new THREE.BoxGeometry(0.3, 0.1, 0.1),
+              new THREE.MeshBasicMaterial({ color: enemyColor })
+            );
+            limb.position.copy(this.mesh.position);
+            scene.add(limb);
+            
+            const vel = new THREE.Vector3(
+              (Math.random() - 0.5) * 0.4,
+              Math.random() * 0.5,
+              (Math.random() - 0.5) * 0.4
+            );
+            
+            let life = 50;
+            const updateLimb = () => {
+              life--;
+              limb.position.add(vel);
+              vel.y -= 0.02; // Gravity
+              limb.rotation.x += 0.15;
+              limb.rotation.y += 0.15;
+              
+              if (life <= 0 || limb.position.y < 0) {
+                scene.remove(limb);
+                limb.geometry.dispose();
+                limb.material.dispose();
+              } else {
+                requestAnimationFrame(updateLimb);
+              }
+            };
+            updateLimb();
+          }
+          
+          spawnParticles(this.mesh.position, enemyColor, 20);
+          playSound('hit');
+        }
+        
+        // Destruction effect at 20% HP threshold (keep existing behavior)
         if (oldHpPercent >= 0.2 && hpPercent < 0.2 && !this.isDamaged) {
           this.isDamaged = true;
           
@@ -3933,6 +4031,82 @@
     }
     
     function createLevelUpEffects() {
+      // Water Fountain Effect - 60 water droplet particles explode from character
+      for(let i=0; i<60; i++) {
+        const angle = (i / 60) * Math.PI * 2;
+        const speed = 0.2 + Math.random() * 0.4;
+        const height = 0.6 + Math.random() * 0.8;
+        
+        // Water droplets
+        const dropletGeo = new THREE.SphereGeometry(0.08, 8, 8);
+        const dropletMat = new THREE.MeshPhysicalMaterial({ 
+          color: COLORS.player,
+          transparent: true,
+          opacity: 0.9,
+          metalness: 0.3,
+          roughness: 0.1
+        });
+        const droplet = new THREE.Mesh(dropletGeo, dropletMat);
+        droplet.position.copy(player.mesh.position);
+        droplet.position.y += 1;
+        scene.add(droplet);
+        
+        const vel = new THREE.Vector3(
+          Math.cos(angle) * speed,
+          height,
+          Math.sin(angle) * speed
+        );
+        
+        let life = 80;
+        const updateDroplet = () => {
+          life--;
+          droplet.position.add(vel);
+          vel.y -= 0.03; // Gravity
+          droplet.rotation.y += 0.1;
+          droplet.material.opacity = life / 80;
+          
+          if (life <= 0 || droplet.position.y < 0) {
+            scene.remove(droplet);
+            droplet.geometry.dispose();
+            droplet.material.dispose();
+          } else {
+            requestAnimationFrame(updateDroplet);
+          }
+        };
+        updateDroplet();
+      }
+      
+      // Expanding splash ring on ground
+      const ringGeo = new THREE.RingGeometry(0.5, 1, 32);
+      const ringMat = new THREE.MeshBasicMaterial({ 
+        color: COLORS.player,
+        transparent: true,
+        opacity: 0.8,
+        side: THREE.DoubleSide
+      });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.position.copy(player.mesh.position);
+      ring.position.y = 0.05;
+      ring.rotation.x = -Math.PI / 2;
+      scene.add(ring);
+      
+      let ringLife = 60;
+      const updateRing = () => {
+        ringLife--;
+        const scale = 1 + (60 - ringLife) * 0.15;
+        ring.scale.set(scale, scale, 1);
+        ring.material.opacity = ringLife / 60;
+        
+        if (ringLife <= 0) {
+          scene.remove(ring);
+          ring.geometry.dispose();
+          ring.material.dispose();
+        } else {
+          requestAnimationFrame(updateRing);
+        }
+      };
+      updateRing();
+      
       // Fountain/explosion of "LEVEL UP" text particles from player's head
       const texts = ["L", "E", "V", "E", "L", " ", "U", "P", "!"];
       
@@ -3982,10 +4156,10 @@
         particles.push(lightning);
       }
       
-      // Zoom effect
+      // Camera zoom effect
       const originalD = 20;
-      const zoomD = 15;
-      const zoomDuration = 1000; // ms
+      const zoomD = 12; // Zoom closer
+      const zoomDuration = 1200; // ms
       const startTime = Date.now();
       
       const zoomAnim = () => {
