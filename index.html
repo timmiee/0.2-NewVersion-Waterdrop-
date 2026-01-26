@@ -1056,13 +1056,15 @@
         osc2.start(now);
         osc2.stop(now + 0.06);
       } else if (type === 'levelup') {
-        // Epic level up sound
+        // Hi-Fi Level Up Sound - Ascending arpeggio
         osc.type = 'sine';
         osc.frequency.setValueAtTime(400, now);
-        osc.frequency.linearRampToValueAtTime(800, now + 0.1);
-        osc.frequency.linearRampToValueAtTime(1200, now + 0.3);
-        gain.gain.setValueAtTime(0.2, now);
-        gain.gain.linearRampToValueAtTime(0.15, now + 0.2);
+        osc.frequency.linearRampToValueAtTime(500, now + 0.08);
+        osc.frequency.linearRampToValueAtTime(633, now + 0.16);
+        osc.frequency.linearRampToValueAtTime(800, now + 0.24);
+        osc.frequency.linearRampToValueAtTime(1000, now + 0.32);
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.linearRampToValueAtTime(0.2, now + 0.3);
         gain.gain.linearRampToValueAtTime(0, now + 0.6);
         osc.start(now);
         osc.stop(now + 0.6);
@@ -1100,13 +1102,25 @@
         osc.start(now);
         osc.stop(now + 0.1);
       } else if (type === 'coin') {
+        // Gold Pickup Sound - Ascending jingle
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(1500, now);
-        osc.frequency.linearRampToValueAtTime(2500, now + 0.1);
-        gain.gain.setValueAtTime(0.05, now);
-        gain.gain.linearRampToValueAtTime(0, now + 0.1);
+        osc.frequency.setValueAtTime(600, now);
+        osc.frequency.linearRampToValueAtTime(800, now + 0.05);
+        osc.frequency.linearRampToValueAtTime(1000, now + 0.08);
+        osc.frequency.linearRampToValueAtTime(1200, now + 0.11);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.linearRampToValueAtTime(0, now + 0.15);
         osc.start(now);
-        osc.stop(now + 0.1);
+        osc.stop(now + 0.15);
+      } else if (type === 'coinDrop') {
+        // Gold Drop Sound - Metallic coin drop
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, now);
+        osc.frequency.exponentialRampToValueAtTime(200, now + 0.15);
+        gain.gain.setValueAtTime(0.06, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        osc.start(now);
+        osc.stop(now + 0.15);
       }
     }
 
@@ -1241,6 +1255,50 @@
         this.highlight.position.set(-0.2, 0.3, 0.2);
         this.mesh.add(this.highlight);
         
+        // Add player face: eyes (white spheres + black pupils)
+        const eyeGeo = new THREE.SphereGeometry(0.08, 8, 8);
+        const eyeMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
+        
+        this.leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+        this.leftEye.position.set(-0.12, 0.1, 0.4);
+        this.mesh.add(this.leftEye);
+        
+        this.rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+        this.rightEye.position.set(0.12, 0.1, 0.4);
+        this.mesh.add(this.rightEye);
+        
+        // Pupils (black)
+        const pupilGeo = new THREE.SphereGeometry(0.04, 8, 8);
+        const pupilMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+        
+        this.leftPupil = new THREE.Mesh(pupilGeo, pupilMat);
+        this.leftPupil.position.set(-0.12, 0.1, 0.45);
+        this.mesh.add(this.leftPupil);
+        
+        this.rightPupil = new THREE.Mesh(pupilGeo, pupilMat);
+        this.rightPupil.position.set(0.12, 0.1, 0.45);
+        this.mesh.add(this.rightPupil);
+        
+        // Smile (curved shape using torus segment)
+        const smileGeo = new THREE.TorusGeometry(0.15, 0.02, 8, 16, Math.PI);
+        const smileMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+        this.smile = new THREE.Mesh(smileGeo, smileMat);
+        this.smile.position.set(0, -0.05, 0.4);
+        this.smile.rotation.x = Math.PI / 2;
+        this.smile.rotation.z = Math.PI;
+        this.mesh.add(this.smile);
+        
+        // Pulsing glow
+        const glowGeo = new THREE.SphereGeometry(0.55, 16, 16);
+        const glowMat = new THREE.MeshBasicMaterial({ 
+          color: 0x4FC3F7, 
+          transparent: true, 
+          opacity: 0.2,
+          side: THREE.BackSide
+        });
+        this.glow = new THREE.Mesh(glowGeo, glowMat);
+        this.mesh.add(this.glow);
+        
         // Aura Circle (visible when aura weapon is active)
         const auraGeo = new THREE.RingGeometry(3.5, 4, 32);
         const auraMat = new THREE.MeshBasicMaterial({ 
@@ -1354,6 +1412,14 @@
         
         // Pulse highlight
         this.highlight.material.opacity = 0.6 + Math.sin(gameTime * 3) * 0.2;
+        
+        // Pulse glow effect
+        this.glow.material.opacity = 0.15 + Math.sin(gameTime * 2) * 0.1;
+        this.glow.scale.set(
+          1 + Math.sin(gameTime * 2) * 0.05,
+          1 + Math.sin(gameTime * 2) * 0.05,
+          1 + Math.sin(gameTime * 2) * 0.05
+        );
         
         // Update aura circle
         if (weapons.aura.active) {
@@ -2282,6 +2348,13 @@
         this.vx = 0;
         this.vz = 0;
         this.wobblePhase = Math.random() * Math.PI * 2;
+        
+        // Play gold drop sound
+        playSound('coinDrop');
+        
+        // Spawn 8 sparkles on creation
+        spawnParticles(this.mesh.position, 0xFFD700, 8);
+        spawnParticles(this.mesh.position, 0xFFFFFF, 2);
       }
       
       update(playerPos) {
@@ -2300,11 +2373,20 @@
         // Collect ONLY when player is very close
         if (dist < this.collectRange) {
           addGold(this.amount);
-          this.destroy();
           playSound('coin');
           
-          // Gold collect particles
+          // Gold collect particles - 20 sparkles + flash
           spawnParticles(this.mesh.position, 0xFFD700, 15);
+          spawnParticles(this.mesh.position, 0xFFFFFF, 5); // White flash sparkles
+          
+          // Flash effect - bright point light
+          const flashLight = new THREE.PointLight(0xFFD700, 4, 8);
+          flashLight.position.copy(this.mesh.position);
+          flashLight.position.y += 1;
+          scene.add(flashLight);
+          setTimeout(() => scene.remove(flashLight), 100);
+          
+          this.destroy();
         }
       }
       
