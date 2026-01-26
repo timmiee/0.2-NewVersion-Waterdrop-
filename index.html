@@ -1209,6 +1209,28 @@
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15); // Use 0.001 instead of 0.01 for exponential ramps
         osc.start(now);
         osc.stop(now + 0.15);
+      } else if (type === 'dash') {
+        // Dash/Swoosh sound - Quick whoosh
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(400, now);
+        osc.frequency.exponentialRampToValueAtTime(100, now + 0.15);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+        osc.start(now);
+        osc.stop(now + 0.15);
+        
+        // Add wind layer
+        const osc2 = audioCtx.createOscillator();
+        const gain2 = audioCtx.createGain();
+        osc2.connect(gain2);
+        gain2.connect(audioCtx.destination);
+        osc2.type = 'triangle';
+        osc2.frequency.setValueAtTime(1200, now);
+        osc2.frequency.exponentialRampToValueAtTime(300, now + 0.12);
+        gain2.gain.setValueAtTime(0.1, now);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+        osc2.start(now);
+        osc2.stop(now + 0.12);
       }
     }
 
@@ -1237,20 +1259,8 @@
     const joystickLeft = { x: 0, y: 0, active: false, id: null, originX: 0, originY: 0 }; // Movement
     const joystickRight = { x: 0, y: 0, active: false, id: null, originX: 0, originY: 0 }; // Aiming
     
-    // Dash mechanic state
-    const dashState = {
-      isDashing: false,
-      cooldown: 0,
-      cooldownDuration: 1000, // 1 second cooldown
-      duration: 250, // 250ms dash
-      speed: 100, // Dash speed multiplier
-      distance: 0,
-      direction: { x: 0, z: 0 }
-    };
-    
     // Swipe detection for dash
     let swipeStart = null;
-    let swipeTime = 0;
     
     // Stats
     const playerStats = {
