@@ -5169,7 +5169,7 @@
 
       // Reset Player - Spawn beside the lake after emerging from water
       if (player) {
-        player.mesh.position.set(35, 0.5, -30); // Spawn at edge of lake (lake is at 30, 0.01, -30)
+        player.mesh.position.set(35, 0.5, -30); // Spawn in the lake near its center (lake center at 30, 0.01, -30; radius 18)
         player.mesh.material.color.setHex(COLORS.player);
       }
 
