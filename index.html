@@ -5857,6 +5857,16 @@ Total Gold Earned: ${saveData.totalGoldEarned}
           const centerX = obj.userData.basePosition.x;
           const centerZ = obj.userData.basePosition.z;
           const centerY = obj.userData.basePosition.y;
+          // Store the initial position as the orbit center (relative to parent/comet group)
+          if (!obj.userData.basePosition) {
+            obj.userData.basePosition = obj.position.clone();
+          }
+          
+          obj.userData.angle += obj.userData.speed * 0.02;
+          
+          const centerX = obj.userData.basePosition.x;
+          const centerZ = obj.userData.basePosition.z;
+          const centerY = obj.userData.basePosition.y;
           
           obj.position.x = centerX + Math.cos(obj.userData.angle) * obj.userData.radius;
           obj.position.z = centerZ + Math.sin(obj.userData.angle) * obj.userData.radius;
