@@ -524,10 +524,10 @@
       transform: translateX(-50%);
     }
 
-    #start-game-btn { top: 50.25%; } /* Moved 3.5% lower */
-    #progression-btn { top: 61.25%; } /* Moved 3.5% lower */
-    #achievements-btn { top: 72.25%; } /* Moved 3.5% lower */
-    #credits-btn { top: 83.25%; } /* Moved 3.5% lower */
+    #start-game-btn { top: 50.25%; } /* Moved 3.5% lower from 46.75% */
+    #progression-btn { top: 61.25%; } /* Moved 3.5% lower from 57.75% */
+    #achievements-btn { top: 72.25%; } /* Moved 3.5% lower from 68.75% */
+    #credits-btn { top: 82.75%; } /* Moved 3% lower from 79.75% (adjusted to avoid cutoff) */
 
     .menu-btn::before {
       content: '';
@@ -3268,7 +3268,7 @@
         const x = Math.cos(angle) * stoneRadius;
         const z = Math.sin(angle) * stoneRadius;
         
-        // Vertical standing stone - realistic proportions (4m wide × 7m tall × 1m thick)
+        // Vertical standing stone - realistic proportions (approx 1.5m wide × 5m tall × 1m thick)
         const stoneGeo = new THREE.BoxGeometry(1.5, 5, 1); 
         const stone = new THREE.Mesh(stoneGeo, stoneMat);
         stone.position.set(x, 2.5, z);
@@ -3276,8 +3276,8 @@
         stone.castShadow = true;
         stonehengeGroup.add(stone);
         
-        // Horizontal cap stone on top (every other pair for inner trilithons)
-        if (i % 6 === 0 && i < 24) { // Only place caps on select pairs
+        // Horizontal cap stone on top (placed on every 6th stone pair for sparse distribution)
+        if (i % 6 === 0 && i < 24) { // Places 4 caps total (at indices 0, 6, 12, 18)
           const nextAngle = ((i + 1) / numStones) * Math.PI * 2;
           const nextX = Math.cos(nextAngle) * stoneRadius;
           const nextZ = Math.sin(nextAngle) * stoneRadius;
@@ -3371,7 +3371,7 @@
       
       scene.add(statueGroup);
 
-      // Comet Stone - Beside the lake where player spawns (makes waterdrop alive)
+      // Comet Stone - Beside the lake where player spawns (brings the water droplet to life)
       const cometGroup = new THREE.Group();
       cometGroup.position.set(37, 0, -30); // Right beside lake where player spawns
       
@@ -3827,7 +3827,7 @@
       const loadingBar = document.getElementById('loading-bar');
       let progress = 0;
       
-      // Extended loading duration: 5 increments, 400ms each = 2000ms total
+      // Extended loading duration: 20 iterations × 400ms = 8000ms (8 seconds total)
       const interval = setInterval(() => {
         progress += 5;
         loadingBar.style.width = progress + '%';
@@ -5852,8 +5852,8 @@ Total Gold Earned: ${saveData.totalGoldEarned}
           obj.position.z = Math.sin(obj.userData.angle) * obj.userData.radius;
           obj.position.y = obj.userData.height + Math.sin(obj.userData.angle * 2) * 0.3;
           
-          // Pulsing opacity
-          obj.material.opacity = 0.4 + Math.sin(obj.userData.angle * 3) * 0.3;
+          // Pulsing opacity (between 0.3 and 0.7 for good visibility)
+          obj.material.opacity = 0.5 + Math.sin(obj.userData.angle * 3) * 0.2;
         }
       });
       
