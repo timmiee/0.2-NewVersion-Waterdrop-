@@ -277,6 +277,18 @@
       100% { transform: translateY(-60px) scale(1.3); opacity: 0; }
     }
 
+    @keyframes goldBagPop {
+      0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+      50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(1) translateY(-50px); opacity: 0; }
+    }
+
+    @keyframes goldTextFloat {
+      0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+      50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(1) translateY(-30px); opacity: 0; }
+    }
+
     /* Game Over Screen */
     #gameover-screen {
       position: absolute;
@@ -390,11 +402,13 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: linear-gradient(to bottom, #1a1a2e, #16213e);
+      background-image: url('321E5768-E77B-4471-8C32-5D7C1D715A4B.png');
+      background-size: cover;
+      background-position: center;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-end;
       z-index: 10000;
       transition: opacity 0.5s ease-out;
     }
@@ -412,6 +426,7 @@
       object-fit: contain;
       margin-bottom: 40px;
       animation: pulse 2s infinite;
+      display: none;
     }
 
     .game-title {
@@ -435,6 +450,7 @@
       border-radius: 10px;
       overflow: hidden;
       border: 2px solid #5DADE2;
+      margin-bottom: 40px;
     }
 
     .loading-bar {
@@ -471,7 +487,7 @@
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
-      opacity: 0.6;
+      opacity: 1;
       z-index: -1;
     }
 
@@ -480,28 +496,38 @@
       color: #5DADE2;
       text-shadow: 0 0 20px rgba(93,173,226,0.8), 0 0 40px rgba(93,173,226,0.5);
       margin-bottom: 40px;
+      display: none;
     }
 
     .menu-buttons {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
     }
 
     .menu-btn {
-      background: linear-gradient(to bottom, #5DADE2, #3498DB);
-      color: white;
+      background: transparent;
+      color: transparent;
       border: none;
-      padding: 20px 60px;
-      font-size: 24px;
-      border-radius: 50px;
-      font-weight: bold;
+      padding: 0;
+      font-size: 0;
+      box-shadow: none;
+      position: absolute;
+      width: 300px;
+      height: 60px;
       cursor: pointer;
-      box-shadow: 0 6px 0 #2874A6, 0 0 0 rgba(93,173,226,0);
-      transition: all 0.15s ease;
-      position: relative;
-      overflow: hidden;
+      transition: all 0.2s ease;
+      overflow: visible;
+      left: 50%;
+      transform: translateX(-50%);
     }
+
+    #start-game-btn { top: 46.75%; }
+    #progression-btn { top: 57.75%; }
+    #achievements-btn { top: 68.75%; }
+    #credits-btn { top: 79.75%; }
 
     .menu-btn::before {
       content: '';
@@ -517,14 +543,11 @@
     }
 
     .menu-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 0 #2874A6, 0 0 20px rgba(93,173,226,0.6), 0 0 40px rgba(93,173,226,0.3);
-      filter: brightness(1.1);
+      box-shadow: 0 0 20px rgba(93, 173, 226, 0.8), 0 0 40px rgba(93, 173, 226, 0.6), inset 0 0 30px rgba(93, 173, 226, 0.3);
     }
 
     .menu-btn:active {
-      transform: translateY(6px) scale(0.98);
-      box-shadow: 0 0 30px rgba(255,255,255,0.8), 0 0 50px rgba(93,173,226,0.8);
+      box-shadow: 0 0 40px rgba(255, 255, 255, 1), 0 0 60px rgba(93, 173, 226, 1), inset 0 0 40px rgba(255, 255, 255, 0.8);
       animation: lightning-flash 0.3s ease;
     }
 
@@ -735,9 +758,10 @@
       display: none;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
+      overflow-y: auto;
       z-index: 50; /* Lower than UI layer buttons */
-      padding: 40px;
+      padding: 40px 40px 100px 40px;
     }
 
     .screen-title {
@@ -762,6 +786,15 @@
         width: 90%;
         max-width: 350px;
       }
+
+      .bar-container {
+        width: min(200px, 40vw);
+        height: 24px;
+      }
+
+      .hud-top {
+        padding: 10px;
+      }
       
       #joystick-outer-right {
         display: none !important; /* Hide right joystick in portrait */
@@ -774,8 +807,14 @@
         width: 70%;
         max-width: 500px;
       }
-      
+
+      .bar-container {
+        width: min(200px, 25vw);
+        height: 20px;
+      }
+
       .hud-top {
+        padding: 8px;
         flex-direction: row;
         justify-content: space-between;
       }
@@ -1170,6 +1209,28 @@
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15); // Use 0.001 instead of 0.01 for exponential ramps
         osc.start(now);
         osc.stop(now + 0.15);
+      } else if (type === 'dash') {
+        // Dash/Swoosh sound - Quick whoosh
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(400, now);
+        osc.frequency.exponentialRampToValueAtTime(100, now + 0.15);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+        osc.start(now);
+        osc.stop(now + 0.15);
+        
+        // Add wind layer
+        const osc2 = audioCtx.createOscillator();
+        const gain2 = audioCtx.createGain();
+        osc2.connect(gain2);
+        gain2.connect(audioCtx.destination);
+        osc2.type = 'triangle';
+        osc2.frequency.setValueAtTime(1200, now);
+        osc2.frequency.exponentialRampToValueAtTime(300, now + 0.12);
+        gain2.gain.setValueAtTime(0.1, now);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+        osc2.start(now);
+        osc2.stop(now + 0.12);
       }
     }
 
@@ -1198,6 +1259,9 @@
     const joystickLeft = { x: 0, y: 0, active: false, id: null, originX: 0, originY: 0 }; // Movement
     const joystickRight = { x: 0, y: 0, active: false, id: null, originX: 0, originY: 0 }; // Aiming
     
+    // Swipe detection for dash
+    let swipeStart = null;
+    
     // Stats
     const playerStats = {
       lvl: 1,
@@ -1215,7 +1279,11 @@
       walkSpeed: 25, // Display value
       kills: 0,
       hpRegen: 0,
-      gold: 0
+      gold: 0,
+      survivalTime: 0,
+      dashesPerformed: 0,
+      damageTaken: 0,
+      weaponsUnlocked: 0
     };
 
     // Weapons State
@@ -1336,6 +1404,28 @@
         this.smile.rotation.x = Math.PI / 2;
         this.smile.rotation.z = Math.PI;
         this.mesh.add(this.smile);
+        
+        // Cigar accessory with glowing tip
+        const cigarGeo = new THREE.CylinderGeometry(0.02, 0.025, 0.25, 8);
+        const cigarMat = new THREE.MeshToonMaterial({ color: 0x8B4513 }); // Brown
+        this.cigar = new THREE.Mesh(cigarGeo, cigarMat);
+        this.cigar.position.set(0.2, -0.1, 0.35);
+        this.cigar.rotation.z = -Math.PI / 6; // Angled
+        this.mesh.add(this.cigar);
+        
+        // Glowing cigar tip
+        const tipGeo = new THREE.SphereGeometry(0.03, 8, 8);
+        const tipMat = new THREE.MeshBasicMaterial({ 
+          color: 0xFF4500, // Orange-red
+          transparent: true,
+          opacity: 1
+        });
+        this.cigarTip = new THREE.Mesh(tipGeo, tipMat);
+        this.cigarTip.position.set(0.28, -0.05, 0.35);
+        this.mesh.add(this.cigarTip);
+        
+        // Smoke particles timer
+        this.smokeTimer = 0;
         
         // Pulsing glow
         const glowGeo = new THREE.SphereGeometry(0.55, 16, 16);
@@ -1469,6 +1559,53 @@
           1 + Math.sin(gameTime * 2) * 0.05,
           1 + Math.sin(gameTime * 2) * 0.05
         );
+        
+        // Animate cigar tip (pulsing emissive glow)
+        if (this.cigarTip) {
+          const tipBrightness = 0.7 + Math.sin(gameTime * 8) * 0.3;
+          this.cigarTip.material.opacity = tipBrightness;
+          
+          // Smoke particles from cigar
+          this.smokeTimer += dt;
+          if (this.smokeTimer > 0.2) { // Every 0.2 seconds
+            this.smokeTimer = 0;
+            
+            // Create smoke particle
+            const smokeGeo = new THREE.SphereGeometry(0.05, 6, 6);
+            const smokeMat = new THREE.MeshBasicMaterial({ 
+              color: 0xCCCCCC,
+              transparent: true,
+              opacity: 0.5
+            });
+            const smoke = new THREE.Mesh(smokeGeo, smokeMat);
+            
+            // Position at cigar tip
+            const tipWorldPos = new THREE.Vector3();
+            this.cigarTip.getWorldPosition(tipWorldPos);
+            smoke.position.copy(tipWorldPos);
+            scene.add(smoke);
+            
+            // Animate smoke rising
+            let smokeLife = 80;
+            const updateSmoke = () => {
+              smokeLife--;
+              smoke.position.y += 0.02; // Rise up
+              smoke.position.x += (Math.random() - 0.5) * 0.01; // Drift
+              smoke.position.z += (Math.random() - 0.5) * 0.01;
+              smoke.scale.multiplyScalar(1.02); // Expand
+              smoke.material.opacity = (smokeLife / 80) * 0.5; // Fade out
+              
+              if (smokeLife <= 0) {
+                scene.remove(smoke);
+                smoke.geometry.dispose();
+                smoke.material.dispose();
+              } else {
+                requestAnimationFrame(updateSmoke);
+              }
+            };
+            updateSmoke();
+          }
+        }
         
         // Update aura circle
         if (weapons.aura.active) {
@@ -1730,11 +1867,28 @@
           let vx = (dx / dist) * this.speed;
           let vz = (dz / dist) * this.speed;
           
-          // Triangle moves erratically
+          // Type 1 (Fast) - Zigzag perpendicular oscillation
           if (this.type === 1) {
-            const wobble = Math.sin(gameTime * 10 + this.wobbleOffset) * 0.05;
-            vx += wobble * (dz/dist); // Perpendicular
+            const wobble = Math.sin(gameTime * 12 + this.wobbleOffset) * 0.08;
+            vx += wobble * (dz/dist); // Perpendicular oscillation
             vz -= wobble * (dx/dist);
+          }
+          
+          // Type 2 (Balanced) - Circle strafe with sine wave
+          if (this.type === 2) {
+            const strafeAngle = gameTime * 2 + this.wobbleOffset;
+            const strafeRadius = 2;
+            const sineWave = Math.sin(strafeAngle) * strafeRadius;
+            vx += sineWave * (-dz/dist) * 0.3; // Circle strafe
+            vz += sineWave * (dx/dist) * 0.3;
+          }
+          
+          // Type 0 (Tank/Slow) - Weaving approach pattern
+          if (this.type === 0) {
+            const weavePhase = gameTime * 3 + this.wobbleOffset;
+            const weave = Math.sin(weavePhase) * 0.06;
+            vx += weave * (-dz/dist); // Weave side to side
+            vz += weave * (dx/dist);
           }
           
           this.mesh.position.x += vx;
@@ -1829,11 +1983,92 @@
         this.hp -= amount;
         createDamageNumber(amount, this.mesh.position, isCrit);
         
-        // Destruction effect at 20% HP threshold
         const hpPercent = this.hp / this.maxHp;
         const oldHpPercent = oldHp / this.maxHp;
         
-        // First hit below 20% - destroy part of body
+        // 75% HP: Blood spots, darken color by 20%
+        if (oldHpPercent >= 0.75 && hpPercent < 0.75 && !this.stage1Damage) {
+          this.stage1Damage = true;
+          
+          // Darken color
+          const currentColor = this.mesh.material.color;
+          currentColor.r *= 0.8;
+          currentColor.g *= 0.8;
+          currentColor.b *= 0.8;
+          
+          // Blood spots (small red particles)
+          spawnParticles(this.mesh.position, 0x8B0000, 10);
+          playSound('hit');
+        }
+        
+        // 50% HP: Add flesh/hole meshes
+        if (oldHpPercent >= 0.5 && hpPercent < 0.5 && !this.stage2Damage) {
+          this.stage2Damage = true;
+          
+          // Add visible wounds/holes
+          for(let i=0; i<3; i++) {
+            const holeGeo = new THREE.SphereGeometry(0.1, 6, 6);
+            const holeMat = new THREE.MeshBasicMaterial({ color: 0x220000 }); // Dark red
+            const hole = new THREE.Mesh(holeGeo, holeMat);
+            hole.position.set(
+              (Math.random() - 0.5) * 0.5,
+              (Math.random() - 0.5) * 0.5,
+              (Math.random() - 0.5) * 0.5
+            );
+            this.mesh.add(hole);
+          }
+          
+          spawnParticles(this.mesh.position, 0x8B0000, 15);
+          playSound('hit');
+        }
+        
+        // 25% HP: Limbs fly off, walkSpeed *= 0.6
+        if (oldHpPercent >= 0.25 && hpPercent < 0.25 && !this.stage3Damage) {
+          this.stage3Damage = true;
+          
+          // Reduce speed
+          this.speed *= 0.6;
+          
+          // Spawn limb pieces
+          const enemyColor = this.mesh.material.color.getHex();
+          for(let i = 0; i < 4; i++) {
+            const limb = new THREE.Mesh(
+              new THREE.BoxGeometry(0.3, 0.1, 0.1),
+              new THREE.MeshBasicMaterial({ color: enemyColor })
+            );
+            limb.position.copy(this.mesh.position);
+            scene.add(limb);
+            
+            const vel = new THREE.Vector3(
+              (Math.random() - 0.5) * 0.4,
+              Math.random() * 0.5,
+              (Math.random() - 0.5) * 0.4
+            );
+            
+            let life = 50;
+            const updateLimb = () => {
+              life--;
+              limb.position.add(vel);
+              vel.y -= 0.02; // Gravity
+              limb.rotation.x += 0.15;
+              limb.rotation.y += 0.15;
+              
+              if (life <= 0 || limb.position.y < 0) {
+                scene.remove(limb);
+                limb.geometry.dispose();
+                limb.material.dispose();
+              } else {
+                requestAnimationFrame(updateLimb);
+              }
+            };
+            updateLimb();
+          }
+          
+          spawnParticles(this.mesh.position, enemyColor, 20);
+          playSound('hit');
+        }
+        
+        // Destruction effect at 20% HP threshold (keep existing behavior)
         if (oldHpPercent >= 0.2 && hpPercent < 0.2 && !this.isDamaged) {
           this.isDamaged = true;
           
@@ -2426,6 +2661,7 @@
         this.vx = 0;
         this.vz = 0;
         this.wobblePhase = Math.random() * Math.PI * 2;
+        this.bounceTime = 0;
         
         // Play gold drop sound
         playSound('coinDrop');
@@ -2438,10 +2674,18 @@
       update(playerPos) {
         if (!this.active) return;
         
-        // Rotate and wobble for visual effect
-        this.mesh.rotation.z += 0.15;
-        this.wobblePhase += 0.1;
-        this.mesh.position.y = 0.3 + Math.sin(this.wobblePhase) * 0.1;
+        // Spinning
+        this.mesh.rotation.y += 0.15;
+        
+        // Bounce physics on spawn
+        if (this.bounceTime < 1) {
+          this.mesh.position.y = 0.3 + Math.abs(Math.sin(this.bounceTime * Math.PI * 3)) * 0.5 * (1 - this.bounceTime);
+          this.bounceTime += 0.02;
+        } else {
+          // Wobble after bounce
+          this.wobblePhase += 0.1;
+          this.mesh.position.y = 0.3 + Math.sin(this.wobblePhase) * 0.1;
+        }
         
         // NO MAGNET - player must walk over gold to collect it
         const dx = playerPos.x - this.mesh.position.x;
@@ -2475,6 +2719,17 @@
         this.mesh.material.dispose();
       }
     }
+
+    // --- NOTIFICATION/INBOX SYSTEM ---
+    const notifications = [];
+    const inventory = [];
+    const RARITY = {
+      COMMON: { name: 'Common', color: 0xAAAAAA, multiplier: 1.0 },
+      RARE: { name: 'Rare', color: 0x5DADE2, multiplier: 1.25 },
+      EPIC: { name: 'Epic', color: 0x9B59B6, multiplier: 1.5 },
+      LEGENDARY: { name: 'Legendary', color: 0xF39C12, multiplier: 2.0 },
+      MYTHIC: { name: 'Mythic', color: 0xE74C3C, multiplier: 3.0 }
+    };
 
     // --- SAVE SYSTEM ---
     const SAVE_KEY = 'waterDropSurvivorSave';
@@ -2528,12 +2783,24 @@
 
     // --- ACHIEVEMENTS SYSTEM ---
     const ACHIEVEMENTS = {
-      kills100: { id: 'kills100', name: '100 Kills', desc: 'Kill 100 enemies', reward: 50, check: () => playerStats.kills >= 100 },
-      level10: { id: 'level10', name: 'Level 10', desc: 'Reach Level 10', reward: 100, check: () => playerStats.lvl >= 10 },
-      level25: { id: 'level25', name: 'Level 25', desc: 'Reach Level 25', reward: 250, check: () => playerStats.lvl >= 25 },
-      level50: { id: 'level50', name: 'Level 50', desc: 'Reach Level 50', reward: 500, check: () => playerStats.lvl >= 50 },
-      level75: { id: 'level75', name: 'Level 75', desc: 'Reach Level 75', reward: 750, check: () => playerStats.lvl >= 75 },
-      level100: { id: 'level100', name: 'Level 100', desc: 'Reach Level 100', reward: 1000, check: () => playerStats.lvl >= 100 }
+      kills10: { id: 'kills10', name: 'First Blood', desc: 'Kill 10 enemies', reward: 25, check: () => playerStats.kills >= 10, claimed: false },
+      kills50: { id: 'kills50', name: 'Killer Instinct', desc: 'Kill 50 enemies', reward: 50, check: () => playerStats.kills >= 50, claimed: false },
+      kills100: { id: 'kills100', name: 'Century Slayer', desc: 'Kill 100 enemies', reward: 100, check: () => playerStats.kills >= 100, claimed: false },
+      kills500: { id: 'kills500', name: 'Mass Destroyer', desc: 'Kill 500 enemies', reward: 250, check: () => playerStats.kills >= 500, claimed: false },
+      kills1000: { id: 'kills1000', name: 'Legendary Warrior', desc: 'Kill 1000 enemies', reward: 500, check: () => playerStats.kills >= 1000, claimed: false },
+      
+      gold100: { id: 'gold100', name: 'Small Fortune', desc: 'Collect 100 gold in one run', reward: 50, check: () => playerStats.gold >= 100, claimed: false },
+      gold500: { id: 'gold500', name: 'Treasure Hunter', desc: 'Collect 500 gold in one run', reward: 150, check: () => playerStats.gold >= 500, claimed: false },
+      gold1000: { id: 'gold1000', name: 'Gold Baron', desc: 'Collect 1000 gold in one run', reward: 300, check: () => playerStats.gold >= 1000, claimed: false },
+      
+      dasher: { id: 'dasher', name: 'Dash Master', desc: 'Perform 50 dashes in one run', reward: 100, check: () => playerStats.dashesPerformed >= 50, claimed: false },
+      survivor: { id: 'survivor', name: 'Time Warrior', desc: 'Survive for 10 minutes', reward: 200, check: () => playerStats.survivalTime >= 600, claimed: false },
+      weaponMaster: { id: 'weaponMaster', name: 'Weapon Master', desc: 'Unlock all 3 weapons', reward: 150, check: () => playerStats.weaponsUnlocked >= 3, claimed: false },
+      untouchable: { id: 'untouchable', name: 'Untouchable', desc: 'Take no damage for 3 minutes', reward: 300, check: () => playerStats.survivalTime >= 180 && playerStats.damageTaken === 0, claimed: false },
+      
+      level10: { id: 'level10', name: 'Rising Star', desc: 'Reach Level 10', reward: 100, check: () => playerStats.lvl >= 10, claimed: false },
+      level25: { id: 'level25', name: 'Experienced Fighter', desc: 'Reach Level 25', reward: 250, check: () => playerStats.lvl >= 25, claimed: false },
+      level50: { id: 'level50', name: 'Master Champion', desc: 'Reach Level 50', reward: 500, check: () => playerStats.lvl >= 50, claimed: false }
     };
 
     function updateAchievementsScreen() {
@@ -2542,26 +2809,34 @@
       
       let html = '<div style="display: grid; gap: 15px; width: 100%; max-width: 600px; margin: 0 auto;">';
       
+      let unclaimedCount = 0;
       for (const key in ACHIEVEMENTS) {
         const achievement = ACHIEVEMENTS[key];
-        const isEarned = saveData.achievements && saveData.achievements.includes(achievement.id);
+        const isClaimed = saveData.achievements && saveData.achievements.includes(achievement.id);
+        const canClaim = !isClaimed && achievement.check();
+        
+        if (canClaim) unclaimedCount++;
         
         html += `
           <div style="
-            background: linear-gradient(to bottom, ${isEarned ? '#2c5530' : '#3a3a3a'}, ${isEarned ? '#1a3020' : '#2a2a2a'});
-            border: 3px solid ${isEarned ? '#FFD700' : '#5a5a5a'};
+            background: linear-gradient(to bottom, ${isClaimed ? '#2c5530' : (canClaim ? '#4a4a2a' : '#3a3a3a')}, ${isClaimed ? '#1a3020' : (canClaim ? '#3a3a1a' : '#2a2a2a')});
+            border: 3px solid ${isClaimed ? '#FFD700' : (canClaim ? '#FFFF00' : '#5a5a5a')};
             border-radius: 15px;
             padding: 15px;
             text-align: left;
-          ">
-            <div style="color: ${isEarned ? '#FFD700' : '#bbb'}; font-size: 20px; font-weight: bold; margin-bottom: 5px;">
-              ${isEarned ? '✓ ' : ''}${achievement.name}
+            position: relative;
+            cursor: ${canClaim ? 'pointer' : 'default'};
+            transition: all 0.2s ease;
+            ${canClaim ? 'box-shadow: 0 0 15px rgba(255, 255, 0, 0.5);' : ''}
+          " ${canClaim ? `onclick="claimAchievement('${achievement.id}')"` : ''}>
+            <div style="color: ${isClaimed ? '#FFD700' : (canClaim ? '#FFFF00' : '#bbb')}; font-size: 20px; font-weight: bold; margin-bottom: 5px;">
+              ${isClaimed ? '✓ ' : ''}${achievement.name}
             </div>
-            <div style="color: ${isEarned ? '#90ee90' : '#888'}; font-size: 14px; margin-bottom: 8px;">
+            <div style="color: ${isClaimed ? '#90ee90' : (canClaim ? '#dddd00' : '#888')}; font-size: 14px; margin-bottom: 8px;">
               ${achievement.desc}
             </div>
             <div style="color: #FFD700; font-size: 16px; font-weight: bold;">
-              Reward: ${achievement.reward} Gold
+              Reward: ${achievement.reward} Gold ${canClaim ? '- CLICK TO CLAIM!' : ''}
             </div>
           </div>
         `;
@@ -2569,41 +2844,139 @@
       
       html += '</div>';
       content.innerHTML = html;
+      
+      // Update notification badge on achievements button
+      updateAchievementBadge(unclaimedCount);
+    }
+
+    function updateAchievementBadge(count) {
+      let badge = document.getElementById('achievement-badge');
+      if (count > 0) {
+        if (!badge) {
+          badge = document.createElement('div');
+          badge.id = 'achievement-badge';
+          badge.style.cssText = `
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #FF0000;
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.8);
+            z-index: 100;
+          `;
+          document.getElementById('achievements-btn').appendChild(badge);
+        }
+        badge.textContent = count;
+      } else if (badge) {
+        badge.remove();
+      }
+    }
+
+    function claimAchievement(achievementId) {
+      const achievement = Object.values(ACHIEVEMENTS).find(a => a.id === achievementId);
+      if (!achievement) return;
+      
+      const isClaimed = saveData.achievements && saveData.achievements.includes(achievement.id);
+      const canClaim = !isClaimed && achievement.check();
+      
+      if (!canClaim) return;
+      
+      // Mark as claimed
+      if (!saveData.achievements) saveData.achievements = [];
+      saveData.achievements.push(achievement.id);
+      
+      // Award gold
+      addGold(achievement.reward);
+      
+      // Play sound
+      playSound('coin');
+      
+      // Show gold bag animation
+      showGoldBagAnimation(achievement.reward);
+      
+      // Save
+      saveSaveData();
+      
+      // Refresh screen
+      updateAchievementsScreen();
+    }
+
+    function showGoldBagAnimation(amount) {
+      const bag = document.createElement('div');
+      bag.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 64px;
+        z-index: 10000;
+        pointer-events: none;
+        animation: goldBagPop 1s ease-out forwards;
+      `;
+      bag.textContent = '💰';
+      document.body.appendChild(bag);
+      
+      const text = document.createElement('div');
+      text.style.cssText = `
+        position: fixed;
+        top: 55%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 32px;
+        font-weight: bold;
+        color: #FFD700;
+        text-shadow: 0 0 10px rgba(255, 215, 0, 0.8), -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000;
+        z-index: 10000;
+        pointer-events: none;
+        animation: goldTextFloat 1s ease-out forwards;
+      `;
+      text.textContent = `+${amount} GOLD!`;
+      document.body.appendChild(text);
+      
+      setTimeout(() => {
+        bag.remove();
+        text.remove();
+      }, 1000);
     }
 
     function checkAchievements() {
+      // This function just checks if achievements are unlocked (not auto-claiming)
+      // Players must click to claim in the achievements menu
+      let hasNewAchievement = false;
+      
       for (const key in ACHIEVEMENTS) {
         const achievement = ACHIEVEMENTS[key];
         
-        // Skip if already earned
+        // Skip if already claimed
         if (saveData.achievements && saveData.achievements.includes(achievement.id)) {
           continue;
         }
         
-        // Check if achieved
+        // Check if achieved - mark internally but don't auto-claim
         if (achievement.check()) {
-          // Award achievement
-          if (!saveData.achievements) saveData.achievements = [];
-          saveData.achievements.push(achievement.id);
+          hasNewAchievement = true;
           
-          // Award gold
-          addGold(achievement.reward);
-          
-          // Show achievement notification
-          createFloatingText(`ACHIEVEMENT: ${achievement.name}`, player.mesh.position);
-          createFloatingText(`+${achievement.reward} GOLD`, player.mesh.position);
-          
-          // Save
-          saveSaveData();
-          
-          // Play sound
-          playSound('levelup');
-          
-          // Visual effect
-          for(let i=0; i<30; i++) {
-            spawnParticles(player.mesh.position, 0xFFD700, 5);
+          // Show notification that achievement is available
+          if (!achievement.notified) {
+            achievement.notified = true;
+            createFloatingText(`NEW ACHIEVEMENT UNLOCKED!`, player.mesh.position);
+            createFloatingText(`Check Achievements Menu`, player.mesh.position);
+            playSound('levelup');
           }
         }
+      }
+      
+      // Update achievement badge
+      if (hasNewAchievement) {
+        updateAchievementsScreen();
       }
     }
 
@@ -2969,6 +3342,215 @@
       
       scene.add(mayanGroup);
 
+      // Water Statue in Center - Replace brown square
+      const statueGroup = new THREE.Group();
+      statueGroup.position.set(0, 0, 0); // Center of map
+      
+      // Pedestal
+      const pedestalGeo = new THREE.CylinderGeometry(1.5, 2, 1.5, 8);
+      const pedestalMat = new THREE.MeshToonMaterial({ color: 0xD3D3D3 }); // Light gray stone
+      const pedestal = new THREE.Mesh(pedestalGeo, pedestalMat);
+      pedestal.position.y = 0.75;
+      pedestal.castShadow = true;
+      statueGroup.add(pedestal);
+      
+      // Water droplet statue (large blue droplet)
+      const statueGeo = new THREE.SphereGeometry(1, 16, 16);
+      const statueMat = new THREE.MeshPhysicalMaterial({ 
+        color: COLORS.player,
+        metalness: 0.3,
+        roughness: 0.2,
+        clearcoat: 1,
+        clearcoatRoughness: 0.1
+      });
+      const statue = new THREE.Mesh(statueGeo, statueMat);
+      statue.position.y = 2.5;
+      statue.scale.y = 1.3; // Elongate to droplet shape
+      statue.castShadow = true;
+      statueGroup.add(statue);
+      
+      scene.add(statueGroup);
+
+      // Farm Area near windmill
+      const farmGroup = new THREE.Group();
+      farmGroup.position.set(35, 0, 35); // Near windmill
+      
+      // Wheat field (50 stalks)
+      const wheatGeo = new THREE.ConeGeometry(0.1, 0.8, 4);
+      const wheatMat = new THREE.MeshToonMaterial({ color: 0xF4A460 }); // Sandy brown
+      for(let i=0; i<50; i++) {
+        const wheat = new THREE.Mesh(wheatGeo, wheatMat);
+        wheat.position.set(
+          (Math.random() - 0.5) * 8,
+          0.4,
+          (Math.random() - 0.5) * 8
+        );
+        wheat.rotation.z = (Math.random() - 0.5) * 0.2;
+        farmGroup.add(wheat);
+      }
+      
+      // Barn (8x6x10)
+      const barnGeo = new THREE.BoxGeometry(8, 6, 10);
+      const barnMat = new THREE.MeshToonMaterial({ color: 0x8B0000 }); // Dark red
+      const barn = new THREE.Mesh(barnGeo, barnMat);
+      barn.position.set(12, 3, 0);
+      barn.castShadow = true;
+      farmGroup.add(barn);
+      
+      // Barn roof
+      const roofGeo = new THREE.ConeGeometry(7, 3, 4);
+      const roofMat = new THREE.MeshToonMaterial({ color: 0x654321 }); // Brown
+      const roof = new THREE.Mesh(roofGeo, roofMat);
+      roof.position.set(12, 7.5, 0);
+      roof.rotation.y = Math.PI/4;
+      farmGroup.add(roof);
+      
+      // Tractor with wheels
+      const tractorBody = new THREE.Mesh(
+        new THREE.BoxGeometry(2, 1.5, 3),
+        new THREE.MeshToonMaterial({ color: 0x228B22 }) // Forest green
+      );
+      tractorBody.position.set(-8, 0.75, 0);
+      farmGroup.add(tractorBody);
+      
+      // Tractor wheels (4 wheels)
+      const wheelGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.3, 8);
+      const wheelMat = new THREE.MeshToonMaterial({ color: 0x333333 });
+      const wheelPositions = [
+        [-8.8, 0.5, 1.2], [-8.8, 0.5, -1.2],
+        [-7.2, 0.5, 1.2], [-7.2, 0.5, -1.2]
+      ];
+      wheelPositions.forEach(pos => {
+        const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+        wheel.position.set(...pos);
+        wheel.rotation.z = Math.PI/2;
+        farmGroup.add(wheel);
+      });
+      
+      scene.add(farmGroup);
+
+      // Crystal Tower - 6 floating crystals with animation
+      const crystalGroup = new THREE.Group();
+      crystalGroup.position.set(-50, 0, 0);
+      
+      const crystalGeo = new THREE.OctahedronGeometry(1);
+      for(let i=0; i<6; i++) {
+        const crystalMat = new THREE.MeshPhysicalMaterial({
+          color: 0x9B59B6, // Purple
+          metalness: 0.5,
+          roughness: 0.1,
+          emissive: 0x9B59B6,
+          emissiveIntensity: 0.3,
+          transparent: true,
+          opacity: 0.9
+        });
+        const crystal = new THREE.Mesh(crystalGeo, crystalMat);
+        const angle = (i / 6) * Math.PI * 2;
+        crystal.position.set(
+          Math.cos(angle) * 5,
+          3 + i * 1.5,
+          Math.sin(angle) * 5
+        );
+        crystal.rotation.x = Math.random() * Math.PI;
+        crystal.rotation.y = Math.random() * Math.PI;
+        crystal.userData = { 
+          isCrystal: true, 
+          phase: i * Math.PI / 3,
+          orbitSpeed: 0.5 + Math.random() * 0.5
+        };
+        crystal.castShadow = true;
+        crystalGroup.add(crystal);
+      }
+      
+      scene.add(crystalGroup);
+
+      // Enhanced Waterfall - 3-tier cliffs with water drops and mist
+      const waterfallGroup = new THREE.Group();
+      waterfallGroup.position.set(20, 0, -50);
+      
+      // 3-tier cliffs
+      const cliffMat = new THREE.MeshToonMaterial({ color: 0x708090 }); // Slate gray
+      for(let tier=0; tier<3; tier++) {
+        const cliffGeo = new THREE.BoxGeometry(10, 3, 2);
+        const cliff = new THREE.Mesh(cliffGeo, cliffMat);
+        cliff.position.set(0, tier * 3 + 1.5, tier * 2);
+        cliff.castShadow = true;
+        waterfallGroup.add(cliff);
+        
+        // Water flow (blue plane)
+        const waterGeo = new THREE.PlaneGeometry(8, 3);
+        const waterMat = new THREE.MeshBasicMaterial({ 
+          color: COLORS.lake,
+          transparent: true,
+          opacity: 0.6
+        });
+        const water = new THREE.Mesh(waterGeo, waterMat);
+        water.position.set(0, tier * 3 + 1.5, tier * 2 + 1.1);
+        water.userData = { isWaterfall: true, tier: tier };
+        waterfallGroup.add(water);
+      }
+      
+      scene.add(waterfallGroup);
+
+      // Reflective Lake - Enhanced with metalness and sparkles
+      const enhancedLakeGeo = new THREE.CircleGeometry(18, 32);
+      const enhancedLakeMat = new THREE.MeshPhysicalMaterial({ 
+        color: COLORS.lake,
+        metalness: 0.9,
+        roughness: 0.1,
+        transparent: true,
+        opacity: 0.9,
+        reflectivity: 1
+      });
+      const enhancedLake = new THREE.Mesh(enhancedLakeGeo, enhancedLakeMat);
+      enhancedLake.rotation.x = -Math.PI / 2;
+      enhancedLake.position.set(30, 0.01, -30);
+      scene.add(enhancedLake);
+      
+      // Sun sparkles on lake
+      for(let i=0; i<10; i++) {
+        const sparkleGeo = new THREE.CircleGeometry(0.3, 6);
+        const sparkleMat = new THREE.MeshBasicMaterial({ 
+          color: 0xFFFFFF,
+          transparent: true,
+          opacity: 0.8
+        });
+        const sparkle = new THREE.Mesh(sparkleGeo, sparkleMat);
+        const angle = Math.random() * Math.PI * 2;
+        const dist = Math.random() * 15;
+        sparkle.position.set(
+          30 + Math.cos(angle) * dist,
+          0.02,
+          -30 + Math.sin(angle) * dist
+        );
+        sparkle.rotation.x = -Math.PI/2;
+        sparkle.userData = { 
+          isSparkle: true,
+          phase: Math.random() * Math.PI * 2,
+          speed: 1 + Math.random() * 2
+        };
+        scene.add(sparkle);
+      }
+
+      // More fences around farm area
+      for(let i=0; i<20; i++) {
+        const angle = (i / 20) * Math.PI * 2;
+        const x = 35 + Math.cos(angle) * 15;
+        const z = 35 + Math.sin(angle) * 15;
+        
+        const post = new THREE.Mesh(postGeo, fenceMat);
+        post.position.set(x, 1, z);
+        post.castShadow = true;
+        scene.add(post);
+        
+        if (i % 2 === 0) {
+          const rail = new THREE.Mesh(railGeo, fenceMat);
+          rail.position.set(x, 1, z);
+          rail.rotation.y = angle;
+          scene.add(rail);
+        }
+      }
+
       // Forest (Various tree types with better shadows)
       const trunkGeo = new THREE.CylinderGeometry(0.5, 0.7, 2, 6);
       const trunkMat = new THREE.MeshToonMaterial({ color: 0x8B4513 });
@@ -3110,7 +3692,7 @@
       const flowerGeo = new THREE.ConeGeometry(0.2, 0.5, 6);
       const flowerColors = [0xFF69B4, 0xFFFF00, 0xFF0000, 0xFFA500, 0xFFFFFF];
       
-      for(let i=0; i<100; i++) {
+      for(let i=0; i<250; i++) {
         const flower = new THREE.Mesh(flowerGeo, new THREE.MeshBasicMaterial({ 
           color: flowerColors[Math.floor(Math.random() * flowerColors.length)] 
         }));
@@ -3528,6 +4110,82 @@
     }
     
     function createLevelUpEffects() {
+      // Water Fountain Effect - 60 water droplet particles explode from character
+      for(let i=0; i<60; i++) {
+        const angle = (i / 60) * Math.PI * 2;
+        const speed = 0.2 + Math.random() * 0.4;
+        const height = 0.6 + Math.random() * 0.8;
+        
+        // Water droplets
+        const dropletGeo = new THREE.SphereGeometry(0.08, 8, 8);
+        const dropletMat = new THREE.MeshPhysicalMaterial({ 
+          color: COLORS.player,
+          transparent: true,
+          opacity: 0.9,
+          metalness: 0.3,
+          roughness: 0.1
+        });
+        const droplet = new THREE.Mesh(dropletGeo, dropletMat);
+        droplet.position.copy(player.mesh.position);
+        droplet.position.y += 1;
+        scene.add(droplet);
+        
+        const vel = new THREE.Vector3(
+          Math.cos(angle) * speed,
+          height,
+          Math.sin(angle) * speed
+        );
+        
+        let life = 80;
+        const updateDroplet = () => {
+          life--;
+          droplet.position.add(vel);
+          vel.y -= 0.03; // Gravity
+          droplet.rotation.y += 0.1;
+          droplet.material.opacity = life / 80;
+          
+          if (life <= 0 || droplet.position.y < 0) {
+            scene.remove(droplet);
+            droplet.geometry.dispose();
+            droplet.material.dispose();
+          } else {
+            requestAnimationFrame(updateDroplet);
+          }
+        };
+        updateDroplet();
+      }
+      
+      // Expanding splash ring on ground
+      const ringGeo = new THREE.RingGeometry(0.5, 1, 32);
+      const ringMat = new THREE.MeshBasicMaterial({ 
+        color: COLORS.player,
+        transparent: true,
+        opacity: 0.8,
+        side: THREE.DoubleSide
+      });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.position.copy(player.mesh.position);
+      ring.position.y = 0.05;
+      ring.rotation.x = -Math.PI / 2;
+      scene.add(ring);
+      
+      let ringLife = 60;
+      const updateRing = () => {
+        ringLife--;
+        const scale = 1 + (60 - ringLife) * 0.15;
+        ring.scale.set(scale, scale, 1);
+        ring.material.opacity = ringLife / 60;
+        
+        if (ringLife <= 0) {
+          scene.remove(ring);
+          ring.geometry.dispose();
+          ring.material.dispose();
+        } else {
+          requestAnimationFrame(updateRing);
+        }
+      };
+      updateRing();
+      
       // Fountain/explosion of "LEVEL UP" text particles from player's head
       const texts = ["L", "E", "V", "E", "L", " ", "U", "P", "!"];
       
@@ -3577,10 +4235,10 @@
         particles.push(lightning);
       }
       
-      // Zoom effect
+      // Camera zoom effect
       const originalD = 20;
-      const zoomD = 15;
-      const zoomDuration = 1000; // ms
+      const zoomD = 12; // Zoom closer
+      const zoomDuration = 1200; // ms
       const startTime = Date.now();
       
       const zoomAnim = () => {
@@ -4572,6 +5230,9 @@ Total Gold Earned: ${saveData.totalGoldEarned}
             joystickLeft.originX = touch.clientX;
             joystickLeft.originY = touch.clientY;
             
+            // Store swipe start for dash detection
+            swipeStart = { x: touch.clientX, y: touch.clientY, time: Date.now() };
+            
             // Show dynamic joystick at touch position
             joystickOuter.style.display = 'block';
             joystickOuter.style.left = (touch.clientX - 60) + 'px';
@@ -4604,6 +5265,33 @@ Total Gold Earned: ${saveData.totalGoldEarned}
           if (touch.identifier === joystickLeft.id && joystickLeft.active) {
             const dx = touch.clientX - joystickLeft.originX;
             const dy = touch.clientY - joystickLeft.originY;
+            
+            // Check for dash swipe (250ms, 60px threshold)
+            if (swipeStart && !swipeDetected && !player.isDashing) {
+              const swipeDist = Math.sqrt(dx*dx + dy*dy);
+              const swipeTime = Date.now() - swipeStart.time;
+              
+              if (swipeTime < 250 && swipeDist > 60) {
+                // Perform dash!
+                swipeDetected = true;
+                player.isDashing = true;
+                player.dashTime = player.dashDuration;
+                
+                // Dash direction normalized
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                player.dashVec.set(dx / dist, 0, dy / dist);
+                
+                // Track dash
+                playerStats.dashesPerformed++;
+                
+                // Visual/sound effects
+                playSound('dash');
+                spawnParticles(player.mesh.position, COLORS.player, 20);
+                
+                // Reset swipe
+                swipeStart = null;
+              }
+            }
             
             // Normalize
             const maxDist = 50;
@@ -4653,6 +5341,10 @@ Total Gold Earned: ${saveData.totalGoldEarned}
             joystickLeft.active = false;
             joystickLeft.x = 0;
             joystickLeft.y = 0;
+            
+            // Reset swipe detection
+            swipeStart = null;
+            swipeDetected = false;
             
             // Hide joystick
             joystickOuter.style.display = 'none';
@@ -4721,7 +5413,14 @@ Total Gold Earned: ${saveData.totalGoldEarned}
 
     function onWindowResize() {
       const aspect = window.innerWidth / window.innerHeight;
-      const d = 20;
+      let d = 20;
+      
+      // Landscape camera zoom - 50% closer in landscape mode
+      const isPortrait = window.innerHeight > window.innerWidth;
+      if (!isPortrait) {
+        d *= 0.5; // Zoom in 50% for landscape
+      }
+      
       camera.left = -d * aspect;
       camera.right = d * aspect;
       camera.top = d;
@@ -4923,9 +5622,48 @@ Total Gold Earned: ${saveData.totalGoldEarned}
           enemy.takeDamage(finalDmg);
           createDamageNumber(finalDmg, enemy.mesh.position, isCrit);
           
-          // Particles - blue-purple color
-          spawnParticles(enemy.mesh.position, 0x7B68EE, 10);
-          spawnParticles(enemy.mesh.position, 0xFFFFFF, 3); // White flash
+          // Ground impact particles - 8 white + 6 purple sparks
+          spawnParticles(enemy.mesh.position, 0xFFFFFF, 8); // White sparks
+          spawnParticles(enemy.mesh.position, 0x7B68EE, 6); // Purple sparks
+          
+          // Chain Lightning - Find nearest enemy within 8 units at 60% damage
+          const chainRange = 8;
+          let chainTarget = null;
+          let minChainDist = Infinity;
+          
+          for (let e of aliveEnemies) {
+            if (e === enemy || e.isDead) continue;
+            const dist = enemy.mesh.position.distanceTo(e.mesh.position);
+            if (dist < chainRange && dist < minChainDist) {
+              minChainDist = dist;
+              chainTarget = e;
+            }
+          }
+          
+          if (chainTarget) {
+            // Create chain lightning visual
+            const chainLightning = new LightningBolt(
+              enemy.mesh.position.clone(),
+              chainTarget.mesh.position.clone()
+            );
+            chainLightning.mesh.material.color.setHex(0xADD8E6); // Light blue for chain
+            particles.push(chainLightning);
+            
+            // Chain damage (60% of original)
+            const chainDmg = finalDmg * 0.6;
+            chainTarget.takeDamage(chainDmg);
+            createDamageNumber(chainDmg, chainTarget.mesh.position, false);
+            
+            // Chain impact particles
+            spawnParticles(chainTarget.mesh.position, 0xADD8E6, 8);
+            
+            // Chain flash
+            const chainFlashLight = new THREE.PointLight(0xADD8E6, 2, 10);
+            chainFlashLight.position.copy(chainTarget.mesh.position);
+            chainFlashLight.position.y += 1;
+            scene.add(chainFlashLight);
+            setTimeout(() => scene.remove(chainFlashLight), 80);
+          }
         }
         
         weapons.lightning.lastShot = time;
@@ -5019,6 +5757,35 @@ Total Gold Earned: ${saveData.totalGoldEarned}
           const scale = 1 + Math.sin(c.userData.phase) * 0.1;
           c.scale.set(scale, 1, scale);
           c.material.opacity = 0.3 + Math.sin(c.userData.phase) * 0.2;
+        }
+        // Lake sparkles animation
+        if (c.userData.isSparkle) {
+          c.userData.phase += 0.02 * c.userData.speed;
+          c.material.opacity = 0.3 + Math.abs(Math.sin(c.userData.phase)) * 0.7;
+          c.scale.set(
+            1 + Math.sin(c.userData.phase * 2) * 0.5,
+            1,
+            1 + Math.sin(c.userData.phase * 2) * 0.5
+          );
+        }
+      });
+      
+      // Crystal tower animation
+      scene.traverse(obj => {
+        if (obj.userData.isCrystal) {
+          // Rotate crystals
+          obj.rotation.x += 0.01;
+          obj.rotation.y += 0.02;
+          
+          // Orbit animation
+          obj.userData.phase += 0.01 * obj.userData.orbitSpeed;
+          const offsetY = Math.sin(obj.userData.phase) * 0.5;
+          obj.position.y += offsetY * 0.05;
+          
+          // Pulsing emissive
+          if (obj.material.emissiveIntensity !== undefined) {
+            obj.material.emissiveIntensity = 0.3 + Math.sin(obj.userData.phase * 2) * 0.2;
+          }
         }
       });
       
