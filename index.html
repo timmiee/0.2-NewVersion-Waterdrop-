@@ -95,7 +95,7 @@
       background: linear-gradient(to bottom, #3a3a3a 0%, #3a3a3a 50%, #6a6a6a 50%, #6a6a6a 100%);
       border-radius: 12px;
       border: 3px solid #2a2a2a;
-      overflow: hidden;
+      overflow: visible;
       position: relative;
       box-shadow: 0 3px 8px rgba(0,0,0,0.3), inset 0 2px 4px rgba(0,0,0,0.2), 0 0 15px rgba(0,0,0,0.5);
     }
@@ -105,6 +105,19 @@
       width: 100%;
       transition: width 0.3s ease-out;
       box-shadow: inset 0 2px 4px rgba(255,255,255,0.2);
+      position: relative;
+    }
+
+    .bar-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-weight: bold;
+      font-size: 12px;
+      text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+      pointer-events: none;
+      z-index: 1;
     }
 
     #hp-fill { 
@@ -124,6 +137,11 @@
       text-shadow: 1px 1px 2px rgba(0,0,0,0.5), -1px -1px 1px rgba(255,255,255,0.3), 0 0 5px rgba(139,69,19,0.3);
       font-size: 14px;
       margin-top: 4px;
+    }
+
+    .stat-text.gold-text {
+      font-size: 12px;
+      margin-top: 8px;
     }
 
     /* Joystick */
@@ -426,7 +444,7 @@
       object-fit: contain;
       margin-bottom: 40px;
       animation: pulse 2s infinite;
-      display: none;
+      display: block;
     }
 
     .game-title {
@@ -435,7 +453,7 @@
       text-shadow: 0 0 20px rgba(93,173,226,0.8), 0 0 40px rgba(93,173,226,0.5);
       margin-bottom: 40px;
       animation: pulse 2s infinite;
-      display: none; /* Hide text title when logo is present */
+      display: block;
     }
 
     @keyframes pulse {
@@ -779,6 +797,93 @@
       max-width: 600px;
     }
 
+    /* Settings Modal */
+    #settings-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      pointer-events: auto;
+    }
+
+    .settings-container {
+      background: linear-gradient(to bottom, #2c3e50, #34495e);
+      padding: 30px;
+      border-radius: 20px;
+      max-width: 400px;
+      width: 90%;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+
+    .settings-title {
+      font-size: 32px;
+      color: #5DADE2;
+      text-align: center;
+      margin-bottom: 20px;
+      text-shadow: 0 0 15px rgba(93,173,226,0.8);
+    }
+
+    .settings-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 15px 0;
+      color: #ecf0f1;
+      font-size: 16px;
+    }
+
+    .settings-item label {
+      flex: 1;
+    }
+
+    .settings-item input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+    }
+
+    .settings-item select {
+      padding: 5px 10px;
+      border-radius: 5px;
+      background: #34495e;
+      color: #ecf0f1;
+      border: 2px solid #5DADE2;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .settings-close-btn {
+      margin-top: 20px;
+      width: 100%;
+      background: linear-gradient(to bottom, #e74c3c, #c0392b);
+      color: white;
+      border: none;
+      padding: 12px;
+      font-size: 18px;
+      border-radius: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 4px 0 #a93226;
+      transition: all 0.15s ease;
+    }
+
+    .settings-close-btn:hover {
+      box-shadow: 0 6px 0 #a93226;
+      filter: brightness(1.1);
+    }
+
+    .settings-close-btn:active {
+      transform: translateY(4px);
+      box-shadow: 0 0 0 #a93226;
+    }
+
     /* Responsive Media Queries */
     @media (orientation: portrait) {
       /* Portrait mode adjustments */
@@ -881,22 +986,56 @@
     <button class="back-btn" id="credits-back-btn">BACK TO MENU</button>
   </div>
 
+  <!-- Settings Modal -->
+  <div id="settings-modal">
+    <div class="settings-container">
+      <div class="settings-title">SETTINGS</div>
+      
+      <div class="settings-item">
+        <label for="auto-aim-checkbox">Auto-Aim (Portrait Mode)</label>
+        <input type="checkbox" id="auto-aim-checkbox" checked>
+      </div>
+      
+      <div class="settings-item">
+        <label for="control-type-select">Control Type</label>
+        <select id="control-type-select">
+          <option value="touch">Touch (Joystick)</option>
+          <option value="keyboard">Keyboard</option>
+          <option value="gamepad">Gamepad</option>
+        </select>
+      </div>
+      
+      <div class="settings-item">
+        <label for="sound-toggle">Sound Effects</label>
+        <input type="checkbox" id="sound-toggle" checked>
+      </div>
+      
+      <div class="settings-item">
+        <label for="music-toggle">Background Music</label>
+        <input type="checkbox" id="music-toggle" checked>
+      </div>
+      
+      <button class="settings-close-btn" id="settings-close-btn">CLOSE</button>
+    </div>
+  </div>
+
   <div id="game-container"></div>
 
   <div id="ui-layer">
     <div class="hud-top">
       <div class="bar-container" id="hp-bar-container">
         <div class="bar-fill" id="hp-fill"></div>
+        <div class="bar-text" id="hp-text" style="color: #FFFFFF;">HP: 100/100</div>
       </div>
-      <div class="stat-text" id="hp-text" style="color: #FF4444; text-shadow: 0 0 8px rgba(255,68,68,0.8), 0 0 12px rgba(255,68,68,0.5), 1px 1px 2px rgba(0,0,0,0.5);">HP: 100/100</div>
       
       <div class="bar-container" id="exp-bar-container" style="border-color: #2a2a2a;">
         <div class="bar-fill" id="exp-fill"></div>
+        <div class="bar-text" id="exp-text" style="color: #FFFFFF;">EXP: 0%</div>
       </div>
-      <div class="stat-text" id="exp-text" style="color: #5DADE2; text-shadow: 0 0 8px rgba(93,173,226,0.8), 0 0 12px rgba(93,173,226,0.5), 1px 1px 2px rgba(0,0,0,0.5);">EXP: 0%</div>
+      
       <div class="stat-text" id="lvl-text" style="color: #5DADE2; text-shadow: 0 0 8px rgba(93,173,226,0.8), 0 0 12px rgba(93,173,226,0.5), 1px 1px 2px rgba(0,0,0,0.5);">LVL: 1</div>
       <div class="stat-text" id="score-text" style="color: #8B4513;">KILLS: 0</div>
-      <div class="stat-text" id="gold-text" style="color: #FFD700; text-shadow: 0 0 10px rgba(255,215,0,0.9), 0 0 15px rgba(255,215,0,0.6), 1px 1px 2px rgba(0,0,0,0.5);">GOLD: 0</div>
+      <div class="stat-text gold-text" id="gold-text" style="color: #FFD700; text-shadow: 0 0 10px rgba(255,215,0,0.9), 0 0 15px rgba(255,215,0,0.6), 1px 1px 2px rgba(0,0,0,0.5);">GOLD: 0</div>
       
       <!-- Windmill Quest UI -->
       <div id="windmill-quest-ui" style="display: none; margin-top: 10px;">
@@ -908,6 +1047,7 @@
       </div>
     </div>
     <button id="stats-btn" class="btn-small" style="position: absolute; top: 20px; right: 20px; pointer-events: auto; z-index: 100;">STATS</button>
+    <button id="settings-btn" class="btn-small" style="position: absolute; top: 20px; right: 100px; pointer-events: auto; z-index: 100;">⚙️</button>
 
     <div id="joystick-zone">
       <div class="joystick-outer" id="joystick-outer">
@@ -1255,6 +1395,15 @@
     let windmillQuest = { active: false, timer: 0, duration: 30, windmill: null, hasCompleted: false };
     let runStartGold = 0;  // Track gold at start of run for end-of-run calculation
 
+    // Game Settings
+    const gameSettings = {
+      autoAim: true,
+      controlType: 'touch', // 'touch', 'keyboard', 'gamepad'
+      soundEnabled: true,
+      musicEnabled: true,
+      isPortrait: window.innerHeight > window.innerWidth
+    };
+
     // Input - Twin-Stick Controls
     const joystickLeft = { x: 0, y: 0, active: false, id: null, originX: 0, originY: 0 }; // Movement
     const joystickRight = { x: 0, y: 0, active: false, id: null, originX: 0, originY: 0 }; // Aiming
@@ -1515,6 +1664,25 @@
             // Turn to face the direction of right stick
             const angle = Math.atan2(joystickRight.x, joystickRight.y);
             this.mesh.rotation.y = angle;
+          } else if (gameSettings.autoAim && gameSettings.isPortrait && enemies.length > 0) {
+            // Auto-aim in portrait mode: aim at nearest enemy
+            let nearestEnemy = null;
+            let minDist = Infinity;
+            enemies.forEach(e => {
+              if (!e.isDead) {
+                const dist = this.mesh.position.distanceTo(e.mesh.position);
+                if (dist < minDist) {
+                  minDist = dist;
+                  nearestEnemy = e;
+                }
+              }
+            });
+            if (nearestEnemy) {
+              const dx = nearestEnemy.mesh.position.x - this.mesh.position.x;
+              const dz = nearestEnemy.mesh.position.z - this.mesh.position.z;
+              const angle = Math.atan2(dx, dz);
+              this.mesh.rotation.y = angle;
+            }
           } else if (joystickLeft.active) {
             // If no right stick input, rotate to face movement direction
             const angle = Math.atan2(targetVel.x, targetVel.z);
@@ -3917,6 +4085,36 @@
     }
     
     function setupMenus() {
+      // Settings button
+      document.getElementById('settings-btn').onclick = () => {
+        playSound('levelup');
+        document.getElementById('settings-modal').style.display = 'flex';
+      };
+      
+      document.getElementById('settings-close-btn').onclick = () => {
+        playSound('levelup');
+        document.getElementById('settings-modal').style.display = 'none';
+      };
+      
+      // Settings handlers
+      document.getElementById('auto-aim-checkbox').onchange = (e) => {
+        gameSettings.autoAim = e.target.checked;
+      };
+      
+      document.getElementById('control-type-select').onchange = (e) => {
+        gameSettings.controlType = e.target.value;
+        updateControlType();
+      };
+      
+      document.getElementById('sound-toggle').onchange = (e) => {
+        gameSettings.soundEnabled = e.target.checked;
+      };
+      
+      document.getElementById('music-toggle').onchange = (e) => {
+        gameSettings.musicEnabled = e.target.checked;
+        updateBackgroundMusic();
+      };
+      
       // Main Menu Buttons
       document.getElementById('start-game-btn').onclick = () => {
         playSound('levelup');
@@ -4532,7 +4730,7 @@
           id: 'str', 
           icon: '⚔️',
           title: 'MUSCLE JUICE', 
-          desc: 'Damage +10%', 
+          desc: 'Weapon Damage +10% (Base Strength Multiplier)', 
           apply: () => { 
             playerStats.strength += 0.1; 
             showStatChange('+10% Damage');
@@ -4542,7 +4740,7 @@
           id: 'aspd', 
           icon: '⚡',
           title: 'SPEEDY TRIGGER', 
-          desc: 'Atk Speed +10%', 
+          desc: 'Attack Speed +10% (Faster Weapon Fire Rate)', 
           apply: () => { 
             playerStats.atkSpeed += 0.1; 
             weapons.gun.cooldown *= 0.9; 
@@ -4554,17 +4752,17 @@
           id: 'armor', 
           icon: '🛡️',
           title: 'THICC ARMOR', 
-          desc: 'Damage Taken -10%', 
+          desc: 'Armor +10% (Damage Reduction, Max 80%)', 
           apply: () => { 
             playerStats.armor = Math.min(80, playerStats.armor + 10); 
-            showStatChange('+10% Armor');
+            showStatChange('+10% Armor (Current: ' + playerStats.armor + '%)');
           } 
         },
         { 
           id: 'hp', 
           icon: '❤️',
           title: 'CHONKY BODY', 
-          desc: 'Max HP +20', 
+          desc: 'Max HP +20 (Instant Heal +20)', 
           apply: () => { 
             playerStats.maxHp += 20; 
             playerStats.hp += 20; 
@@ -4575,57 +4773,57 @@
           id: 'crit', 
           icon: '🎯',
           title: 'CRIT MACHINE', 
-          desc: 'Crit Chance +5%', 
+          desc: 'Critical Hit Chance +5% (Lucky Strikes)', 
           apply: () => { 
             playerStats.critChance += 0.05; 
-            showStatChange('+5% Crit Chance');
+            showStatChange('+5% Crit Chance (Now: ' + Math.round(playerStats.critChance * 100) + '%)');
           } 
         },
         { 
           id: 'regen', 
           icon: '💚',
           title: 'HEALING VIBES', 
-          desc: 'HP Regen +1/sec', 
+          desc: 'HP Regeneration +1/sec (Passive Healing)', 
           apply: () => { 
             playerStats.hpRegen += 1; 
-            showStatChange('+1 HP/sec Regen');
+            showStatChange('+1 HP/sec Regen (Total: ' + playerStats.hpRegen + '/sec)');
           } 
         },
         { 
           id: 'speed', 
           icon: '🏃',
           title: 'SPEEDY BOI', 
-          desc: 'Move Speed +10%', 
+          desc: 'Movement Speed +10% (Faster Movement)', 
           apply: () => { 
             playerStats.walkSpeed += 2.5; 
-            showStatChange('+10% Move Speed');
+            showStatChange('+10% Move Speed (Now: ' + playerStats.walkSpeed + '%)');
           } 
         },
         { 
           id: 'critdmg', 
           icon: '💥',
           title: 'GLASS CANNON', 
-          desc: 'Crit Damage +20%', 
+          desc: 'Critical Damage +20% (Stronger Crits)', 
           apply: () => { 
             playerStats.critDmg += 0.2; 
-            showStatChange('+20% Crit Damage');
+            showStatChange('+20% Crit Damage (Now: ' + Math.round(playerStats.critDmg * 100) + '%)');
           } 
         },
         { 
           id: 'magnet', 
           icon: '🧲',
           title: 'XP MAGNET', 
-          desc: 'Magnet Range +1', 
+          desc: 'EXP Pickup Range +25% (+1 unit)', 
           apply: () => { 
             magnetRange += 1; 
-            showStatChange('+1 Magnet Range');
+            showStatChange('EXP Magnet Range +25% (Now: ' + magnetRange + ' units)');
           } 
         },
         { 
           id: 'cooldown', 
           icon: '⏱️',
           title: 'COOLDOWN MASTER', 
-          desc: 'All Weapon CD -5%', 
+          desc: 'All Weapon Cooldowns -5% (Faster Abilities)', 
           apply: () => { 
             weapons.gun.cooldown *= 0.95;
             weapons.sword.cooldown *= 0.95;
@@ -4633,7 +4831,7 @@
             weapons.meteor.cooldown *= 0.95;
             weapons.lightning.cooldown *= 0.95;
             weapons.doubleBarrel.cooldown *= 0.95;
-            showStatChange('-5% All Weapon Cooldowns');
+            showStatChange('All Weapon Cooldowns -5%');
           } 
         }
       ];
@@ -5474,6 +5672,8 @@ Total Gold Earned: ${saveData.totalGoldEarned}
       
       // Landscape camera zoom - 50% closer in landscape mode
       const isPortrait = window.innerHeight > window.innerWidth;
+      gameSettings.isPortrait = isPortrait;
+      
       if (!isPortrait) {
         d *= 0.5; // Zoom in 50% for landscape
       }
@@ -5484,6 +5684,19 @@ Total Gold Earned: ${saveData.totalGoldEarned}
       camera.bottom = -d;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function updateControlType() {
+      const controlType = gameSettings.controlType;
+      const joystickZone = document.getElementById('joystick-zone');
+      
+      if (controlType === 'touch') {
+        joystickZone.style.display = 'block';
+      } else {
+        joystickZone.style.display = 'none';
+      }
+      
+      // Additional setup for keyboard/gamepad controls could go here
     }
 
     // --- MAIN LOOP ---
