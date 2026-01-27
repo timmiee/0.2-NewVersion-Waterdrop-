@@ -1140,7 +1140,21 @@
     }
     
     function updateBackgroundMusic() {
+      if (!gameSettings.musicEnabled) {
+        // Stop all music if disabled
+        if (musicGain) {
+          musicGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
+        }
+        return;
+      }
+      
       initMusic();
+      
+      // Restore music volume if enabled
+      if (musicGain && musicGain.gain.value === 0) {
+        musicGain.gain.linearRampToValueAtTime(0.15, audioCtx.currentTime + 0.5);
+      }
+      
       const targetLevel = Math.min(playerStats.lvl, 10);
       
       if (targetLevel > currentMusicLevel) {
@@ -1244,6 +1258,7 @@
     }
     
     function playSound(type) {
+      if (!gameSettings.soundEnabled) return; // Respect sound settings
       if (audioCtx.state === 'suspended') audioCtx.resume();
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
@@ -5409,40 +5424,61 @@
         
         const content = document.getElementById('stats-content');
         content.innerHTML = `
-<span style="color: #5DADE2; font-size: 16px; font-weight: bold;">═══ BASE STATS ═══</span>
-Max HP: ${playerStats.maxHp}
-Current HP: ${Math.floor(playerStats.hp)}
-HP Regen: ${playerStats.hpRegen}/s
-Move Speed: ${playerStats.walkSpeed.toFixed(1)}
-Attack Damage: ${playerStats.strength.toFixed(2)}x
-Attack Speed: ${playerStats.atkSpeed.toFixed(2)}x
-Crit Chance: ${(playerStats.critChance*100).toFixed(1)}%
-Crit Damage: ${(playerStats.critDmg*100).toFixed(0)}%
-Armor: ${playerStats.armor.toFixed(0)}%
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 600px;">
+  <div>
+    <span style="color: #5DADE2; font-size: 16px; font-weight: bold; display: block; margin-bottom: 10px;">═══ BASE STATS ═══</span>
+    <div style="display: grid; grid-template-columns: auto auto; gap: 5px 10px;">
+      <span style="color: #aaa;">Max HP:</span><span style="color: #fff; text-align: right;">${playerStats.maxHp}</span>
+      <span style="color: #aaa;">Current HP:</span><span style="color: #fff; text-align: right;">${Math.floor(playerStats.hp)}</span>
+      <span style="color: #aaa;">HP Regen:</span><span style="color: #fff; text-align: right;">${playerStats.hpRegen}/s</span>
+      <span style="color: #aaa;">Move Speed:</span><span style="color: #fff; text-align: right;">${playerStats.walkSpeed.toFixed(1)}</span>
+      <span style="color: #aaa;">Attack Dmg:</span><span style="color: #fff; text-align: right;">${playerStats.strength.toFixed(2)}x</span>
+      <span style="color: #aaa;">Attack Spd:</span><span style="color: #fff; text-align: right;">${playerStats.atkSpeed.toFixed(2)}x</span>
+      <span style="color: #aaa;">Crit Chance:</span><span style="color: #fff; text-align: right;">${(playerStats.critChance*100).toFixed(1)}%</span>
+      <span style="color: #aaa;">Crit Damage:</span><span style="color: #fff; text-align: right;">${(playerStats.critDmg*100).toFixed(0)}%</span>
+      <span style="color: #aaa;">Armor:</span><span style="color: #fff; text-align: right;">${playerStats.armor.toFixed(0)}%</span>
+    </div>
+  </div>
+  
+  <div>
+    <span style="color: #27ae60; font-size: 16px; font-weight: bold; display: block; margin-bottom: 10px;">═══ RUN STATS ═══</span>
+    <div style="display: grid; grid-template-columns: auto auto; gap: 5px 10px;">
+      <span style="color: #aaa;">Level:</span><span style="color: #fff; text-align: right;">${playerStats.lvl}</span>
+      <span style="color: #aaa;">Kills:</span><span style="color: #fff; text-align: right;">${playerStats.kills}</span>
+      <span style="color: #aaa;">Time:</span><span style="color: #fff; text-align: right;">${currentRunTime}s</span>
+      <span style="color: #aaa;">Gold Earned:</span><span style="color: #fff; text-align: right;">${goldThisRun}</span>
+    </div>
+  </div>
+</div>
 
-<span style="color: #FFD700; font-size: 16px; font-weight: bold;">═══ PERMANENT UPGRADES ═══</span>
-Max HP Bonus: +${permMaxHp}
-HP Regen Bonus: +${permHpRegen}/s
-Move Speed Bonus: +${(permMoveSpeed*100).toFixed(1)}%
-Attack Damage Bonus: +${(permAttackDamage*100).toFixed(1)}%
-Attack Speed Bonus: +${(permAttackSpeed*100).toFixed(1)}%
-Crit Chance Bonus: +${(permCritChance*100).toFixed(1)}%
-Crit Damage Bonus: +${(permCritDamage*100).toFixed(1)}%
-Armor Bonus: +${permArmor.toFixed(0)}%
-Cooldown Reduction: ${(permCooldownReduction*100).toFixed(1)}%
-Gold Earned Bonus: +${(permGoldEarned*100).toFixed(1)}%
-EXP Earned Bonus: +${(permExpEarned*100).toFixed(1)}%
-Max Weapons: ${permMaxWeapons}
+<div style="margin-top: 20px;">
+  <span style="color: #FFD700; font-size: 16px; font-weight: bold; display: block; margin-bottom: 10px;">═══ PERMANENT UPGRADES ═══</span>
+  <div style="display: grid; grid-template-columns: auto auto; gap: 5px 15px; max-width: 400px;">
+    <span style="color: #aaa;">Max HP:</span><span style="color: #fff; text-align: right;">+${permMaxHp}</span>
+    <span style="color: #aaa;">HP Regen:</span><span style="color: #fff; text-align: right;">+${permHpRegen}/s</span>
+    <span style="color: #aaa;">Move Speed:</span><span style="color: #fff; text-align: right;">+${(permMoveSpeed*100).toFixed(1)}%</span>
+    <span style="color: #aaa;">Attack Damage:</span><span style="color: #fff; text-align: right;">+${(permAttackDamage*100).toFixed(1)}%</span>
+    <span style="color: #aaa;">Attack Speed:</span><span style="color: #fff; text-align: right;">+${(permAttackSpeed*100).toFixed(1)}%</span>
+    <span style="color: #aaa;">Crit Chance:</span><span style="color: #fff; text-align: right;">+${(permCritChance*100).toFixed(1)}%</span>
+    <span style="color: #aaa;">Crit Damage:</span><span style="color: #fff; text-align: right;">+${(permCritDamage*100).toFixed(1)}%</span>
+    <span style="color: #aaa;">Armor:</span><span style="color: #fff; text-align: right;">+${permArmor.toFixed(0)}%</span>
+    <span style="color: #aaa;">Cooldown Reduction:</span><span style="color: #fff; text-align: right;">${(permCooldownReduction*100).toFixed(1)}%</span>
+    <span style="color: #aaa;">Gold Bonus:</span><span style="color: #fff; text-align: right;">+${(permGoldEarned*100).toFixed(1)}%</span>
+    <span style="color: #aaa;">EXP Bonus:</span><span style="color: #fff; text-align: right;">+${(permExpEarned*100).toFixed(1)}%</span>
+    <span style="color: #aaa;">Max Weapons:</span><span style="color: #fff; text-align: right;">${permMaxWeapons}</span>
+  </div>
+</div>
 
-<span style="color: #27ae60; font-size: 16px; font-weight: bold;">═══ RUN STATS ═══</span>
-Current Level: ${playerStats.lvl}
-Enemies Killed: ${playerStats.kills}
-Time Survived: ${currentRunTime}s
-Gold Earned This Run: ${goldThisRun}
-
-<span style="color: #e74c3c; font-size: 16px; font-weight: bold;">═══ LIFETIME STATS ═══</span>
-Total Runs: ${saveData.totalRuns}
-Best Time: ${saveData.bestTime}s
+<div style="margin-top: 20px;">
+  <span style="color: #e74c3c; font-size: 16px; font-weight: bold; display: block; margin-bottom: 10px;">═══ LIFETIME STATS ═══</span>
+  <div style="display: grid; grid-template-columns: auto auto; gap: 5px 15px; max-width: 300px;">
+    <span style="color: #aaa;">Total Runs:</span><span style="color: #fff; text-align: right;">${saveData.totalRuns}</span>
+    <span style="color: #aaa;">Best Time:</span><span style="color: #fff; text-align: right;">${saveData.bestTime}s</span>
+    <span style="color: #aaa;">Best Kills:</span><span style="color: #fff; text-align: right;">${saveData.bestKills}</span>
+    <span style="color: #aaa;">Total Gold:</span><span style="color: #fff; text-align: right;">${saveData.totalGoldEarned}</span>
+  </div>
+</div>
+        `;
 Best Kills: ${saveData.bestKills}
 Total Gold Earned: ${saveData.totalGoldEarned}
         `;
@@ -5664,6 +5700,131 @@ Total Gold Earned: ${saveData.totalGoldEarned}
            player.dash(dx/dist, dy/dist);
         }
       }, { passive: false });
+      
+      // Keyboard Controls (WASD for movement, mouse for aiming)
+      const keysPressed = {};
+      
+      window.addEventListener('keydown', (e) => {
+        if (!isGameActive || isPaused || isGameOver) return;
+        keysPressed[e.key.toLowerCase()] = true;
+        
+        // Space bar for dash
+        if (e.key === ' ' && !player.isDashing && (keysPressed['w'] || keysPressed['a'] || keysPressed['s'] || keysPressed['d'])) {
+          let dx = 0, dy = 0;
+          if (keysPressed['w']) dy = -1;
+          if (keysPressed['s']) dy = 1;
+          if (keysPressed['a']) dx = -1;
+          if (keysPressed['d']) dx = 1;
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          if (dist > 0) {
+            player.isDashing = true;
+            player.dashTime = player.dashDuration;
+            player.dashVec.set(dx / dist, 0, dy / dist);
+            playerStats.dashesPerformed++;
+            playSound('dash');
+            spawnParticles(player.mesh.position, COLORS.player, 20);
+          }
+        }
+      });
+      
+      window.addEventListener('keyup', (e) => {
+        keysPressed[e.key.toLowerCase()] = false;
+      });
+      
+      // Update joystick based on keyboard input
+      setInterval(() => {
+        if (gameSettings.controlType === 'keyboard' && isGameActive && !isPaused && !isGameOver) {
+          let x = 0, y = 0;
+          if (keysPressed['w']) y = -1;
+          if (keysPressed['s']) y = 1;
+          if (keysPressed['a']) x = -1;
+          if (keysPressed['d']) x = 1;
+          
+          if (x !== 0 || y !== 0) {
+            const dist = Math.sqrt(x*x + y*y);
+            joystickLeft.x = x / dist;
+            joystickLeft.y = y / dist;
+            joystickLeft.active = true;
+          } else {
+            joystickLeft.active = false;
+            joystickLeft.x = 0;
+            joystickLeft.y = 0;
+          }
+        }
+        
+        // Gamepad Controls
+        if (gameSettings.controlType === 'gamepad' && isGameActive && !isPaused && !isGameOver) {
+          const gamepads = navigator.getGamepads();
+          const gamepad = gamepads[0]; // Use first connected gamepad
+          
+          if (gamepad) {
+            // Left stick for movement (axes 0 and 1)
+            const leftX = Math.abs(gamepad.axes[0]) > 0.1 ? gamepad.axes[0] : 0;
+            const leftY = Math.abs(gamepad.axes[1]) > 0.1 ? gamepad.axes[1] : 0;
+            
+            if (leftX !== 0 || leftY !== 0) {
+              joystickLeft.x = leftX;
+              joystickLeft.y = leftY;
+              joystickLeft.active = true;
+            } else {
+              joystickLeft.active = false;
+              joystickLeft.x = 0;
+              joystickLeft.y = 0;
+            }
+            
+            // Right stick for aiming (axes 2 and 3)
+            const rightX = Math.abs(gamepad.axes[2]) > 0.1 ? gamepad.axes[2] : 0;
+            const rightY = Math.abs(gamepad.axes[3]) > 0.1 ? gamepad.axes[3] : 0;
+            
+            if (rightX !== 0 || rightY !== 0) {
+              joystickRight.x = rightX;
+              joystickRight.y = rightY;
+              joystickRight.active = true;
+            } else {
+              joystickRight.active = false;
+              joystickRight.x = 0;
+              joystickRight.y = 0;
+            }
+            
+            // Button 0 (A/X) for dash
+            if (gamepad.buttons[0].pressed && !player.isDashing && joystickLeft.active) {
+              player.isDashing = true;
+              player.dashTime = player.dashDuration;
+              const dist = Math.sqrt(joystickLeft.x*joystickLeft.x + joystickLeft.y*joystickLeft.y);
+              player.dashVec.set(joystickLeft.x / dist, 0, joystickLeft.y / dist);
+              playerStats.dashesPerformed++;
+              playSound('dash');
+              spawnParticles(player.mesh.position, COLORS.player, 20);
+            }
+          }
+        }
+      }, 16); // ~60fps
+      
+      // Mouse Controls for aiming
+      window.addEventListener('mousemove', (e) => {
+        if (gameSettings.controlType === 'keyboard' && isGameActive && !isPaused && !isGameOver) {
+          const rect = renderer.domElement.getBoundingClientRect();
+          const mouseX = e.clientX - rect.left;
+          const mouseY = e.clientY - rect.top;
+          const centerX = rect.width / 2;
+          const centerY = rect.height / 2;
+          
+          // Calculate direction from center to mouse
+          const dx = mouseX - centerX;
+          const dy = mouseY - centerY;
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          
+          if (dist > 10) { // Dead zone
+            joystickRight.x = dx / dist;
+            joystickRight.y = dy / dist;
+            joystickRight.active = true;
+          } else {
+            joystickRight.active = false;
+            joystickRight.x = 0;
+            joystickRight.y = 0;
+          }
+        }
+      });
     }
 
     function onWindowResize() {
