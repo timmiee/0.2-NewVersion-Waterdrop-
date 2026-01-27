@@ -3634,15 +3634,15 @@
       }
       
       // Waterfall from cliff into lake
-      const waterfallGroup = new THREE.Group();
+      const waterfallGroup2 = new THREE.Group();
       
       // Cliff/rock formation
-      const cliffGeo = new THREE.BoxGeometry(8, 12, 6);
-      const cliffMat = new THREE.MeshToonMaterial({ color: 0x696969 }); // Dark gray
-      const cliff = new THREE.Mesh(cliffGeo, cliffMat);
-      cliff.position.set(30, 6, -45); // Above and behind the lake
-      cliff.castShadow = true;
-      waterfallGroup.add(cliff);
+      const cliffGeo2 = new THREE.BoxGeometry(8, 12, 6);
+      const cliffMat2 = new THREE.MeshToonMaterial({ color: 0x696969 }); // Dark gray
+      const cliff2 = new THREE.Mesh(cliffGeo2, cliffMat2);
+      cliff2.position.set(30, 6, -45); // Above and behind the lake
+      cliff2.castShadow = true;
+      waterfallGroup2.add(cliff2);
       
       // Waterfall - multiple planes to simulate water flow
       const waterfallGeo = new THREE.PlaneGeometry(3, 12);
@@ -3657,7 +3657,7 @@
       waterfall.position.set(30, 6, -39);
       waterfall.rotation.x = -0.2; // Slight angle
       waterfall.userData = { isWaterfall: true, phase: 0 };
-      waterfallGroup.add(waterfall);
+      waterfallGroup2.add(waterfall);
       
       // Add flowing water particles
       for(let i=0; i<5; i++) {
@@ -3670,7 +3670,7 @@
         const drop = new THREE.Mesh(dropGeo, dropMat);
         drop.position.set(30 + (Math.random()-0.5)*2, 12 - i*2, -39);
         drop.userData = { isWaterDrop: true, speed: 0.1 + Math.random()*0.1, startY: 12 - i*2 };
-        waterfallGroup.add(drop);
+        waterfallGroup2.add(drop);
       }
       
       // Splash at bottom
@@ -3684,9 +3684,9 @@
       splash.rotation.x = -Math.PI/2;
       splash.position.set(30, 0.1, -33);
       splash.userData = { isSplash: true, phase: 0 };
-      waterfallGroup.add(splash);
+      waterfallGroup2.add(splash);
       
-      scene.add(waterfallGroup);
+      scene.add(waterfallGroup2);
       
       // Scatter flowers around environment
       const flowerGeo = new THREE.ConeGeometry(0.2, 0.5, 6);
