@@ -1140,6 +1140,8 @@
     }
     
     function updateBackgroundMusic() {
+      initMusic();
+      
       if (!gameSettings.musicEnabled) {
         // Stop all music if disabled
         if (musicGain) {
@@ -1148,10 +1150,8 @@
         return;
       }
       
-      initMusic();
-      
-      // Restore music volume if enabled
-      if (musicGain && musicGain.gain.value === 0) {
+      // Restore music volume if enabled and currently at 0
+      if (musicGain && musicGain.gain.value < 0.01 && musicOscillators.length > 0) {
         musicGain.gain.linearRampToValueAtTime(0.15, audioCtx.currentTime + 0.5);
       }
       
@@ -1416,7 +1416,8 @@
       controlType: 'touch', // 'touch', 'keyboard', 'gamepad'
       soundEnabled: true,
       musicEnabled: true,
-      isPortrait: window.innerHeight > window.innerWidth
+      isPortrait: window.innerHeight > window.innerWidth,
+      inputListenersRegistered: false
     };
 
     // Input - Twin-Stick Controls
@@ -4118,6 +4119,13 @@
       
       document.getElementById('control-type-select').onchange = (e) => {
         gameSettings.controlType = e.target.value;
+        // Clear joystick states when switching control types
+        joystickLeft.active = false;
+        joystickLeft.x = 0;
+        joystickLeft.y = 0;
+        joystickRight.active = false;
+        joystickRight.x = 0;
+        joystickRight.y = 0;
         updateControlType();
       };
       
@@ -4181,6 +4189,9 @@
         document.getElementById('gameover-screen').style.display = 'none';
         showMainMenu();
       };
+      
+      // Initialize control type UI on startup
+      updateControlType();
     }
     
 
@@ -5479,9 +5490,6 @@
   </div>
 </div>
         `;
-Best Kills: ${saveData.bestKills}
-Total Gold Earned: ${saveData.totalGoldEarned}
-        `;
         modal.style.display = 'flex';
         isPaused = true;
       }
@@ -5701,130 +5709,54 @@ Total Gold Earned: ${saveData.totalGoldEarned}
         }
       }, { passive: false });
       
-      // Keyboard Controls (WASD for movement, mouse for aiming)
-      const keysPressed = {};
-      
-      window.addEventListener('keydown', (e) => {
-        if (!isGameActive || isPaused || isGameOver) return;
-        keysPressed[e.key.toLowerCase()] = true;
+      // Keyboard Controls (WASD for movement, mouse for aiming) - only register once
+      if (!gameSettings.inputListenersRegistered) {
+        const keysPressed = {};
+        gameSettings.keysPressed = keysPressed; // Store reference for game loop access
         
-        // Space bar for dash
-        if (e.key === ' ' && !player.isDashing && (keysPressed['w'] || keysPressed['a'] || keysPressed['s'] || keysPressed['d'])) {
-          let dx = 0, dy = 0;
-          if (keysPressed['w']) dy = -1;
-          if (keysPressed['s']) dy = 1;
-          if (keysPressed['a']) dx = -1;
-          if (keysPressed['d']) dx = 1;
-          const dist = Math.sqrt(dx*dx + dy*dy);
-          if (dist > 0) {
-            player.isDashing = true;
-            player.dashTime = player.dashDuration;
-            player.dashVec.set(dx / dist, 0, dy / dist);
-            playerStats.dashesPerformed++;
-            playSound('dash');
-            spawnParticles(player.mesh.position, COLORS.player, 20);
-          }
-        }
-      });
-      
-      window.addEventListener('keyup', (e) => {
-        keysPressed[e.key.toLowerCase()] = false;
-      });
-      
-      // Update joystick based on keyboard input
-      setInterval(() => {
-        if (gameSettings.controlType === 'keyboard' && isGameActive && !isPaused && !isGameOver) {
-          let x = 0, y = 0;
-          if (keysPressed['w']) y = -1;
-          if (keysPressed['s']) y = 1;
-          if (keysPressed['a']) x = -1;
-          if (keysPressed['d']) x = 1;
+        window.addEventListener('keydown', (e) => {
+          if (!isGameActive || isPaused || isGameOver) return;
+          if (gameSettings.controlType !== 'keyboard') return;
+          keysPressed[e.key.toLowerCase()] = true;
           
-          if (x !== 0 || y !== 0) {
-            const dist = Math.sqrt(x*x + y*y);
-            joystickLeft.x = x / dist;
-            joystickLeft.y = y / dist;
-            joystickLeft.active = true;
-          } else {
-            joystickLeft.active = false;
-            joystickLeft.x = 0;
-            joystickLeft.y = 0;
-          }
-        }
-        
-        // Gamepad Controls
-        if (gameSettings.controlType === 'gamepad' && isGameActive && !isPaused && !isGameOver) {
-          const gamepads = navigator.getGamepads();
-          const gamepad = gamepads[0]; // Use first connected gamepad
-          
-          if (gamepad) {
-            // Left stick for movement (axes 0 and 1)
-            const leftX = Math.abs(gamepad.axes[0]) > 0.1 ? gamepad.axes[0] : 0;
-            const leftY = Math.abs(gamepad.axes[1]) > 0.1 ? gamepad.axes[1] : 0;
-            
-            if (leftX !== 0 || leftY !== 0) {
-              joystickLeft.x = leftX;
-              joystickLeft.y = leftY;
-              joystickLeft.active = true;
-            } else {
-              joystickLeft.active = false;
-              joystickLeft.x = 0;
-              joystickLeft.y = 0;
-            }
-            
-            // Right stick for aiming (axes 2 and 3)
-            const rightX = Math.abs(gamepad.axes[2]) > 0.1 ? gamepad.axes[2] : 0;
-            const rightY = Math.abs(gamepad.axes[3]) > 0.1 ? gamepad.axes[3] : 0;
-            
-            if (rightX !== 0 || rightY !== 0) {
-              joystickRight.x = rightX;
-              joystickRight.y = rightY;
-              joystickRight.active = true;
-            } else {
-              joystickRight.active = false;
-              joystickRight.x = 0;
-              joystickRight.y = 0;
-            }
-            
-            // Button 0 (A/X) for dash
-            if (gamepad.buttons[0].pressed && !player.isDashing && joystickLeft.active) {
+          // Space bar for dash
+          if (e.key === ' ' && !player.isDashing && (keysPressed['w'] || keysPressed['a'] || keysPressed['s'] || keysPressed['d'])) {
+            let dx = 0, dy = 0;
+            if (keysPressed['w']) dy = -1;
+            if (keysPressed['s']) dy = 1;
+            if (keysPressed['a']) dx = -1;
+            if (keysPressed['d']) dx = 1;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist > 0) {
               player.isDashing = true;
               player.dashTime = player.dashDuration;
-              const dist = Math.sqrt(joystickLeft.x*joystickLeft.x + joystickLeft.y*joystickLeft.y);
-              player.dashVec.set(joystickLeft.x / dist, 0, joystickLeft.y / dist);
+              player.dashVec.set(dx / dist, 0, dy / dist);
               playerStats.dashesPerformed++;
               playSound('dash');
               spawnParticles(player.mesh.position, COLORS.player, 20);
             }
           }
-        }
-      }, 16); // ~60fps
-      
-      // Mouse Controls for aiming
-      window.addEventListener('mousemove', (e) => {
-        if (gameSettings.controlType === 'keyboard' && isGameActive && !isPaused && !isGameOver) {
-          const rect = renderer.domElement.getBoundingClientRect();
-          const mouseX = e.clientX - rect.left;
-          const mouseY = e.clientY - rect.top;
-          const centerX = rect.width / 2;
-          const centerY = rect.height / 2;
-          
-          // Calculate direction from center to mouse
-          const dx = mouseX - centerX;
-          const dy = mouseY - centerY;
-          const dist = Math.sqrt(dx*dx + dy*dy);
-          
-          if (dist > 10) { // Dead zone
-            joystickRight.x = dx / dist;
-            joystickRight.y = dy / dist;
-            joystickRight.active = true;
-          } else {
-            joystickRight.active = false;
-            joystickRight.x = 0;
-            joystickRight.y = 0;
-          }
-        }
-      });
+        });
+        
+        window.addEventListener('keyup', (e) => {
+          keysPressed[e.key.toLowerCase()] = false;
+        });
+        
+        // Mouse Controls for aiming
+        let lastMouseX = 0, lastMouseY = 0;
+        gameSettings.lastMouseX = lastMouseX;
+        gameSettings.lastMouseY = lastMouseY;
+        
+        window.addEventListener('mousemove', (e) => {
+          gameSettings.lastMouseX = e.clientX;
+          gameSettings.lastMouseY = e.clientY;
+        });
+        
+        // Track gamepad button states to detect button press events
+        gameSettings.gamepadButtonStates = { dashButton: false };
+        
+        gameSettings.inputListenersRegistered = true;
+      }
     }
 
     function onWindowResize() {
@@ -5869,6 +5801,96 @@ Total Gold Earned: ${saveData.totalGoldEarned}
       gameTime = time / 1000; // Update game time in seconds
 
       if (isPaused || isGameOver || !isGameActive) return;
+      
+      // Handle keyboard/gamepad input updates (integrated into game loop)
+      if (gameSettings.controlType === 'keyboard') {
+        const keysPressed = gameSettings.keysPressed || {};
+        let x = 0, y = 0;
+        if (keysPressed['w']) y = -1;
+        if (keysPressed['s']) y = 1;
+        if (keysPressed['a']) x = -1;
+        if (keysPressed['d']) x = 1;
+        
+        if (x !== 0 || y !== 0) {
+          const dist = Math.sqrt(x*x + y*y);
+          joystickLeft.x = x / dist;
+          joystickLeft.y = y / dist;
+          joystickLeft.active = true;
+        } else {
+          joystickLeft.active = false;
+          joystickLeft.x = 0;
+          joystickLeft.y = 0;
+        }
+        
+        // Mouse aiming
+        if (renderer && renderer.domElement) {
+          const rect = renderer.domElement.getBoundingClientRect();
+          const mouseX = gameSettings.lastMouseX - rect.left;
+          const mouseY = gameSettings.lastMouseY - rect.top;
+          const centerX = rect.width / 2;
+          const centerY = rect.height / 2;
+          
+          const dx = mouseX - centerX;
+          const dy = mouseY - centerY;
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          
+          if (dist > 10) {
+            joystickRight.x = dx / dist;
+            joystickRight.y = dy / dist;
+            joystickRight.active = true;
+          } else {
+            joystickRight.active = false;
+            joystickRight.x = 0;
+            joystickRight.y = 0;
+          }
+        }
+      } else if (gameSettings.controlType === 'gamepad') {
+        const gamepads = navigator.getGamepads();
+        const gamepad = gamepads[0];
+        
+        if (gamepad) {
+          // Left stick for movement
+          const leftX = Math.abs(gamepad.axes[0]) > 0.1 ? gamepad.axes[0] : 0;
+          const leftY = Math.abs(gamepad.axes[1]) > 0.1 ? gamepad.axes[1] : 0;
+          
+          if (leftX !== 0 || leftY !== 0) {
+            joystickLeft.x = leftX;
+            joystickLeft.y = leftY;
+            joystickLeft.active = true;
+          } else {
+            joystickLeft.active = false;
+            joystickLeft.x = 0;
+            joystickLeft.y = 0;
+          }
+          
+          // Right stick for aiming
+          const rightX = Math.abs(gamepad.axes[2]) > 0.1 ? gamepad.axes[2] : 0;
+          const rightY = Math.abs(gamepad.axes[3]) > 0.1 ? gamepad.axes[3] : 0;
+          
+          if (rightX !== 0 || rightY !== 0) {
+            joystickRight.x = rightX;
+            joystickRight.y = rightY;
+            joystickRight.active = true;
+          } else {
+            joystickRight.active = false;
+            joystickRight.x = 0;
+            joystickRight.y = 0;
+          }
+          
+          // Button 0 (A/X) for dash - detect button press (not hold)
+          const dashPressed = gamepad.buttons[0].pressed;
+          if (dashPressed && !gameSettings.gamepadButtonStates.dashButton && !player.isDashing && joystickLeft.active) {
+            player.isDashing = true;
+            player.dashTime = player.dashDuration;
+            const dist = Math.sqrt(joystickLeft.x*joystickLeft.x + joystickLeft.y*joystickLeft.y);
+            player.dashVec.set(joystickLeft.x / dist, 0, joystickLeft.y / dist);
+            playerStats.dashesPerformed++;
+            playSound('dash');
+            spawnParticles(player.mesh.position, COLORS.player, 20);
+          }
+          gameSettings.gamepadButtonStates.dashButton = dashPressed;
+        }
+      }
 
       // Spawn Logic
       frameCount++;
