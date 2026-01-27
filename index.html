@@ -169,7 +169,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(40, 40, 40, 0.9);
+      background: rgba(40, 40, 40, 0.95); /* Slightly more opaque for better contrast */
       display: none; /* Flex when active */
       flex-direction: column;
       align-items: center;
@@ -179,16 +179,16 @@
     }
 
     .modal-content {
-      background: linear-gradient(to bottom, #4a4a4a, #3a3a3a);
+      background: linear-gradient(to bottom, #5a5a5a, #3a3a3a); /* Lighter gradient for better visibility */
       padding: 25px;
       border-radius: 20px;
-      border: 4px solid #5DADE2;
+      border: 5px solid #FFD700; /* Golden border for level-up emphasis */
       width: 80%;
       max-width: 400px;
       max-height: 85vh; /* Scrollable modals */
       overflow-y: auto; /* Enable scrolling */
       text-align: center;
-      box-shadow: 0 15px 30px rgba(0,0,0,0.7), 0 0 40px rgba(93,173,226,0.5), inset 0 0 30px rgba(93,173,226,0.1);
+      box-shadow: 0 15px 30px rgba(0,0,0,0.7), 0 0 50px rgba(255,215,0,0.7), inset 0 0 40px rgba(255,215,0,0.15); /* Golden glow */
       pointer-events: auto; /* Modal content should receive clicks */
     }
 
@@ -220,18 +220,18 @@
     }
 
     .upgrade-card {
-      background: linear-gradient(to bottom, #5a5a5a, #4a4a4a);
+      background: linear-gradient(to bottom, #6a6a6a, #4a4a4a); /* Lighter gradient */
       margin: 10px 0;
       padding: 15px;
       border-radius: 15px;
-      border: 3px solid #2a2a2a;
+      border: 3px solid #FFD700; /* Golden border */
       cursor: pointer;
       transition: transform 0.1s, box-shadow 0.1s;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.3), 0 0 10px rgba(93,173,226,0.2);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3), 0 0 15px rgba(255,215,0,0.4); /* Golden glow */
     }
 
     .upgrade-card:hover {
-      box-shadow: 0 6px 12px rgba(93,173,226,0.5), 0 0 20px rgba(93,173,226,0.4);
+      box-shadow: 0 6px 12px rgba(255,215,0,0.6), 0 0 25px rgba(255,215,0,0.5); /* Stronger golden glow on hover */
     }
 
     .upgrade-card:active {
@@ -446,19 +446,19 @@
     .loading-bar-container {
       width: 300px;
       height: 20px;
-      background: #2a2a2a;
+      background: #1a1a1a; /* Black background */
       border-radius: 10px;
       overflow: hidden;
-      border: 2px solid #5DADE2;
+      border: 2px solid #8B4513; /* Brown border */
       margin-bottom: 40px;
     }
 
     .loading-bar {
       height: 100%;
-      background: linear-gradient(to right, #5DADE2, #3498DB);
+      background: linear-gradient(to right, #FFD700, #FFA500, #CD5C5C); /* Yellow to orange to reddish */
       width: 0%;
       transition: width 0.3s ease;
-      box-shadow: 0 0 10px rgba(93,173,226,0.8);
+      box-shadow: 0 0 10px rgba(255, 165, 0, 0.8); /* Orange glow */
     }
 
     /* Main Menu */
@@ -524,10 +524,10 @@
       transform: translateX(-50%);
     }
 
-    #start-game-btn { top: 46.75%; }
-    #progression-btn { top: 57.75%; }
-    #achievements-btn { top: 68.75%; }
-    #credits-btn { top: 79.75%; }
+    #start-game-btn { top: 50.25%; } /* Moved 3.5% lower */
+    #progression-btn { top: 61.25%; } /* Moved 3.5% lower */
+    #achievements-btn { top: 72.25%; } /* Moved 3.5% lower */
+    #credits-btn { top: 83.25%; } /* Moved 3.5% lower */
 
     .menu-btn::before {
       content: '';
@@ -1806,30 +1806,30 @@
         this.mesh.castShadow = true;
         scene.add(this.mesh);
 
-        // Stats based on type - SCALED BY LEVEL
+        // Stats based on type - SCALED BY LEVEL (Rebalanced for better gameplay)
         if (type === 0) { // Tank
-          this.hp = 150 * levelScaling;
+          this.hp = 120 * levelScaling; // Reduced from 150
           this.speed = GAME_CONFIG.enemySpeedBase * 0.6; // Speed NOT scaled
         } else if (type === 1) { // Fast, Low HP
-          this.hp = 40 * levelScaling;
+          this.hp = 35 * levelScaling; // Reduced from 40
           this.speed = GAME_CONFIG.enemySpeedBase * 1.6; // Speed NOT scaled
         } else if (type === 2) { // Balanced
-          this.hp = 80 * levelScaling;
+          this.hp = 70 * levelScaling; // Reduced from 80
           this.speed = GAME_CONFIG.enemySpeedBase; // Speed NOT scaled
         } else if (type === 3) { // Slowing
-          this.hp = 100 * levelScaling;
+          this.hp = 85 * levelScaling; // Reduced from 100
           this.speed = GAME_CONFIG.enemySpeedBase * 0.8; // Speed NOT scaled
           this.slowDuration = 2000; // 2 seconds slow
           this.slowAmount = 0.5; // 50% slow
         } else if (type === 4) { // Ranged
-          this.hp = 60 * levelScaling;
+          this.hp = 50 * levelScaling; // Reduced from 60
           this.speed = GAME_CONFIG.enemySpeedBase * 0.7; // Speed NOT scaled
           this.attackRange = 8; // Range for ranged attacks
           this.projectileSpeed = 0.15;
         }
         
         this.maxHp = this.hp;
-        this.damage = 33 * levelScaling; // Damage scaled by level
+        this.damage = 30 * levelScaling; // Reduced from 33 for better balance
         this.isDead = false;
         this.isDamaged = false; // Track if enemy has been visually damaged
         this.pulsePhase = Math.random() * Math.PI;
@@ -3088,8 +3088,8 @@
 
     // --- WORLD GENERATION ---
     function createWorld() {
-      // Ground
-      const groundGeo = new THREE.PlaneGeometry(200, 200);
+      // Ground - EXPANDED MAP
+      const groundGeo = new THREE.PlaneGeometry(400, 400); // Expanded from 200x200 to 400x400
       const groundMat = new THREE.MeshToonMaterial({ color: COLORS.ground });
       const ground = new THREE.Mesh(groundGeo, groundMat);
       ground.rotation.x = -Math.PI / 2;
@@ -3260,41 +3260,41 @@
       stonehengeGroup.position.set(-60, 0, -20);
       
       const stoneMat = new THREE.MeshToonMaterial({ color: 0x808080 }); // Gray stone
-      const numStones = 12;
-      const stoneRadius = 10; // Increased from 8
+      const numStones = 30; // Real Stonehenge has ~30 stones in outer circle
+      const stoneRadius = 15; // Larger circle for more realistic proportions
       
       for(let i=0; i<numStones; i++) {
         const angle = (i / numStones) * Math.PI * 2;
         const x = Math.cos(angle) * stoneRadius;
         const z = Math.sin(angle) * stoneRadius;
         
-        // Vertical standing stone - MADE LARGER
-        const stoneGeo = new THREE.BoxGeometry(2, 6, 1.5); // Increased from (1.5, 4, 1)
+        // Vertical standing stone - realistic proportions (4m wide × 7m tall × 1m thick)
+        const stoneGeo = new THREE.BoxGeometry(1.5, 5, 1); 
         const stone = new THREE.Mesh(stoneGeo, stoneMat);
-        stone.position.set(x, 3, z); // Raised y from 2 to 3
+        stone.position.set(x, 2.5, z);
         stone.rotation.y = angle + Math.PI/2; // Face center
         stone.castShadow = true;
         stonehengeGroup.add(stone);
         
-        // Horizontal cap stone on top (every other pair)
-        if (i % 2 === 0 && i < numStones - 1) {
+        // Horizontal cap stone on top (every other pair for inner trilithons)
+        if (i % 6 === 0 && i < 24) { // Only place caps on select pairs
           const nextAngle = ((i + 1) / numStones) * Math.PI * 2;
           const nextX = Math.cos(nextAngle) * stoneRadius;
           const nextZ = Math.sin(nextAngle) * stoneRadius;
           
-          const capGeo = new THREE.BoxGeometry(4, 1, 1.5); // Increased from (3, 0.8, 1)
+          const capGeo = new THREE.BoxGeometry(3, 0.8, 1);
           const cap = new THREE.Mesh(capGeo, stoneMat);
-          cap.position.set((x + nextX)/2, 6.5, (z + nextZ)/2); // Raised y from 4.4 to 6.5
+          cap.position.set((x + nextX)/2, 5.4, (z + nextZ)/2);
           cap.rotation.y = angle + Math.PI/2;
           cap.castShadow = true;
           stonehengeGroup.add(cap);
         }
       }
       
-      // Central altar stone - MADE LARGER
-      const altarGeo = new THREE.BoxGeometry(4, 2, 3); // Increased from (3, 1.5, 2)
+      // Central altar stone - realistic flat stone
+      const altarGeo = new THREE.BoxGeometry(5, 0.5, 2);
       const altar = new THREE.Mesh(altarGeo, stoneMat);
-      altar.position.set(0, 1, 0); // Raised y from 0.75 to 1
+      altar.position.set(0, 0.25, 0);
       altar.castShadow = true;
       stonehengeGroup.add(altar);
       
@@ -3370,6 +3370,62 @@
       statueGroup.add(statue);
       
       scene.add(statueGroup);
+
+      // Comet Stone - Beside the lake where player spawns (makes waterdrop alive)
+      const cometGroup = new THREE.Group();
+      cometGroup.position.set(37, 0, -30); // Right beside lake where player spawns
+      
+      // Impact crater (dark brown ring)
+      const craterGeo = new THREE.RingGeometry(2, 3, 32);
+      const craterMat = new THREE.MeshToonMaterial({ color: 0x3E2723 }); // Dark brown
+      const crater = new THREE.Mesh(craterGeo, craterMat);
+      crater.rotation.x = -Math.PI/2;
+      crater.position.y = 0.02;
+      cometGroup.add(crater);
+      
+      // Comet stone (dark metallic rock with glow)
+      const cometGeo = new THREE.DodecahedronGeometry(1.2, 1);
+      const cometMat = new THREE.MeshPhysicalMaterial({ 
+        color: 0x1a1a1a, // Very dark gray, almost black
+        metalness: 0.8,
+        roughness: 0.3,
+        emissive: 0x4FC3F7, // Blue glow
+        emissiveIntensity: 0.3
+      });
+      const cometStone = new THREE.Mesh(cometGeo, cometMat);
+      cometStone.position.y = 0.6;
+      cometStone.castShadow = true;
+      // Slight tilt for dramatic effect
+      cometStone.rotation.x = 0.2;
+      cometStone.rotation.z = 0.3;
+      cometGroup.add(cometStone);
+      
+      // Glowing particles around comet stone
+      for(let i=0; i<8; i++) {
+        const particleGeo = new THREE.SphereGeometry(0.1, 8, 8);
+        const particleMat = new THREE.MeshBasicMaterial({ 
+          color: 0x4FC3F7,
+          transparent: true,
+          opacity: 0.6
+        });
+        const particle = new THREE.Mesh(particleGeo, particleMat);
+        const angle = (i / 8) * Math.PI * 2;
+        particle.position.set(
+          Math.cos(angle) * 1.5,
+          0.6 + Math.random() * 0.5,
+          Math.sin(angle) * 1.5
+        );
+        particle.userData = { 
+          isCometParticle: true,
+          angle: angle,
+          radius: 1.5,
+          speed: 0.5 + Math.random() * 0.5,
+          height: particle.position.y
+        };
+        cometGroup.add(particle);
+      }
+      
+      scene.add(cometGroup);
 
       // Farm Area near windmill
       const farmGroup = new THREE.Group();
@@ -3492,15 +3548,15 @@
       
       scene.add(waterfallGroup);
 
-      // Reflective Lake - Enhanced with metalness and sparkles
+      // Reflective Lake - Enhanced with realistic water properties
       const enhancedLakeGeo = new THREE.CircleGeometry(18, 32);
       const enhancedLakeMat = new THREE.MeshPhysicalMaterial({ 
         color: COLORS.lake,
-        metalness: 0.9,
-        roughness: 0.1,
+        metalness: 0.3, // Reduced for more natural water look
+        roughness: 0.2, // Slightly rougher for less distortion
         transparent: true,
-        opacity: 0.9,
-        reflectivity: 1
+        opacity: 0.85, // Slightly more transparent
+        reflectivity: 0.8 // Reduced for more natural reflections
       });
       const enhancedLake = new THREE.Mesh(enhancedLakeGeo, enhancedLakeMat);
       enhancedLake.rotation.x = -Math.PI / 2;
@@ -3771,8 +3827,9 @@
       const loadingBar = document.getElementById('loading-bar');
       let progress = 0;
       
+      // Extended loading duration: 5 increments, 400ms each = 2000ms total
       const interval = setInterval(() => {
-        progress += 10;
+        progress += 5;
         loadingBar.style.width = progress + '%';
         
         if (progress >= 100) {
@@ -3783,9 +3840,9 @@
               loadingScreen.style.display = 'none';
               showMainMenu();
             }, 500);
-          }, 300);
+          }, 600); // Extended delay before fade
         }
-      }, 100);
+      }, 400); // Slower progress updates for longer duration
     }
     
     function showMainMenu() {
@@ -5110,9 +5167,9 @@
       });
       meteors = [];
 
-      // Reset Player
+      // Reset Player - Spawn beside the lake after emerging from water
       if (player) {
-        player.mesh.position.set(0, 0.5, 0);
+        player.mesh.position.set(35, 0.5, -30); // Spawn at edge of lake (lake is at 30, 0.01, -30)
         player.mesh.material.color.setHex(COLORS.player);
       }
 
@@ -5786,6 +5843,17 @@ Total Gold Earned: ${saveData.totalGoldEarned}
           if (obj.material.emissiveIntensity !== undefined) {
             obj.material.emissiveIntensity = 0.3 + Math.sin(obj.userData.phase * 2) * 0.2;
           }
+        }
+        
+        // Comet particle animation (orbiting particles)
+        if (obj.userData.isCometParticle) {
+          obj.userData.angle += obj.userData.speed * 0.02;
+          obj.position.x = Math.cos(obj.userData.angle) * obj.userData.radius;
+          obj.position.z = Math.sin(obj.userData.angle) * obj.userData.radius;
+          obj.position.y = obj.userData.height + Math.sin(obj.userData.angle * 2) * 0.3;
+          
+          // Pulsing opacity
+          obj.material.opacity = 0.4 + Math.sin(obj.userData.angle * 3) * 0.3;
         }
       });
       
