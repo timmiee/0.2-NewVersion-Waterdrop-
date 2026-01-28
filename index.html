@@ -218,61 +218,146 @@
     }
 
     .upgrade-card {
-      background: linear-gradient(to bottom, #6a6a6a, #4a4a4a); /* Lighter gradient */
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); /* Match menu gradient */
       margin: 10px 0;
-      padding: 15px;
-      border-radius: 15px;
-      border: 3px solid #FFD700; /* Golden border */
+      padding: 20px;
+      border-radius: 20px; /* More rounded for soft feel */
+      border: 3px solid #5DADE2; /* Blue border matching achievement screen */
       cursor: pointer;
-      transition: transform 0.1s, box-shadow 0.1s;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.5), 0 0 15px rgba(255,215,0,0.4), inset 0 0 0 2px rgba(0,0,0,0.4); /* Darker shadow and inner dark edge */
+      transition: all 0.2s ease;
+      box-shadow: 
+        0 8px 16px rgba(0,0,0,0.6), /* Deep shadow for depth */
+        0 0 20px rgba(93,173,226,0.3), /* Soft blue glow */
+        inset 0 -4px 8px rgba(0,0,0,0.3), /* Inner shadow for depth */
+        inset 0 2px 4px rgba(255,255,255,0.1); /* Top highlight */
+      position: relative;
+      overflow: hidden;
+    }
+    
+    /* Lightning effect on hover */
+    .upgrade-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(93,173,226,0.3) 0%, transparent 70%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
     }
 
     .upgrade-card:hover {
-      box-shadow: 0 6px 12px rgba(255,215,0,0.6), 0 0 25px rgba(255,215,0,0.5); /* Stronger golden glow on hover */
+      transform: translateY(-4px) scale(1.02); /* Lift effect */
+      box-shadow: 
+        0 12px 24px rgba(0,0,0,0.8), /* Stronger shadow when lifted */
+        0 0 35px rgba(93,173,226,0.6), /* Stronger blue glow */
+        0 0 50px rgba(93,173,226,0.3), /* Extended glow */
+        inset 0 -4px 8px rgba(0,0,0,0.3),
+        inset 0 2px 4px rgba(255,255,255,0.2); /* Brighter top highlight */
+      border-color: #FFD700; /* Golden border on hover */
+    }
+    
+    .upgrade-card:hover::before {
+      opacity: 1; /* Show lightning effect */
+      animation: lightning-pulse 1s ease-in-out infinite;
     }
 
     .upgrade-card:active {
-      transform: scale(0.95);
+      transform: translateY(2px) scale(0.98); /* Push down animation */
+      box-shadow: 
+        0 4px 8px rgba(0,0,0,0.6),
+        0 0 15px rgba(93,173,226,0.4),
+        inset 0 2px 8px rgba(0,0,0,0.4); /* Pressed effect */
+    }
+    
+    @keyframes lightning-pulse {
+      0%, 100% { 
+        opacity: 0.3;
+        transform: translate(0, 0);
+      }
+      50% { 
+        opacity: 0.6;
+        transform: translate(-10%, -10%);
+      }
     }
 
     .upgrade-title {
       font-weight: bold;
-      color: #FFD700;
-      font-size: 18px;
-      text-shadow: 0 0 8px rgba(255,215,0,0.6), 0 0 15px rgba(255,215,0,0.3), 1px 1px 2px rgba(0,0,0,0.8);
+      color: #5DADE2; /* Blue matching achievement screen */
+      font-size: 20px;
+      text-shadow: 
+        0 0 8px rgba(93,173,226,0.8), 
+        0 0 15px rgba(93,173,226,0.5), 
+        1px 1px 2px rgba(0,0,0,0.8);
+      margin-bottom: 8px;
     }
 
     .upgrade-desc {
-      font-size: 12px;
-      color: #bbb;
-      display: none; /* Hidden - only show funny names */
+      font-size: 13px;
+      color: #ecf0f1; /* Lighter text matching menu */
+      display: block; /* Show descriptions */
+      margin-top: 5px;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.6);
     }
     
     /* Special upgrade cards */
     .upgrade-card.perk {
       border-color: #9b59b6;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.3), 0 0 20px rgba(155,89,182,0.6);
-      animation: perkPulse 2s infinite;
+      background: linear-gradient(135deg, #2c1a3d 0%, #3d2859 50%, #4e3870 100%);
+      box-shadow: 
+        0 8px 16px rgba(0,0,0,0.6),
+        0 0 25px rgba(155,89,182,0.5),
+        inset 0 -4px 8px rgba(0,0,0,0.3),
+        inset 0 2px 4px rgba(255,255,255,0.1);
+      animation: perkPulse 2.5s ease-in-out infinite;
     }
     
     .upgrade-card.perk:hover {
-      box-shadow: 0 6px 12px rgba(155,89,182,0.8), 0 0 30px rgba(155,89,182,0.7);
+      box-shadow: 
+        0 12px 24px rgba(0,0,0,0.8),
+        0 0 40px rgba(155,89,182,0.7),
+        0 0 60px rgba(155,89,182,0.4),
+        inset 0 -4px 8px rgba(0,0,0,0.3),
+        inset 0 2px 4px rgba(255,255,255,0.2);
     }
     
     .upgrade-card.legendary {
       border-color: #ff6b6b;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.3), 0 0 20px rgba(255,107,107,0.6);
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      box-shadow: 
+        0 8px 16px rgba(0,0,0,0.6),
+        0 0 25px rgba(255,107,107,0.5),
+        inset 0 -4px 8px rgba(0,0,0,0.3),
+        inset 0 2px 4px rgba(255,255,255,0.1);
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #8b5ea3 100%);
     }
     
     .upgrade-card.legendary:hover {
-      box-shadow: 0 6px 12px rgba(255,107,107,0.8), 0 0 30px rgba(255,107,107,0.7);
+      box-shadow: 
+        0 12px 24px rgba(0,0,0,0.8),
+        0 0 40px rgba(255,107,107,0.7),
+        0 0 60px rgba(255,107,107,0.4),
+        inset 0 -4px 8px rgba(0,0,0,0.3),
+        inset 0 2px 4px rgba(255,255,255,0.2);
     }
     
     @keyframes perkPulse {
-      0%, 100% { box-shadow: 0 4px 8px rgba(0,0,0,0.3), 0 0 20px rgba(155,89,182,0.6); }
-      50% { box-shadow: 0 4px 8px rgba(0,0,0,0.3), 0 0 30px rgba(155,89,182,0.9); }
+      0%, 100% { 
+        box-shadow: 
+          0 8px 16px rgba(0,0,0,0.6),
+          0 0 25px rgba(155,89,182,0.5),
+          inset 0 -4px 8px rgba(0,0,0,0.3),
+          inset 0 2px 4px rgba(255,255,255,0.1);
+      }
+      50% { 
+        box-shadow: 
+          0 8px 16px rgba(0,0,0,0.6),
+          0 0 35px rgba(155,89,182,0.8),
+          0 0 50px rgba(155,89,182,0.4),
+          inset 0 -4px 8px rgba(0,0,0,0.3),
+          inset 0 2px 4px rgba(255,255,255,0.1);
+      }
     }
 
     /* Damage Numbers */
