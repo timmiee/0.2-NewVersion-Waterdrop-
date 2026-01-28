@@ -6613,9 +6613,8 @@
             setTimeout(() => {
               projectiles.push(new Projectile(player.mesh.position.x, player.mesh.position.z, nearest.mesh.position));
               
-              // Muzzle flash light effect
-              // Enhanced muzzle flash light - brighter and more visible
-              const flashLight = new THREE.PointLight(0xFFFFFF, 4, 15); // White for gunfire
+              // ENHANCED muzzle flash light effect - brighter and more dramatic
+              const flashLight = new THREE.PointLight(0xFFFFFF, 6, 20); // Increased intensity (was 4, 15)
               flashLight.position.copy(player.mesh.position);
               flashLight.position.y += 1;
               scene.add(flashLight);
@@ -6638,10 +6637,12 @@
               );
               particles.push(lightning);
               
-              // Muzzle flash particles (bright and intense) - increased count
-              spawnParticles(player.mesh.position, 0xFFFF00, 8); // Increased from 5
-              spawnParticles(player.mesh.position, 0xFFFFFF, 5); // Increased from 3
-              spawnParticles(player.mesh.position, 0xFFA500, 5); // Increased from 3
+              // ENHANCED Muzzle flash particles (bright and intense) - MORE particles
+              spawnParticles(player.mesh.position, 0xFFFF00, 12); // Increased from 8
+              spawnParticles(player.mesh.position, 0xFFFFFF, 8); // Increased from 5
+              spawnParticles(player.mesh.position, 0xFFA500, 8); // Increased from 5
+              // Add smoke particles
+              spawnParticles(player.mesh.position, 0x888888, 4);
             }, i * 100);
           }
           weapons.gun.lastShot = time;
@@ -6658,6 +6659,16 @@
         projectiles.push(new SwordSlash(player.mesh.position.x, player.mesh.position.z, angle));
         weapons.sword.lastShot = time;
         playSound('shoot'); // Reuse sound for now
+        
+        // ENHANCED - Add sword slash visual effects
+        spawnParticles(player.mesh.position, 0xC0C0C0, 8); // Silver slash particles
+        spawnParticles(player.mesh.position, 0xFFFFFF, 5); // White sparkles
+        // Add flash light for sword slash
+        const slashLight = new THREE.PointLight(0xC0C0C0, 3, 8);
+        slashLight.position.copy(player.mesh.position);
+        slashLight.position.y += 1;
+        scene.add(slashLight);
+        setTimeout(() => scene.remove(slashLight), 100);
       }
 
       // 3. AURA
@@ -6673,8 +6684,9 @@
           }
         });
         if (hit) {
-          // Visual effect for aura tick?
-          // Maybe just damage numbers
+          // ENHANCED - Visual effect for aura tick
+          spawnParticles(player.mesh.position, 0x5DADE2, 10); // Blue aura particles
+          spawnParticles(player.mesh.position, 0xFFFFFF, 5); // White sparkles
         }
         weapons.aura.lastShot = time;
       }
