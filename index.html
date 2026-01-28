@@ -2135,16 +2135,16 @@
 
         // Stats based on type - SCALED BY LEVEL (Rebalanced for better gameplay - reduced HP for more rewarding kills)
         if (type === 0) { // Tank
-          this.hp = 100 * levelScaling; // Reduced from 120
+          this.hp = 100 * levelScaling; // Reduced from 150
           this.speed = GAME_CONFIG.enemySpeedBase * 0.6; // Speed NOT scaled
         } else if (type === 1) { // Fast, Low HP
-          this.hp = 30 * levelScaling; // Reduced from 35
+          this.hp = 30 * levelScaling; // Reduced from 40
           this.speed = GAME_CONFIG.enemySpeedBase * 1.6; // Speed NOT scaled
         } else if (type === 2) { // Balanced
-          this.hp = 60 * levelScaling; // Reduced from 70
+          this.hp = 60 * levelScaling; // Reduced from 80
           this.speed = GAME_CONFIG.enemySpeedBase; // Speed NOT scaled
         } else if (type === 3) { // Slowing
-          this.hp = 75 * levelScaling; // Reduced from 85
+          this.hp = 75 * levelScaling; // Reduced from 100
           this.speed = GAME_CONFIG.enemySpeedBase * 0.8; // Speed NOT scaled
           this.slowDuration = 2000; // 2 seconds slow
           this.slowAmount = 0.5; // 50% slow
@@ -2222,10 +2222,12 @@
           let vx = (dx / dist) * this.speed;
           let vz = (dz / dist) * this.speed;
           
-          // Add enemy avoidance to prevent stacking/trains
-          // Check nearby enemies and add repulsion force
+          // Add enemy avoidance to prevent stacking/trains (optimized)
+          // Only check nearby enemies to avoid O(n²) performance issues
+          let avoidanceCount = 0;
+          const maxAvoidanceChecks = 5; // Limit checks to nearest enemies
           for (let other of enemies) {
-            if (other === this || other.isDead) continue;
+            if (other === this || other.isDead || avoidanceCount >= maxAvoidanceChecks) continue;
             const odx = this.mesh.position.x - other.mesh.position.x;
             const odz = this.mesh.position.z - other.mesh.position.z;
             const odist = Math.sqrt(odx*odx + odz*odz);
@@ -2235,6 +2237,7 @@
               const repulsion = 0.02; // Gentle push
               vx += (odx / odist) * repulsion;
               vz += (odz / odist) * repulsion;
+              avoidanceCount++;
             }
           }
           
@@ -3384,9 +3387,10 @@
         this.giveReward();
         
         // Remove chest after short delay
-        setTimeout(() => {
+        const destroyTimeoutId = setTimeout(() => {
           this.destroy();
         }, 2000);
+        activeTimeouts.push(destroyTimeoutId);
       }
       
       giveReward() {
@@ -3410,8 +3414,8 @@
         } else {
           // Weapon attachment or upgrade hint (15% chance)
           createFloatingText('Weapon Enhanced!', this.mesh.position);
-          // Apply a small weapon boost
-          if (weapons.gun.active) {
+          // Apply a small weapon boost - check if weapon exists
+          if (weapons && weapons.gun && weapons.gun.active) {
             weapons.gun.damage += 5;
             showStatChange('Gun Damage +5');
           }
@@ -3421,8 +3425,13 @@
       applyRandomPerk() {
         const perks = [
           { name: 'Speed Boost', apply: () => { 
-            playerStats.walkSpeed *= 1.1;
-            showStatChange('+10% Move Speed');
+            // Cap max speed at 2x base speed to prevent breaking physics
+            if (playerStats.walkSpeed < GAME_CONFIG.playerSpeedBase * 2) {
+              playerStats.walkSpeed *= 1.1;
+              showStatChange('+10% Move Speed');
+            } else {
+              showStatChange('Max Speed Reached');
+            }
           }},
           { name: 'Damage Boost', apply: () => { 
             playerStats.strength += 0.1;
@@ -3437,9 +3446,14 @@
             playerStats.armor = Math.min(80, playerStats.armor + 8);
             showStatChange('+8% Armor');
           }},
-          { name: 'Attack Speed', apply: () => { 
-            weapons.gun.cooldown *= 0.9;
-            showStatChange('+10% Attack Speed');
+          { name: 'Attack Speed', apply: () => {
+            // Cap minimum cooldown at 300ms to prevent performance issues
+            if (weapons.gun.cooldown > 300) {
+              weapons.gun.cooldown *= 0.9;
+              showStatChange('+10% Attack Speed');
+            } else {
+              showStatChange('Max Attack Speed');
+            }
           }}
         ];
         
@@ -6288,6 +6302,10 @@
         scene.remove(c.mesh);
         c.mesh.geometry.dispose();
         c.mesh.material.dispose();
+        if (c.lid) {
+          c.lid.geometry.dispose();
+          c.lid.material.dispose();
+        }
       });
       chests = [];
 
@@ -6913,9 +6931,10 @@
               // Gun kickback effect - slight recoil visual
               const originalY = player.mesh.position.y;
               player.mesh.position.y = originalY - 0.05;
-              setTimeout(() => {
+              const kickbackTimeoutId = setTimeout(() => {
                 player.mesh.position.y = originalY;
               }, 50);
+              activeTimeouts.push(kickbackTimeoutId);
               
               // ENHANCED Muzzle flash particles (bright and intense) - MORE particles
               spawnParticles(player.mesh.position, 0xFFFF00, 12); // Increased from 8
