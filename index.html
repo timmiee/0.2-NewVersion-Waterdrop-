@@ -931,8 +931,7 @@
 
   <!-- Loading Screen -->
   <div id="loading-screen">
-    <img src="321E5768-E77B-4471-8C32-5D7C1D715A4B.png" alt="Water Drop Survivor" class="loading-splash-logo">
-    <div class="game-title">WATER DROP SURVIVOR</div>
+    <div class="game-title" style="display: block;">WATER DROP SURVIVOR</div>
     <div class="loading-bar-container">
       <div class="loading-bar" id="loading-bar"></div>
     </div>
@@ -1122,7 +1121,11 @@
       enemySpeedBase: 0.05,  // Slower as requested
       waveInterval: 300, // Frames between waves (approx 5s)
       expValue: 10,
-      baseExpReq: 20
+      baseExpReq: 20,
+      // Lake configuration - used for spawn avoidance
+      lakeCenterX: 30,
+      lakeCenterZ: -30,
+      lakeRadius: 18
     };
 
     // --- AUDIO SYSTEM (Oscillators) ---
@@ -1399,6 +1402,8 @@
     let particles = [];
     let damageNumbers = [];
     let meteors = [];
+    let flashLights = []; // Track temporary flash lights for cleanup
+    let activeTimeouts = []; // Track active timeouts for cleanup
     let lastTime = 0;
     let frameCount = 0;
     let isPaused = false;
@@ -1937,7 +1942,7 @@
         let color;
         
         // Enemy scaling based on player level - NOT SPEED, just HP and DAMAGE
-        const levelScaling = 1 + (playerLevel - 1) * 0.15; // 15% increase per level
+        const levelScaling = 1 + (playerLevel - 1) * 0.10; // Reduced from 15% to 10% increase per level for better balance
         
         if (type === 0) {
           // Bacteria/Amoeba - Squishy organic blob shape
@@ -2013,7 +2018,7 @@
         }
         
         this.maxHp = this.hp;
-        this.damage = 30 * levelScaling; // Reduced from 33 for better balance
+        this.damage = 25 * levelScaling; // Reduced from 30 for better balance
         this.isDead = false;
         this.isDamaged = false; // Track if enemy has been visually damaged
         this.pulsePhase = Math.random() * Math.PI;
@@ -2058,13 +2063,12 @@
             vz -= wobble * (dx/dist);
           }
           
-          // Type 2 (Balanced) - Circle strafe with sine wave
+          // Type 2 (Balanced) - Slight weaving instead of circle strafe
           if (this.type === 2) {
-            const strafeAngle = gameTime * 2 + this.wobbleOffset;
-            const strafeRadius = 2;
-            const sineWave = Math.sin(strafeAngle) * strafeRadius;
-            vx += sineWave * (-dz/dist) * 0.3; // Circle strafe
-            vz += sineWave * (dx/dist) * 0.3;
+            const weavePhase = gameTime * 4 + this.wobbleOffset;
+            const weave = Math.sin(weavePhase) * 0.05;
+            vx += weave * (-dz/dist);
+            vz += weave * (dx/dist);
           }
           
           // Type 0 (Tank/Slow) - Weaving approach pattern
@@ -2890,7 +2894,15 @@
           flashLight.position.copy(this.mesh.position);
           flashLight.position.y += 1;
           scene.add(flashLight);
-          setTimeout(() => scene.remove(flashLight), 100);
+          flashLights.push(flashLight);
+          const timeoutId = setTimeout(() => {
+            scene.remove(flashLight);
+            const idx = flashLights.indexOf(flashLight);
+            if (idx > -1) flashLights.splice(idx, 1);
+            const tidx = activeTimeouts.indexOf(timeoutId);
+            if (tidx > -1) activeTimeouts.splice(tidx, 1);
+          }, 100);
+          activeTimeouts.push(timeoutId);
           
           this.destroy();
         }
@@ -4226,17 +4238,38 @@
 
     function spawnWave() {
       waveCount++;
-      // Scale spawn count with player level for increased difficulty
-      const baseCount = 3 + Math.floor(waveCount / 2); // 3, 3, 4, 4, 5...
-      const levelBonus = Math.floor(playerStats.lvl / 5); // +1 every 5 levels
+      // Scale spawn count with player level for increased difficulty - Rebalanced
+      const baseCount = 2 + Math.floor(waveCount / 3); // Reduced: was 3 + waveCount/2
+      const levelBonus = Math.floor(playerStats.lvl / 6); // Reduced: was lvl/5, now +1 every 6 levels
       const count = baseCount + levelBonus;
       
       for(let i=0; i<count; i++) {
-        // Spawn at edge of camera view approx
-        const angle = Math.random() * Math.PI * 2;
-        const dist = 25 + Math.random() * 10; // Just outside view
-        const ex = player.mesh.position.x + Math.cos(angle) * dist;
-        const ez = player.mesh.position.z + Math.sin(angle) * dist;
+        // Spawn at edge of camera view approx - avoid lake area
+        let ex, ez, inLake;
+        let attempts = 0;
+        const MAX_ATTEMPTS = 10;
+        
+        do {
+          const angle = Math.random() * Math.PI * 2;
+          const dist = 25 + Math.random() * 10; // Just outside view
+          ex = player.mesh.position.x + Math.cos(angle) * dist;
+          ez = player.mesh.position.z + Math.sin(angle) * dist;
+          
+          // Check if spawn position is in lake
+          const distToLake = Math.sqrt(
+            (ex - GAME_CONFIG.lakeCenterX) * (ex - GAME_CONFIG.lakeCenterX) + 
+            (ez - GAME_CONFIG.lakeCenterZ) * (ez - GAME_CONFIG.lakeCenterZ)
+          );
+          inLake = distToLake < GAME_CONFIG.lakeRadius + 5; // Add buffer
+          attempts++;
+        } while (inLake && attempts < MAX_ATTEMPTS);
+        
+        // Fallback: if still in lake after max attempts, push spawn further away from lake
+        if (inLake) {
+          const angleFromLake = Math.atan2(ez - GAME_CONFIG.lakeCenterZ, ex - GAME_CONFIG.lakeCenterX);
+          ex = GAME_CONFIG.lakeCenterX + Math.cos(angleFromLake) * (GAME_CONFIG.lakeRadius + 10);
+          ez = GAME_CONFIG.lakeCenterZ + Math.sin(angleFromLake) * (GAME_CONFIG.lakeRadius + 10);
+        }
         
         // Random type - include new enemy types as level increases
         // 0: Tank, 1: Fast, 2: Balanced, 3: Slowing (lvl 10+), 4: Ranged (lvl 15+)
@@ -4646,28 +4679,28 @@
     class LightningBolt {
       constructor(start, end) {
         const points = [];
-        const segments = 8;
+        const segments = 12; // Increased from 8 for more detail
         
         for(let i=0; i<=segments; i++) {
           const t = i / segments;
-          const x = start.x + (end.x - start.x) * t + (Math.random() - 0.5) * 1.5;
-          const y = start.y + (end.y - start.y) * t + (Math.random() - 0.5) * 1.5;
-          const z = start.z + (end.z - start.z) * t + (Math.random() - 0.5) * 1.5;
+          const x = start.x + (end.x - start.x) * t + (Math.random() - 0.5) * 2; // Increased randomness
+          const y = start.y + (end.y - start.y) * t + (Math.random() - 0.5) * 2;
+          const z = start.z + (end.z - start.z) * t + (Math.random() - 0.5) * 2;
           points.push(new THREE.Vector3(x, y, z));
         }
         
         const geometry = new THREE.BufferGeometry().setFromPoints(points);
         const material = new THREE.LineBasicMaterial({ 
-          color: 0x7B68EE, // Blue-purple color for lightning
+          color: 0x00FFFF, // Bright cyan/electric blue for better distinction from gunfire
           transparent: true, 
           opacity: 1,
-          linewidth: 3
+          linewidth: 5 // Note: linewidth not supported in WebGL, will render at 1px
         });
         
         this.mesh = new THREE.Line(geometry, material);
         scene.add(this.mesh);
-        this.life = 20;
-        this.maxLife = 20;
+        this.life = 30; // Increased from 20 for longer visibility
+        this.maxLife = 30;
       }
       
       update() {
@@ -5412,6 +5445,18 @@
       });
       particles = [];
       
+      // Clean up any active flash lights
+      flashLights.forEach(light => {
+        scene.remove(light);
+      });
+      flashLights = [];
+      
+      // Clear any pending timeouts
+      activeTimeouts.forEach(timeoutId => {
+        clearTimeout(timeoutId);
+      });
+      activeTimeouts = [];
+      
       meteors.forEach(m => {
         scene.remove(m.mesh);
         scene.remove(m.shadow);
@@ -5422,7 +5467,7 @@
 
       // Reset Player - Spawn beside the lake after emerging from water
       if (player) {
-        player.mesh.position.set(35, 0.5, -30); // Spawn in the lake near its center (lake center at 30, 0.01, -30; radius 18)
+        player.mesh.position.set(50, 0.5, -30); // Spawn beside the lake (lake center at 30, 0.01, -30; radius 18)
         player.mesh.material.color.setHex(COLORS.player);
       }
 
@@ -5994,27 +6039,34 @@
               projectiles.push(new Projectile(player.mesh.position.x, player.mesh.position.z, nearest.mesh.position));
               
               // Muzzle flash light effect
-              const flashLight = new THREE.PointLight(0xFFFF00, 2, 10);
+              // Enhanced muzzle flash light - brighter and more visible
+              const flashLight = new THREE.PointLight(0xFFFFFF, 4, 15); // White for gunfire
               flashLight.position.copy(player.mesh.position);
               flashLight.position.y += 1;
               scene.add(flashLight);
+              flashLights.push(flashLight);
               
               // Remove flash after short time
-              setTimeout(() => {
+              const timeoutId = setTimeout(() => {
                 scene.remove(flashLight);
-              }, 50);
+                const idx = flashLights.indexOf(flashLight);
+                if (idx > -1) flashLights.splice(idx, 1);
+                const tidx = activeTimeouts.indexOf(timeoutId);
+                if (tidx > -1) activeTimeouts.splice(tidx, 1);
+              }, 80);
+              activeTimeouts.push(timeoutId);
               
-              // Lightning effect from gun
+              // Lightning effect from gun - more visible
               const lightning = new LightningBolt(
                 player.mesh.position.clone(),
                 nearest.mesh.position.clone()
               );
               particles.push(lightning);
               
-              // Muzzle flash particles (bright and intense)
-              spawnParticles(player.mesh.position, 0xFFFF00, 5);
-              spawnParticles(player.mesh.position, 0xFFFFFF, 3);
-              spawnParticles(player.mesh.position, 0xFFA500, 3);
+              // Muzzle flash particles (bright and intense) - increased count
+              spawnParticles(player.mesh.position, 0xFFFF00, 8); // Increased from 5
+              spawnParticles(player.mesh.position, 0xFFFFFF, 5); // Increased from 3
+              spawnParticles(player.mesh.position, 0xFFA500, 5); // Increased from 3
             }, i * 100);
           }
           weapons.gun.lastShot = time;
@@ -6089,12 +6141,20 @@
           );
           particles.push(lightning);
           
-          // Flash effect
-          const flashLight = new THREE.PointLight(0x7B68EE, 3, 15); // Blue-purple
+          // Flash effect - bright cyan for lightning
+          const flashLight = new THREE.PointLight(0x00FFFF, 5, 20); // Cyan to match lightning color
           flashLight.position.copy(enemy.mesh.position);
           flashLight.position.y += 2;
           scene.add(flashLight);
-          setTimeout(() => scene.remove(flashLight), 100);
+          flashLights.push(flashLight);
+          const timeoutId = setTimeout(() => {
+            scene.remove(flashLight);
+            const idx = flashLights.indexOf(flashLight);
+            if (idx > -1) flashLights.splice(idx, 1);
+            const tidx = activeTimeouts.indexOf(timeoutId);
+            if (tidx > -1) activeTimeouts.splice(tidx, 1);
+          }, 150);
+          activeTimeouts.push(timeoutId);
           
           // Damage enemy
           const dmg = weapons.lightning.damage * playerStats.strength;
@@ -6143,7 +6203,15 @@
             chainFlashLight.position.copy(chainTarget.mesh.position);
             chainFlashLight.position.y += 1;
             scene.add(chainFlashLight);
-            setTimeout(() => scene.remove(chainFlashLight), 80);
+            flashLights.push(chainFlashLight);
+            const chainTimeoutId = setTimeout(() => {
+              scene.remove(chainFlashLight);
+              const idx = flashLights.indexOf(chainFlashLight);
+              if (idx > -1) flashLights.splice(idx, 1);
+              const tidx = activeTimeouts.indexOf(chainTimeoutId);
+              if (tidx > -1) activeTimeouts.splice(tidx, 1);
+            }, 80);
+            activeTimeouts.push(chainTimeoutId);
           }
         }
         
@@ -6199,7 +6267,15 @@
           flashLight.position.copy(player.mesh.position);
           flashLight.position.y += 1;
           scene.add(flashLight);
-          setTimeout(() => scene.remove(flashLight), 80);
+          flashLights.push(flashLight);
+          const timeoutId = setTimeout(() => {
+            scene.remove(flashLight);
+            const idx = flashLights.indexOf(flashLight);
+            if (idx > -1) flashLights.splice(idx, 1);
+            const tidx = activeTimeouts.indexOf(timeoutId);
+            if (tidx > -1) activeTimeouts.splice(tidx, 1);
+          }, 80);
+          activeTimeouts.push(timeoutId);
           
           spawnParticles(player.mesh.position, 0xFFFF00, 8);
           spawnParticles(player.mesh.position, 0xFFFFFF, 5);
