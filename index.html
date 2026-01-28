@@ -548,9 +548,9 @@
       transform: translateX(-50%);
     }
 
-    #start-game-btn { top: 54.25%; } /* Moved 7.5% lower from 46.75% */
-    #progression-btn { top: 65.25%; } /* Moved 7.5% lower from 57.75% */
-    #achievements-btn { top: 76.25%; } /* Moved 7.5% lower from 68.75% */
+    #start-game-btn { top: 54.25%; } /* Moved 4% lower from 50.25% */
+    #progression-btn { top: 65.25%; } /* Moved 4% lower from 61.25% */
+    #achievements-btn { top: 76.25%; } /* Moved 4% lower from 72.25% */
     #credits-btn { top: min(86.75%, calc(100% - 60px)); } /* Clamp to avoid viewport cutoff on short screens */
 
     .menu-btn::before {
@@ -3309,6 +3309,9 @@
         const startTime = Date.now();
         
         const animateLid = () => {
+          // Stop animation if chest was destroyed
+          if (!this.active) return;
+          
           const elapsed = Date.now() - startTime;
           const progress = Math.min(elapsed / lidOpenDuration, 1);
           const eased = 1 - Math.pow(1 - progress, 3); // Ease out cubic
@@ -3374,32 +3377,52 @@
           createFloatingText(`+${goldAmount} GOLD`, this.mesh.position);
           
         } else if (rewardType < 0.75) {
-          // 20% - Damage boost (temporary)
-          const boostAmount = 0.25; // 25% damage boost
-          const boostDuration = 30000; // 30 seconds
-          playerStats.damage *= (1 + boostAmount);
-          createFloatingText("DAMAGE BOOST!", this.mesh.position);
-          
-          const boostTimeout = setTimeout(() => {
-            playerStats.damage /= (1 + boostAmount);
-            const tidx = activeTimeouts.indexOf(boostTimeout);
-            if (tidx > -1) activeTimeouts.splice(tidx, 1);
-          }, boostDuration);
-          activeTimeouts.push(boostTimeout);
+          // 20% - Damage boost (temporary) - prevent stacking
+          if (!activeBuffs.damageBoost) {
+            const boostAmount = 0.25; // 25% damage boost
+            const boostDuration = 30000; // 30 seconds
+            const originalDamage = playerStats.damage;
+            playerStats.damage *= (1 + boostAmount);
+            createFloatingText("DAMAGE BOOST!", this.mesh.position);
+            
+            const boostTimeout = setTimeout(() => {
+              playerStats.damage = originalDamage; // Restore to original value
+              activeBuffs.damageBoost = null;
+              const tidx = activeTimeouts.indexOf(boostTimeout);
+              if (tidx > -1) activeTimeouts.splice(tidx, 1);
+            }, boostDuration);
+            activeTimeouts.push(boostTimeout);
+            activeBuffs.damageBoost = boostTimeout;
+          } else {
+            // If damage boost active, give gold instead
+            const goldAmount = 15 + Math.floor(Math.random() * 16); // 15-30 gold
+            addGold(goldAmount);
+            createFloatingText(`+${goldAmount} GOLD`, this.mesh.position);
+          }
           
         } else if (rewardType < 0.90) {
-          // 15% - Speed boost (temporary)
-          const boostAmount = 0.3; // 30% speed boost
-          const boostDuration = 20000; // 20 seconds
-          playerStats.walkSpeed *= (1 + boostAmount);
-          createFloatingText("SPEED BOOST!", this.mesh.position);
-          
-          const boostTimeout = setTimeout(() => {
-            playerStats.walkSpeed /= (1 + boostAmount);
-            const tidx = activeTimeouts.indexOf(boostTimeout);
-            if (tidx > -1) activeTimeouts.splice(tidx, 1);
-          }, boostDuration);
-          activeTimeouts.push(boostTimeout);
+          // 15% - Speed boost (temporary) - prevent stacking
+          if (!activeBuffs.speedBoost) {
+            const boostAmount = 0.3; // 30% speed boost
+            const boostDuration = 20000; // 20 seconds
+            const originalSpeed = playerStats.walkSpeed;
+            playerStats.walkSpeed *= (1 + boostAmount);
+            createFloatingText("SPEED BOOST!", this.mesh.position);
+            
+            const boostTimeout = setTimeout(() => {
+              playerStats.walkSpeed = originalSpeed; // Restore to original value
+              activeBuffs.speedBoost = null;
+              const tidx = activeTimeouts.indexOf(boostTimeout);
+              if (tidx > -1) activeTimeouts.splice(tidx, 1);
+            }, boostDuration);
+            activeTimeouts.push(boostTimeout);
+            activeBuffs.speedBoost = boostTimeout;
+          } else {
+            // If speed boost active, give gold instead
+            const goldAmount = 15 + Math.floor(Math.random() * 16); // 15-30 gold
+            addGold(goldAmount);
+            createFloatingText(`+${goldAmount} GOLD`, this.mesh.position);
+          }
           
         } else {
           // 10% - Experience bonus
@@ -3431,6 +3454,12 @@
 
     // Array to hold active chests
     const chests = [];
+    
+    // Track active buffs to prevent stacking
+    const activeBuffs = {
+      damageBoost: null,
+      speedBoost: null
+    };
 
     // --- NOTIFICATION/INBOX SYSTEM ---
     const notifications = [];
@@ -4890,11 +4919,19 @@
     }
 
     function spawnChest() {
+      // Limit maximum active chests to prevent performance issues
+      if (chests.length >= 3) {
+        // Remove oldest chest if at limit
+        const oldestChest = chests[0];
+        oldestChest.destroy();
+        chests.shift();
+      }
+      
       // Spawn chest near the player (visible but not too close)
       const angle = Math.random() * Math.PI * 2;
       const dist = 8 + Math.random() * 5; // 8-13 units away
-      const chestX = player.mesh.position.x + Math.cos(angle) * dist;
-      const chestZ = player.mesh.position.z + Math.sin(angle) * dist;
+      let chestX = player.mesh.position.x + Math.cos(angle) * dist;
+      let chestZ = player.mesh.position.z + Math.sin(angle) * dist;
       
       // Avoid spawning in lake
       const distToLake = Math.sqrt(
@@ -4905,14 +4942,15 @@
       // If in lake, spawn on opposite side
       if (distToLake < GAME_CONFIG.lakeRadius + 5) {
         const oppositeAngle = angle + Math.PI;
-        const safeX = player.mesh.position.x + Math.cos(oppositeAngle) * dist;
-        const safeZ = player.mesh.position.z + Math.sin(oppositeAngle) * dist;
-        chests.push(new Chest(safeX, safeZ));
-      } else {
-        chests.push(new Chest(chestX, chestZ));
+        chestX = player.mesh.position.x + Math.cos(oppositeAngle) * dist;
+        chestZ = player.mesh.position.z + Math.sin(oppositeAngle) * dist;
       }
       
-      createFloatingText("CHEST APPEARED!", player.mesh.position);
+      const newChest = new Chest(chestX, chestZ);
+      chests.push(newChest);
+      
+      // Show text at chest position for better visibility
+      createFloatingText("CHEST APPEARED!", new THREE.Vector3(chestX, 0.5, chestZ));
     }
 
     function spawnParticles(pos, color, count) {
