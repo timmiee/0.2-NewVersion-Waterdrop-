@@ -3773,12 +3773,7 @@
         }
       }
       
-      // Central altar stone - realistic flat stone
-      const altarGeo = new THREE.BoxGeometry(5, 0.5, 2);
-      const altar = new THREE.Mesh(altarGeo, stoneMat);
-      altar.position.set(0, 0.25, 0);
-      altar.castShadow = true;
-      stonehengeGroup.add(altar);
+      // Central altar stone removed - was appearing as visual artifact
       
       scene.add(stonehengeGroup);
 
