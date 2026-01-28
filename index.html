@@ -206,7 +206,7 @@
       max-height: none; /* Remove height restriction - no scrolling needed */
       overflow-y: visible; /* No scrolling */
       text-align: center;
-      box-shadow: 0 15px 30px rgba(0,0,0,0.7), 0 0 50px rgba(255,215,0,0.7), inset 0 0 40px rgba(255,215,0,0.15); /* Golden glow */
+      box-shadow: 0 15px 30px rgba(0,0,0,0.9), 0 0 50px rgba(255,215,0,0.7), inset 0 0 40px rgba(255,215,0,0.15), inset 0 0 0 2px rgba(0,0,0,0.5); /* Darker shadow and inner dark edge */
       pointer-events: auto; /* Modal content should receive clicks */
     }
 
@@ -225,7 +225,7 @@
       border: 3px solid #FFD700; /* Golden border */
       cursor: pointer;
       transition: transform 0.1s, box-shadow 0.1s;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.3), 0 0 15px rgba(255,215,0,0.4); /* Golden glow */
+      box-shadow: 0 4px 8px rgba(0,0,0,0.5), 0 0 15px rgba(255,215,0,0.4), inset 0 0 0 2px rgba(0,0,0,0.4); /* Darker shadow and inner dark edge */
     }
 
     .upgrade-card:hover {
@@ -539,8 +539,8 @@
       font-size: 0;
       box-shadow: none;
       position: absolute;
-      width: 300px;
-      height: 60px;
+      width: 260px; /* Reduced from 300px */
+      height: 50px; /* Reduced from 60px */
       cursor: pointer;
       transition: all 0.2s ease;
       overflow: visible;
@@ -549,9 +549,9 @@
     }
 
     #start-game-btn { top: 50.25%; } /* Moved 3.5% lower from 46.75% */
-    #progression-btn { top: 61.25%; } /* Moved 3.5% lower from 57.75% */
-    #achievements-btn { top: 72.25%; } /* Moved 3.5% lower from 68.75% */
-    #credits-btn { top: min(82.75%, calc(100% - 60px)); } /* Clamp to avoid viewport cutoff on short screens */
+    #progression-btn { top: 59.75%; } /* Adjusted spacing - reduced from 61.25% */
+    #achievements-btn { top: 69.25%; } /* Adjusted spacing - reduced from 72.25% */
+    #credits-btn { top: min(78.75%, calc(100% - 60px)); } /* Adjusted spacing - reduced from 82.75% */
 
     .menu-btn::before {
       content: '';
@@ -576,8 +576,8 @@
     }
 
     .menu-btn:active::before {
-      width: 300px;
-      height: 300px;
+      width: 260px; /* Reduced from 300px */
+      height: 260px; /* Reduced from 300px */
     }
 
     @keyframes lightning-flash {
@@ -1726,12 +1726,32 @@
             // Turn to face the direction of right stick
             const angle = Math.atan2(joystickRight.x, joystickRight.y);
             this.mesh.rotation.y = angle;
-          } else if (gameSettings.autoAim && gameSettings.isPortrait && enemies.length > 0) {
-            // Auto-aim in portrait mode: aim at nearest enemy
+          } else if (gameSettings.autoAim && gameSettings.isPortrait && enemies && enemies.length > 0) {
+            // Auto-aim only in portrait mode when enabled
             let nearestEnemy = null;
             let minDist = Infinity;
             enemies.forEach(e => {
-              if (!e.isDead) {
+              if (e && !e.isDead) {
+                const dist = this.mesh.position.distanceTo(e.mesh.position);
+                if (dist < minDist) {
+                  minDist = dist;
+                  nearestEnemy = e;
+                }
+              }
+            });
+            if (nearestEnemy) {
+              const dx = nearestEnemy.mesh.position.x - this.mesh.position.x;
+              const dz = nearestEnemy.mesh.position.z - this.mesh.position.z;
+              const angle = Math.atan2(dx, dz);
+              this.mesh.rotation.y = angle;
+            }
+          } else if (!gameSettings.autoAim && !gameSettings.isPortrait && enemies && enemies.length > 0) {
+            // In landscape mode with auto-aim off, aim at nearest enemy manually with right stick
+            // But if no right stick input, aim at nearest enemy
+            let nearestEnemy = null;
+            let minDist = Infinity;
+            enemies.forEach(e => {
+              if (e && !e.isDead) {
                 const dist = this.mesh.position.distanceTo(e.mesh.position);
                 if (dist < minDist) {
                   minDist = dist;
@@ -4826,8 +4846,8 @@
         enemies.push(new Enemy(10, ex, ez, playerStats.lvl));
         createFloatingText("MINI-BOSS INCOMING!", player.mesh.position);
         
-        // Spawn 2-3 regular enemies with the mini-boss
-        const supportCount = 2 + Math.floor(Math.random() * 2);
+        // Spawn 1-2 regular enemies with the mini-boss (reduced from 2-3)
+        const supportCount = 1 + Math.floor(Math.random() * 2);
         for (let i = 0; i < supportCount; i++) {
           const supportAngle = Math.random() * Math.PI * 2;
           const supportDist = 25 + Math.random() * 5;
@@ -5209,9 +5229,9 @@
         particles.push(particle);
       }
       
-      // Lightning bolts
-      for(let i=0; i<8; i++) {
-        const angle = (i / 8) * Math.PI * 2;
+      // Lightning bolts - Reduced from 8 to 4 for performance
+      for(let i=0; i<4; i++) {
+        const angle = (i / 4) * Math.PI * 2;
         const lightning = new LightningBolt(
           player.mesh.position.clone(),
           new THREE.Vector3(
@@ -5324,13 +5344,13 @@
     class LightningBolt {
       constructor(start, end) {
         const points = [];
-        const segments = 12; // Increased from 8 for more detail
+        const segments = 8; // Reduced from 12 for performance
         
         for(let i=0; i<=segments; i++) {
           const t = i / segments;
-          const x = start.x + (end.x - start.x) * t + (Math.random() - 0.5) * 2; // Increased randomness
-          const y = start.y + (end.y - start.y) * t + (Math.random() - 0.5) * 2;
-          const z = start.z + (end.z - start.z) * t + (Math.random() - 0.5) * 2;
+          const x = start.x + (end.x - start.x) * t + (Math.random() - 0.5) * 1.5; // Reduced randomness
+          const y = start.y + (end.y - start.y) * t + (Math.random() - 0.5) * 1.5;
+          const z = start.z + (end.z - start.z) * t + (Math.random() - 0.5) * 1.5;
           points.push(new THREE.Vector3(x, y, z));
         }
         
@@ -5344,8 +5364,8 @@
         
         this.mesh = new THREE.Line(geometry, material);
         scene.add(this.mesh);
-        this.life = 30; // Increased from 20 for longer visibility
-        this.maxLife = 30;
+        this.life = 20; // Reduced from 30 for performance
+        this.maxLife = 20;
       }
       
       update() {
@@ -5842,6 +5862,27 @@
               weapons.lightning.active = true;
               weapons.lightning.level = 1;
               showStatChange('New Weapon: Lightning');
+              
+              // Create powerful lightning effect when unlocked
+              for(let i=0; i<6; i++) {
+                const angle = (i / 6) * Math.PI * 2;
+                const lightning = new LightningBolt(
+                  new THREE.Vector3(player.mesh.position.x, 20, player.mesh.position.z),
+                  new THREE.Vector3(
+                    player.mesh.position.x + Math.cos(angle) * 8,
+                    0,
+                    player.mesh.position.z + Math.sin(angle) * 8
+                  )
+                );
+                particles.push(lightning);
+              }
+              
+              // Screen flash
+              if (flashOverlay) {
+                flashOverlay.style.opacity = '0.4';
+                flashOverlay.style.background = 'rgba(0, 255, 255, 0.4)';
+                setTimeout(() => { flashOverlay.style.opacity = '0'; }, 200);
+              }
             } 
           },
           { 
