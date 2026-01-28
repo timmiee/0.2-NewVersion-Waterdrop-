@@ -937,7 +937,6 @@
 
   <!-- Loading Screen -->
   <div id="loading-screen">
-    <div class="game-title" style="display: block;">WATER DROP SURVIVOR</div>
     <div class="loading-bar-container">
       <div class="loading-bar" id="loading-bar"></div>
     </div>
@@ -3773,7 +3772,12 @@
         }
       }
       
-      // Central altar stone removed - was appearing as visual artifact
+      // Central altar stone - restore missing rock
+      const altarGeo = new THREE.BoxGeometry(2, 1, 3);
+      const altar = new THREE.Mesh(altarGeo, stoneMat);
+      altar.position.set(0, 0.5, 0); // Center of Stonehenge circle
+      altar.castShadow = true;
+      stonehengeGroup.add(altar);
       
       scene.add(stonehengeGroup);
 
@@ -6024,9 +6028,9 @@
       });
       meteors = [];
 
-      // Reset Player - Spawn beside the lake after emerging from water
+      // Reset Player - Spawn near the statue at map center
       if (player) {
-        player.mesh.position.set(50, 0.5, -30); // Spawn beside the lake (lake center at 30, 0.01, -30; radius 18)
+        player.mesh.position.set(0, 0.5, 0); // Spawn near the statue (statue at 0, 0, 0)
         player.mesh.material.color.setHex(COLORS.player);
       }
 
