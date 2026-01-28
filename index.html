@@ -1418,6 +1418,7 @@
     let gameTime = 0;
     let gameStartTime = 0;
     let waveCount = 0;
+    let lastWaveEndTime = 0; // Track when last wave was cleared
     let windmillQuest = { active: false, timer: 0, duration: 30, windmill: null, hasCompleted: false };
     let runStartGold = 0;  // Track gold at start of run for end-of-run calculation
 
@@ -1666,9 +1667,31 @@
         this.dashTime = 0;
         this.dashDuration = 0.2;
         this.dashVec = new THREE.Vector3();
+        
+        // Invulnerability frames to prevent instant death
+        this.invulnerable = false;
+        this.invulnerabilityTime = 0;
+        this.invulnerabilityDuration = 0.5; // 500ms of invulnerability after taking damage
       }
 
       update(dt) {
+        // Update invulnerability timer
+        if (this.invulnerable) {
+          this.invulnerabilityTime += dt;
+          if (this.invulnerabilityTime >= this.invulnerabilityDuration) {
+            this.invulnerable = false;
+            this.invulnerabilityTime = 0;
+          }
+          // Flash effect during invulnerability
+          if (Math.floor(this.invulnerabilityTime * 20) % 2 === 0) {
+            this.mesh.material.opacity = 0.5;
+          } else {
+            this.mesh.material.opacity = 0.75;
+          }
+        } else {
+          this.mesh.material.opacity = 0.75; // Normal opacity
+        }
+        
         // Dash Logic
         if (this.isDashing) {
           this.dashTime -= dt;
@@ -1953,11 +1976,18 @@
       }
 
       takeDamage(amount) {
+        // Check invulnerability frames
+        if (this.invulnerable) return;
+        
         // Armor reduction
         const reduced = Math.max(1, amount * (1 - playerStats.armor / 100));
         playerStats.hp -= reduced;
         updateHUD();
         playSound('hit');
+        
+        // Set invulnerability
+        this.invulnerable = true;
+        this.invulnerabilityTime = 0;
         
         // Visual flash
         this.mesh.material.color.setHex(0xFF0000);
@@ -2321,6 +2351,14 @@
         } else if (dist < 1.0 && this.type !== 4) { // Ranged enemies don't melee attack
           // Attack player
           player.takeDamage(this.damage);
+          
+          // Thorns damage - reflect damage back to enemy
+          if (playerStats.thornsPercent > 0) {
+            const thornsDmg = this.damage * playerStats.thornsPercent;
+            this.takeDamage(thornsDmg, false);
+            createDamageNumber(thornsDmg, this.mesh.position, false);
+            spawnParticles(this.mesh.position, 0xFF6347, 8); // Tomato red thorns
+          }
           
           // Slowing enemy slows player on hit
           if (this.type === 3) {
@@ -5022,10 +5060,20 @@
       playerStats.lvl++;
       playerStats.exp -= playerStats.expReq;
       
-      // Custom XP Curve: 3, 5, 7, 10...
-      // Lvl 1->2 (3 kills=30), 2->3 (5 kills=50), 3->4 (7 kills=70), 4->5 (10 kills=100)
-      const nextKills = [1, 2, 3, 4, 5, 6, 8, 10]; // Even Faster
-      const killsNeeded = nextKills[Math.min(playerStats.lvl-1, nextKills.length-1)] || 25;
+      // Custom XP Curve: Smoother progression up to level 50
+      // Earlier levels: faster progression, later levels: gradually slower
+      let killsNeeded;
+      if (playerStats.lvl <= 5) {
+        killsNeeded = 2 + playerStats.lvl; // 3, 4, 5, 6, 7 kills
+      } else if (playerStats.lvl <= 15) {
+        killsNeeded = 7 + Math.floor((playerStats.lvl - 5) * 0.5); // 7-12 kills
+      } else if (playerStats.lvl <= 30) {
+        killsNeeded = 12 + Math.floor((playerStats.lvl - 15) * 0.7); // 12-22 kills
+      } else if (playerStats.lvl <= 50) {
+        killsNeeded = 22 + Math.floor((playerStats.lvl - 30) * 1); // 22-42 kills
+      } else {
+        killsNeeded = 42 + Math.floor((playerStats.lvl - 50) * 1.5); // 42+ kills (harder after 50)
+      }
       playerStats.expReq = killsNeeded * GAME_CONFIG.expValue;
       
       // Check for level achievements
@@ -6881,9 +6929,21 @@
         }
       }
 
-      // Spawn Logic
+      // Spawn Logic - Only spawn new wave if previous wave is cleared
       frameCount++;
-      if (frameCount % GAME_CONFIG.waveInterval === 0) {
+      const aliveEnemies = enemies.filter(e => !e.isDead).length;
+      const timeSinceLastWave = frameCount - lastWaveEndTime;
+      const minWaveDelay = 180; // Minimum 3 seconds between waves (180 frames)
+      
+      // Spawn new wave if: interval passed AND (no enemies alive OR enough time since last clear)
+      if (frameCount % GAME_CONFIG.waveInterval === 0 && (aliveEnemies === 0 || timeSinceLastWave > GAME_CONFIG.waveInterval)) {
+        if (aliveEnemies === 0) {
+          lastWaveEndTime = frameCount; // Mark when wave was cleared
+        }
+        spawnWave();
+      } else if (aliveEnemies === 0 && timeSinceLastWave >= minWaveDelay) {
+        // Quick spawn if all enemies cleared and minimum delay passed
+        lastWaveEndTime = frameCount;
         spawnWave();
       }
       
