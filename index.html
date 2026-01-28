@@ -5913,13 +5913,8 @@
             const inputX = joystickLeft.x;
             const inputY = joystickLeft.y;
             // Standard isometric transform from input (screen) space to world space
-            const isoX = (inputX - inputY) * Math.SQRT1_2;
-            const isoZ = (inputX + inputY) * Math.SQRT1_2;
-            const isoLen = Math.sqrt(isoX * isoX + isoZ * isoZ) || 1;
-            player.dashVec.set(isoX / isoLen, 0, isoZ / isoLen);
-            playerStats.dashesPerformed++;
-            playSound('dash');
-            spawnParticles(player.mesh.position, COLORS.player, 20);
+            // Use the centralized dash method for consistent behavior (iso conversion, effects, stats)
+            player.dash(joystickLeft.x, joystickLeft.y);
           }
           gameSettings.gamepadButtonStates.dashButton = dashPressed;
         }
