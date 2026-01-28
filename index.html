@@ -5741,9 +5741,9 @@
         });
         
         // Mouse Controls for aiming
-        let lastMouseX = 0, lastMouseY = 0;
-        gameSettings.lastMouseX = lastMouseX;
-        gameSettings.lastMouseY = lastMouseY;
+        // Initialize mouse position to center of the viewport to avoid unexpected initial rotation
+        gameSettings.lastMouseX = window.innerWidth / 2;
+        gameSettings.lastMouseY = window.innerHeight / 2;
         
         window.addEventListener('mousemove', (e) => {
           gameSettings.lastMouseX = e.clientX;
