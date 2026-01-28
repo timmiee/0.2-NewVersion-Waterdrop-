@@ -2132,18 +2132,18 @@
         this.mesh.castShadow = true;
         scene.add(this.mesh);
 
-        // Stats based on type - SCALED BY LEVEL (Rebalanced for better gameplay)
+        // Stats based on type - SCALED BY LEVEL (Rebalanced for better gameplay - reduced HP for more rewarding kills)
         if (type === 0) { // Tank
-          this.hp = 120 * levelScaling; // Reduced from 150
+          this.hp = 100 * levelScaling; // Reduced from 120
           this.speed = GAME_CONFIG.enemySpeedBase * 0.6; // Speed NOT scaled
         } else if (type === 1) { // Fast, Low HP
-          this.hp = 35 * levelScaling; // Reduced from 40
+          this.hp = 30 * levelScaling; // Reduced from 35
           this.speed = GAME_CONFIG.enemySpeedBase * 1.6; // Speed NOT scaled
         } else if (type === 2) { // Balanced
-          this.hp = 70 * levelScaling; // Reduced from 80
+          this.hp = 60 * levelScaling; // Reduced from 70
           this.speed = GAME_CONFIG.enemySpeedBase; // Speed NOT scaled
         } else if (type === 3) { // Slowing
-          this.hp = 85 * levelScaling; // Reduced from 100
+          this.hp = 75 * levelScaling; // Reduced from 85
           this.speed = GAME_CONFIG.enemySpeedBase * 0.8; // Speed NOT scaled
           this.slowDuration = 2000; // 2 seconds slow
           this.slowAmount = 0.5; // 50% slow
@@ -2220,6 +2220,22 @@
           // Move towards target
           let vx = (dx / dist) * this.speed;
           let vz = (dz / dist) * this.speed;
+          
+          // Add enemy avoidance to prevent stacking/trains
+          // Check nearby enemies and add repulsion force
+          for (let other of enemies) {
+            if (other === this || other.isDead) continue;
+            const odx = this.mesh.position.x - other.mesh.position.x;
+            const odz = this.mesh.position.z - other.mesh.position.z;
+            const odist = Math.sqrt(odx*odx + odz*odz);
+            
+            // If too close to another enemy, push away
+            if (odist < 1.5 && odist > 0.01) {
+              const repulsion = 0.02; // Gentle push
+              vx += (odx / odist) * repulsion;
+              vz += (odz / odist) * repulsion;
+            }
+          }
           
           // Type 1 (Fast) - Zigzag perpendicular oscillation
           if (this.type === 1) {
@@ -4581,10 +4597,10 @@
         return;
       }
       
-      // Scale spawn count with player level for increased difficulty - Rebalanced
-      const baseCount = 3 + Math.floor(waveCount / 3); // Increased from 2
-      const levelBonus = Math.floor(playerStats.lvl / 5); // Increased from /6
-      const count = Math.min(baseCount + levelBonus, 15); // Cap at 15 enemies per wave
+      // Scale spawn count with player level for increased difficulty - Rebalanced for better gameplay
+      const baseCount = 2 + Math.floor(waveCount / 4); // Reduced to make it less overwhelming
+      const levelBonus = Math.floor(playerStats.lvl / 6); // Slower scaling
+      const count = Math.min(baseCount + levelBonus, 10); // Lower cap at 10 enemies per wave
       
       for(let i=0; i<count; i++) {
         // Spawn at edge of camera view approx - avoid lake area
