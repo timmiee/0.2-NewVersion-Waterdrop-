@@ -244,7 +244,6 @@
       height: 200%;
       background: radial-gradient(circle, rgba(93,173,226,0.3) 0%, transparent 70%);
       opacity: 0;
-      transition: opacity 0.3s ease;
       pointer-events: none;
     }
 
@@ -260,7 +259,6 @@
     }
     
     .upgrade-card:hover::before {
-      opacity: 1; /* Show lightning effect */
       animation: lightning-pulse 1s ease-in-out infinite;
     }
 
@@ -274,11 +272,11 @@
     
     @keyframes lightning-pulse {
       0%, 100% { 
-        opacity: 0.3;
+        opacity: 0.4;
         transform: translate(0, 0);
       }
       50% { 
-        opacity: 0.6;
+        opacity: 0.7;
         transform: translate(-10%, -10%);
       }
     }
@@ -315,6 +313,7 @@
     }
     
     .upgrade-card.perk:hover {
+      animation-play-state: paused; /* Pause pulse animation on hover */
       box-shadow: 
         0 12px 24px rgba(0,0,0,0.8),
         0 0 40px rgba(155,89,182,0.7),
@@ -1522,7 +1521,6 @@
       waterRipples: [],
       sparkles: [],
       crystals: [],
-      cometParticles: [],
       waterfalls: [],
       waterDrops: [],
       splashes: []
@@ -7603,27 +7601,33 @@
       if (particles.length > MAX_PARTICLES) {
         const excess = particles.splice(0, particles.length - MAX_PARTICLES);
         excess.forEach(p => {
-          if (p.mesh && p.mesh.parent) scene.remove(p.mesh);
-          if (p.mesh && p.mesh.geometry) p.mesh.geometry.dispose();
-          if (p.mesh && p.mesh.material) p.mesh.material.dispose();
+          if (p.mesh && p.mesh.parent) {
+            scene.remove(p.mesh);
+            if (p.mesh.geometry) p.mesh.geometry.dispose();
+            if (p.mesh.material) p.mesh.material.dispose();
+          }
         });
       }
       
       if (projectiles.length > MAX_PROJECTILES) {
         const excess = projectiles.splice(0, projectiles.length - MAX_PROJECTILES);
         excess.forEach(p => {
-          if (p.mesh && p.mesh.parent) scene.remove(p.mesh);
-          if (p.mesh && p.mesh.geometry) p.mesh.geometry.dispose();
-          if (p.mesh && p.mesh.material) p.mesh.material.dispose();
+          if (p.mesh && p.mesh.parent) {
+            scene.remove(p.mesh);
+            if (p.mesh.geometry) p.mesh.geometry.dispose();
+            if (p.mesh.material) p.mesh.material.dispose();
+          }
         });
       }
       
       if (meteors.length > MAX_METEORS) {
         const excess = meteors.splice(0, meteors.length - MAX_METEORS);
         excess.forEach(m => {
-          if (m.mesh && m.mesh.parent) scene.remove(m.mesh);
-          if (m.mesh && m.mesh.geometry) m.mesh.geometry.dispose();
-          if (m.mesh && m.mesh.material) m.mesh.material.dispose();
+          if (m.mesh && m.mesh.parent) {
+            scene.remove(m.mesh);
+            if (m.mesh.geometry) m.mesh.geometry.dispose();
+            if (m.mesh.material) m.mesh.material.dispose();
+          }
         });
       }
       
@@ -7688,28 +7692,6 @@
         if (obj.material.emissiveIntensity !== undefined) {
           obj.material.emissiveIntensity = 0.3 + Math.sin(obj.userData.phase * 2) * 0.2;
         }
-      });
-      
-      // Comet particle animation (orbiting particles)
-      animatedObjects.cometParticles.forEach(obj => {
-        if (!obj || !obj.parent) return;
-        // Store the initial position as the orbit center (relative to parent/comet group)
-        if (!obj.userData.basePosition) {
-          obj.userData.basePosition = obj.position.clone();
-        }
-        
-        obj.userData.angle += obj.userData.speed * 0.02;
-        
-        const centerX = obj.userData.basePosition.x;
-        const centerZ = obj.userData.basePosition.z;
-        const centerY = obj.userData.basePosition.y;
-        
-        obj.position.x = centerX + Math.cos(obj.userData.angle) * obj.userData.radius;
-        obj.position.z = centerZ + Math.sin(obj.userData.angle) * obj.userData.radius;
-        obj.position.y = centerY + obj.userData.height + Math.sin(obj.userData.angle * 2) * 0.3;
-        
-        // Pulsing opacity (between 0.3 and 0.7 for good visibility)
-        obj.material.opacity = 0.5 + Math.sin(obj.userData.angle * 3) * 0.2;
       });
       
       // Waterfall animation
