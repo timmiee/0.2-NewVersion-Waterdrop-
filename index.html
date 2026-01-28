@@ -548,10 +548,10 @@
       transform: translateX(-50%);
     }
 
-    #start-game-btn { top: 54.25%; } /* Moved 4% lower from 50.25% */
-    #progression-btn { top: 65.25%; } /* Moved 4% lower from 61.25% */
-    #achievements-btn { top: 76.25%; } /* Moved 4% lower from 72.25% */
-    #credits-btn { top: min(86.75%, calc(100% - 60px)); } /* Clamp to avoid viewport cutoff on short screens */
+    #start-game-btn { top: 50.25%; } /* Moved 3.5% lower from 46.75% */
+    #progression-btn { top: 61.25%; } /* Moved 3.5% lower from 57.75% */
+    #achievements-btn { top: 72.25%; } /* Moved 3.5% lower from 68.75% */
+    #credits-btn { top: min(82.75%, calc(100% - 60px)); } /* Clamp to avoid viewport cutoff on short screens */
 
     .menu-btn::before {
       content: '';
@@ -2176,9 +2176,8 @@
         }
         
         this.maxHp = this.hp;
-        // Reduced enemy damage to be less overwhelming - make gameplay more forgiving
-        this.damage = (type === 9 ? 18 * 1.5 : 18) * levelScaling; // Elite does 1.5x damage (reduced from 25)
-        if (type === 10) this.damage = 35 * levelScaling; // MiniBoss damage (reduced from 50)
+        this.damage = (type === 9 ? 25 * 1.5 : 25) * levelScaling; // Elite does 1.5x damage
+        if (type === 10) this.damage = 50 * levelScaling; // MiniBoss damage
         this.isDead = false;
         this.isDamaged = false; // Track if enemy has been visually damaged
         this.pulsePhase = Math.random() * Math.PI;
@@ -2583,15 +2582,10 @@
         this.mesh.geometry.dispose();
         this.mesh.material.dispose();
         
-        // Drop EXP - Increased frequency and scattered around enemy (not predictable)
-        const expMultiplier = this.isMiniBoss ? 5 : 2; // Mini-boss: 5 stars (up from 3), Regular: 2 stars (up from 1)
+        // Drop EXP
+        const expMultiplier = this.isMiniBoss ? 3 : 1;
         for (let i = 0; i < expMultiplier; i++) {
-          // Scatter exp drops in a circle around the enemy for better positioning
-          const angle = (i / expMultiplier) * Math.PI * 2 + Math.random() * 0.5;
-          const distance = 0.5 + Math.random() * 1.5; // Random distance 0.5-2 units
-          const expX = this.mesh.position.x + Math.cos(angle) * distance;
-          const expZ = this.mesh.position.z + Math.sin(angle) * distance;
-          spawnExp(expX, expZ);
+          spawnExp(this.mesh.position.x, this.mesh.position.z);
         }
         
         // Drop GOLD based on enemy type
@@ -3226,241 +3220,6 @@
       }
     }
 
-    // --- CHEST DROP SYSTEM ---
-    class Chest {
-      constructor(x, z) {
-        // Create chest visual - a simple box with gold/brown colors
-        const chestGeometry = new THREE.BoxGeometry(0.8, 0.6, 0.6);
-        const chestMaterial = new THREE.MeshPhysicalMaterial({ 
-          color: 0x8B4513, // Brown/wood color
-          metalness: 0.3,
-          roughness: 0.4,
-          emissive: 0xFFD700,
-          emissiveIntensity: 0.2
-        });
-        this.mesh = new THREE.Mesh(chestGeometry, chestMaterial);
-        this.mesh.position.set(x, 0.4, z);
-        this.mesh.castShadow = true;
-        scene.add(this.mesh);
-        
-        // Chest lid (separate piece for opening animation)
-        const lidGeometry = new THREE.BoxGeometry(0.82, 0.1, 0.62);
-        const lidMaterial = new THREE.MeshPhysicalMaterial({ 
-          color: 0xA0522D, // Lighter brown
-          metalness: 0.4,
-          roughness: 0.3,
-          emissive: 0xFFD700,
-          emissiveIntensity: 0.3
-        });
-        this.lid = new THREE.Mesh(lidGeometry, lidMaterial);
-        this.lid.position.set(0, 0.35, 0);
-        this.mesh.add(this.lid);
-        
-        // Add glowing effect around chest
-        const glowLight = new THREE.PointLight(0xFFD700, 2, 5);
-        glowLight.position.set(0, 0.5, 0);
-        this.mesh.add(glowLight);
-        this.glowLight = glowLight;
-        
-        this.active = true;
-        this.opened = false;
-        this.collectRange = 1.5;
-        this.bobPhase = Math.random() * Math.PI * 2;
-        this.glowPhase = Math.random() * Math.PI * 2;
-        
-        // Spawn sparkle particles around chest
-        spawnParticles(this.mesh.position, 0xFFD700, 20);
-        spawnParticles(this.mesh.position, 0xFFFFFF, 10);
-        
-        playSound('coinDrop');
-      }
-      
-      update(playerPos) {
-        if (!this.active) return;
-        
-        // Bob up and down
-        this.bobPhase += 0.03;
-        this.mesh.position.y = 0.4 + Math.sin(this.bobPhase) * 0.1;
-        
-        // Pulsing glow
-        this.glowPhase += 0.05;
-        this.glowLight.intensity = 2 + Math.sin(this.glowPhase) * 1;
-        
-        // Rotate slowly
-        this.mesh.rotation.y += 0.01;
-        
-        // Check if player is close enough to open
-        const dx = playerPos.x - this.mesh.position.x;
-        const dz = playerPos.z - this.mesh.position.z;
-        const dist = Math.sqrt(dx*dx + dz*dz);
-        
-        if (dist < this.collectRange && !this.opened) {
-          this.open();
-        }
-      }
-      
-      open() {
-        this.opened = true;
-        
-        // Lid opening animation
-        const lidOpenDuration = 500; // ms
-        const startRotation = 0;
-        const endRotation = -Math.PI / 2; // 90 degrees back
-        const startTime = Date.now();
-        
-        const animateLid = () => {
-          // Stop animation if chest was destroyed
-          if (!this.active) return;
-          
-          const elapsed = Date.now() - startTime;
-          const progress = Math.min(elapsed / lidOpenDuration, 1);
-          const eased = 1 - Math.pow(1 - progress, 3); // Ease out cubic
-          
-          this.lid.rotation.x = startRotation + (endRotation - startRotation) * eased;
-          this.lid.position.z = -0.2 * eased; // Move back slightly
-          
-          if (progress < 1) {
-            requestAnimationFrame(animateLid);
-          } else {
-            // Chest fully opened - give rewards
-            this.giveRewards();
-          }
-        };
-        animateLid();
-        
-        // Opening sound and particles
-        playSound('collect');
-        spawnParticles(this.mesh.position, 0xFFD700, 30);
-        spawnParticles(this.mesh.position, 0xFFFFFF, 15);
-        spawnParticles(this.mesh.position, 0xFFA500, 10);
-        
-        // Flash effect
-        const flashLight = new THREE.PointLight(0xFFFFFF, 8, 10);
-        flashLight.position.copy(this.mesh.position);
-        flashLight.position.y += 1;
-        scene.add(flashLight);
-        flashLights.push(flashLight);
-        
-        const timeoutId = setTimeout(() => {
-          scene.remove(flashLight);
-          const idx = flashLights.indexOf(flashLight);
-          if (idx > -1) flashLights.splice(idx, 1);
-          const tidx = activeTimeouts.indexOf(timeoutId);
-          if (tidx > -1) activeTimeouts.splice(tidx, 1);
-          
-          // Remove chest after a delay
-          const removeTimeout = setTimeout(() => {
-            this.destroy();
-            const tidx2 = activeTimeouts.indexOf(removeTimeout);
-            if (tidx2 > -1) activeTimeouts.splice(tidx2, 1);
-          }, 2000);
-          activeTimeouts.push(removeTimeout);
-        }, 200);
-        activeTimeouts.push(timeoutId);
-      }
-      
-      giveRewards() {
-        // Randomly determine rewards
-        const rewardType = Math.random();
-        
-        if (rewardType < 0.3) {
-          // 30% - Health pack
-          const healAmount = 30 + Math.floor(Math.random() * 21); // 30-50 HP
-          playerStats.hp = Math.min(playerStats.maxHp, playerStats.hp + healAmount);
-          updateHUD();
-          createFloatingText(`+${healAmount} HP`, this.mesh.position);
-          
-        } else if (rewardType < 0.55) {
-          // 25% - Gold bonus
-          const goldAmount = 20 + Math.floor(Math.random() * 31); // 20-50 gold
-          addGold(goldAmount);
-          createFloatingText(`+${goldAmount} GOLD`, this.mesh.position);
-          
-        } else if (rewardType < 0.75) {
-          // 20% - Damage boost (temporary) - prevent stacking
-          if (!activeBuffs.damageBoost) {
-            const boostAmount = 0.25; // 25% damage boost
-            const boostDuration = 30000; // 30 seconds
-            const originalDamage = playerStats.damage;
-            playerStats.damage *= (1 + boostAmount);
-            createFloatingText("DAMAGE BOOST!", this.mesh.position);
-            
-            const boostTimeout = setTimeout(() => {
-              playerStats.damage = originalDamage; // Restore to original value
-              activeBuffs.damageBoost = null;
-              const tidx = activeTimeouts.indexOf(boostTimeout);
-              if (tidx > -1) activeTimeouts.splice(tidx, 1);
-            }, boostDuration);
-            activeTimeouts.push(boostTimeout);
-            activeBuffs.damageBoost = boostTimeout;
-          } else {
-            // If damage boost active, give gold instead
-            const goldAmount = 15 + Math.floor(Math.random() * 16); // 15-30 gold
-            addGold(goldAmount);
-            createFloatingText(`+${goldAmount} GOLD`, this.mesh.position);
-          }
-          
-        } else if (rewardType < 0.90) {
-          // 15% - Speed boost (temporary) - prevent stacking
-          if (!activeBuffs.speedBoost) {
-            const boostAmount = 0.3; // 30% speed boost
-            const boostDuration = 20000; // 20 seconds
-            const originalSpeed = playerStats.walkSpeed;
-            playerStats.walkSpeed *= (1 + boostAmount);
-            createFloatingText("SPEED BOOST!", this.mesh.position);
-            
-            const boostTimeout = setTimeout(() => {
-              playerStats.walkSpeed = originalSpeed; // Restore to original value
-              activeBuffs.speedBoost = null;
-              const tidx = activeTimeouts.indexOf(boostTimeout);
-              if (tidx > -1) activeTimeouts.splice(tidx, 1);
-            }, boostDuration);
-            activeTimeouts.push(boostTimeout);
-            activeBuffs.speedBoost = boostTimeout;
-          } else {
-            // If speed boost active, give gold instead
-            const goldAmount = 15 + Math.floor(Math.random() * 16); // 15-30 gold
-            addGold(goldAmount);
-            createFloatingText(`+${goldAmount} GOLD`, this.mesh.position);
-          }
-          
-        } else {
-          // 10% - Experience bonus
-          const expAmount = 50 + Math.floor(Math.random() * 51); // 50-100 exp
-          addExp(expAmount);
-          createFloatingText(`+${expAmount} EXP`, this.mesh.position);
-        }
-        
-        // Always drop some extra gold coins
-        const coinCount = 3 + Math.floor(Math.random() * 5); // 3-7 coins
-        for (let i = 0; i < coinCount; i++) {
-          const angle = (i / coinCount) * Math.PI * 2;
-          const dist = 1 + Math.random() * 0.5;
-          const coinX = this.mesh.position.x + Math.cos(angle) * dist;
-          const coinZ = this.mesh.position.z + Math.sin(angle) * dist;
-          spawnGold(coinX, coinZ, 5 + Math.floor(Math.random() * 6)); // 5-10 gold per coin
-        }
-      }
-      
-      destroy() {
-        this.active = false;
-        scene.remove(this.mesh);
-        this.mesh.traverse((child) => {
-          if (child.geometry) child.geometry.dispose();
-          if (child.material) child.material.dispose();
-        });
-      }
-    }
-
-    // Array to hold active chests
-    const chests = [];
-    
-    // Track active buffs to prevent stacking
-    const activeBuffs = {
-      damageBoost: null,
-      speedBoost: null
-    };
-
     // --- NOTIFICATION/INBOX SYSTEM ---
     const notifications = [];
     const inventory = [];
@@ -3877,11 +3636,11 @@
       });
       const roadGeo = new THREE.PlaneGeometry(4, 4);
       
-      // Road to windmill - smooth curved path with more segments for rounded edges
-      for(let i=0; i<60; i++) { // Increased from 30 to 60 for smoother curves
+      // Road to windmill - smooth curved path
+      for(let i=0; i<30; i++) {
         const road = new THREE.Mesh(roadGeo, roadMat);
         road.rotation.x = -Math.PI/2;
-        const t = i / 60;
+        const t = i / 30;
         const x = t * 40;
         const z = t * 40;
         road.position.set(x, 0.03, z);
@@ -3889,11 +3648,11 @@
         scene.add(road);
       }
       
-      // Circular path around center - smooth ring road with more segments for rounded appearance
-      for(let i=0; i<100; i++) { // Increased from 50 to 100 for smoother curves
+      // Circular path around center - smooth ring road
+      for(let i=0; i<50; i++) {
         const road = new THREE.Mesh(roadGeo, roadMat);
         road.rotation.x = -Math.PI/2;
-        const angle = (i / 100) * Math.PI * 2;
+        const angle = (i / 50) * Math.PI * 2;
         const x = Math.cos(angle) * 25;
         const z = Math.sin(angle) * 25;
         road.position.set(x, 0.03, z);
@@ -4828,30 +4587,14 @@
       const count = Math.min(baseCount + levelBonus, 15); // Cap at 15 enemies per wave
       
       for(let i=0; i<count; i++) {
-        // Spawn enemies around the player in varied patterns (not just behind)
+        // Spawn at edge of camera view approx - avoid lake area
         let ex, ez, inLake;
         let attempts = 0;
         const MAX_ATTEMPTS = 10;
         
         do {
-          // Randomize spawn pattern - add more variety to prevent predictable positioning
-          const spawnPattern = Math.random();
-          let angle, dist;
-          
-          if (spawnPattern < 0.7) {
-            // 70% - Random circle around player (standard spawning)
-            angle = Math.random() * Math.PI * 2;
-            dist = 25 + Math.random() * 10; // Just outside view
-          } else if (spawnPattern < 0.85) {
-            // 15% - Spawn from sides (flanking positions)
-            angle = (Math.random() < 0.5 ? Math.PI/2 : -Math.PI/2) + (Math.random() - 0.5) * Math.PI/3;
-            dist = 20 + Math.random() * 8;
-          } else {
-            // 15% - Spawn from front (approaching head-on)
-            angle = (Math.random() - 0.5) * Math.PI/3; // Front 60-degree cone
-            dist = 22 + Math.random() * 12;
-          }
-          
+          const angle = Math.random() * Math.PI * 2;
+          const dist = 25 + Math.random() * 10; // Just outside view
           ex = player.mesh.position.x + Math.cos(angle) * dist;
           ez = player.mesh.position.z + Math.sin(angle) * dist;
           
@@ -4913,44 +4656,6 @@
         
         enemies.push(new Enemy(type, ex, ez, playerStats.lvl));
       }
-      
-      // Spawn chest after every wave (mystical drop system)
-      spawnChest();
-    }
-
-    function spawnChest() {
-      // Limit maximum active chests to prevent performance issues
-      if (chests.length >= 3) {
-        // Remove oldest chest if at limit
-        const oldestChest = chests[0];
-        oldestChest.destroy();
-        chests.shift();
-      }
-      
-      // Spawn chest near the player (visible but not too close)
-      const angle = Math.random() * Math.PI * 2;
-      const dist = 8 + Math.random() * 5; // 8-13 units away
-      let chestX = player.mesh.position.x + Math.cos(angle) * dist;
-      let chestZ = player.mesh.position.z + Math.sin(angle) * dist;
-      
-      // Avoid spawning in lake
-      const distToLake = Math.sqrt(
-        (chestX - GAME_CONFIG.lakeCenterX) * (chestX - GAME_CONFIG.lakeCenterX) + 
-        (chestZ - GAME_CONFIG.lakeCenterZ) * (chestZ - GAME_CONFIG.lakeCenterZ)
-      );
-      
-      // If in lake, spawn on opposite side
-      if (distToLake < GAME_CONFIG.lakeRadius + 5) {
-        const oppositeAngle = angle + Math.PI;
-        chestX = player.mesh.position.x + Math.cos(oppositeAngle) * dist;
-        chestZ = player.mesh.position.z + Math.sin(oppositeAngle) * dist;
-      }
-      
-      const newChest = new Chest(chestX, chestZ);
-      chests.push(newChest);
-      
-      // Show text at chest position for better visibility
-      createFloatingText("CHEST APPEARED!", new THREE.Vector3(chestX, 0.5, chestZ));
     }
 
     function spawnParticles(pos, color, count) {
@@ -6319,11 +6024,6 @@
         g.mesh.material.dispose();
       });
       goldCoins = [];
-      
-      chests.forEach(c => {
-        c.destroy();
-      });
-      chests.length = 0;
 
       projectiles.forEach(p => {
         scene.remove(p.mesh);
@@ -6957,32 +6657,6 @@
               spawnParticles(player.mesh.position, 0xFFA500, 8); // Increased from 5
               // Add smoke particles
               spawnParticles(player.mesh.position, 0x888888, 4);
-              
-              // GUN KICKBACK EFFECT - Small recoil animation
-              const shootDir = new THREE.Vector3(
-                nearest.mesh.position.x - player.mesh.position.x,
-                0,
-                nearest.mesh.position.z - player.mesh.position.z
-              ).normalize();
-              
-              // Apply small backward push (kickback)
-              const kickbackForce = 0.15;
-              const originalPos = player.mesh.position.clone();
-              player.mesh.position.x -= shootDir.x * kickbackForce;
-              player.mesh.position.z -= shootDir.z * kickbackForce;
-              
-              // Quick squish effect on player for impact feel
-              const originalScale = player.mesh.scale.clone();
-              player.mesh.scale.set(0.95, 1.1, 0.95);
-              
-              // Reset position and scale after short delay
-              const kickbackTimeout = setTimeout(() => {
-                player.mesh.position.copy(originalPos);
-                player.mesh.scale.copy(originalScale);
-                const tidx = activeTimeouts.indexOf(kickbackTimeout);
-                if (tidx > -1) activeTimeouts.splice(tidx, 1);
-              }, 60);
-              activeTimeouts.push(kickbackTimeout);
             }, i * 100);
           }
           weapons.gun.lastShot = time;
@@ -7292,8 +6966,6 @@
       meteors = meteors.filter(m => m.update() !== false);
       expGems.forEach(g => g.update(player.mesh.position));
       goldCoins.forEach(g => g.update(player.mesh.position));
-      chests.forEach(c => c.update(player.mesh.position));
-      chests = chests.filter(c => c.active); // Remove inactive chests
       particles = particles.filter(p => p.update() !== false);
       
       // Windmill Rotation and Light Animation
