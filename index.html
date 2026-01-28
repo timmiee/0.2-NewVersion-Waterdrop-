@@ -435,19 +435,11 @@
       justify-content: flex-end;
       z-index: 10000;
       transition: opacity 0.5s ease-out;
-      pointer-events: auto;
     }
 
     #loading-screen.fade-out {
       opacity: 0;
       pointer-events: none;
-    }
-    
-    /* Ensure loading screen is completely hidden when display is none */
-    #loading-screen[style*="display: none"] {
-      visibility: hidden !important;
-      z-index: -1 !important;
-      pointer-events: none !important;
     }
 
     .loading-splash-logo {
@@ -506,7 +498,6 @@
       align-items: center;
       justify-content: center;
       z-index: 50; /* Lower than UI layer buttons */
-      pointer-events: auto;
     }
 
     #main-menu::before {
@@ -522,18 +513,6 @@
       background-repeat: no-repeat;
       opacity: 1;
       z-index: -1;
-    }
-    
-    /* Ensure main menu is completely hidden when display is none */
-    #main-menu[style*="display: none"] {
-      visibility: hidden !important;
-      z-index: -1 !important;
-      pointer-events: none !important;
-    }
-    
-    /* Hide pseudo-element when main menu is hidden */
-    #main-menu[style*="display: none"]::before {
-      display: none !important;
     }
 
     .menu-title {
@@ -1060,7 +1039,7 @@
       
       <div class="stat-text" id="lvl-text" style="color: #5DADE2; text-shadow: 0 0 8px rgba(93,173,226,0.8), 0 0 12px rgba(93,173,226,0.5), 1px 1px 2px rgba(0,0,0,0.5);">LVL: 1</div>
       <div class="stat-text" id="score-text" style="color: #8B4513;">KILLS: 0</div>
-      <div class="stat-text gold-text" id="gold-text" style="color: #FFD700; text-shadow: 0 0 10px rgba(255,215,0,0.9), 0 0 15px rgba(255,215,0,0.6), 1px 1px 2px rgba(0,0,0,0.5); display: none;">GOLD: 0</div>
+      <div class="stat-text gold-text" id="gold-text" style="color: #FFD700; text-shadow: 0 0 10px rgba(255,215,0,0.9), 0 0 15px rgba(255,215,0,0.6), 1px 1px 2px rgba(0,0,0,0.5);">GOLD: 0</div>
       
       <!-- Windmill Quest UI -->
       <div id="windmill-quest-ui" style="display: none; margin-top: 10px;">
@@ -1152,14 +1131,6 @@
       lakeCenterX: 30,
       lakeCenterZ: -30,
       lakeRadius: 18
-    };
-
-    const CAMERA_CONFIG = {
-      defaultDistance: 20,     // Default orthographic camera distance
-      minDistance: 8,          // Minimum distance - prevents extreme zoom-in and UI overlap
-      maxDistance: 30,         // Maximum distance - prevents entities becoming too small
-      nearClipPlane: 0.1,      // Near clipping plane - must be < 0.5 to render player/enemies at y=0.5
-      farClipPlane: 1000       // Far clipping plane - renders distant objects
     };
 
     // --- AUDIO SYSTEM (Oscillators) ---
@@ -4558,12 +4529,8 @@
 
       // Camera (Orthographic for miniature look)
       const aspect = window.innerWidth / window.innerHeight;
-      const d = CAMERA_CONFIG.defaultDistance;
-      camera = new THREE.OrthographicCamera(
-        -d * aspect, d * aspect, d, -d, 
-        CAMERA_CONFIG.nearClipPlane, 
-        CAMERA_CONFIG.farClipPlane
-      );
+      const d = 20;
+      camera = new THREE.OrthographicCamera(-d * aspect, d * aspect, d, -d, 1, 1000);
       camera.position.set(20, 20, 20); // Isometric angle
       camera.lookAt(scene.position);
 
@@ -4624,10 +4591,6 @@
             loadingScreen.classList.add('fade-out');
             setTimeout(() => {
               loadingScreen.style.display = 'none';
-              // Extra safeguards to ensure loading screen is completely hidden
-              loadingScreen.style.visibility = 'hidden';
-              loadingScreen.style.zIndex = '-1';
-              loadingScreen.style.pointerEvents = 'none';
               showMainMenu();
             }, 500);
           }, 600); // Extended delay before fade
@@ -4636,35 +4599,19 @@
     }
     
     function showMainMenu() {
-      const mainMenu = document.getElementById('main-menu');
-      mainMenu.style.display = 'flex';
-      // Restore visibility and z-index when showing
-      mainMenu.style.visibility = 'visible';
-      mainMenu.style.zIndex = '50';
-      mainMenu.style.pointerEvents = 'auto';
+      document.getElementById('main-menu').style.display = 'flex';
       updateGoldDisplays();
       isGameActive = false;
       isPaused = true;
-      // Hide gold-text HUD element in main menu
-      document.getElementById('gold-text').style.display = 'none';
     }
     
     function hideMainMenu() {
-      const mainMenu = document.getElementById('main-menu');
-      mainMenu.style.display = 'none';
-      // Force hide by also setting visibility to ensure ::before pseudo-element doesn't show
-      mainMenu.style.visibility = 'hidden';
-      // Lower z-index to ensure it doesn't block game even if display fails
-      mainMenu.style.zIndex = '-1';
-      mainMenu.style.pointerEvents = 'none';
+      document.getElementById('main-menu').style.display = 'none';
     }
     
     function showProgressionShop() {
       const shopGrid = document.getElementById('shop-grid');
       shopGrid.innerHTML = '';
-      
-      // Show gold-text HUD in progression shop
-      document.getElementById('gold-text').style.display = 'block';
       
       // Create upgrade cards for each permanent upgrade
       Object.keys(PERMANENT_UPGRADES).forEach(key => {
@@ -4819,8 +4766,6 @@
       document.getElementById('shop-back-btn').onclick = () => {
         playSound('levelup');
         document.getElementById('progression-shop').style.display = 'none';
-        // Hide gold-text HUD when leaving progression shop
-        document.getElementById('gold-text').style.display = 'none';
         showMainMenu();
       };
       
@@ -5474,26 +5419,13 @@
       }
     }
     
-    function createFloatingText(text, pos, color = null) {
+    function createFloatingText(text, pos) {
       const div = document.createElement('div');
       div.style.position = 'absolute';
-      
-      // Determine color - gold for chest rewards (GOLD/HP/EXP/BOOST), blue for others
-      const isChestReward = text.includes('GOLD') || text.includes('HP') || text.includes('EXP') || 
-                           text.includes('BOOST') || text.includes('CHEST');
-      const textColor = color || (isChestReward ? '#FFD700' : '#5DADE2');
-      
-      div.style.color = textColor;
+      div.style.color = '#5DADE2';
       div.style.fontSize = '28px';
       div.style.fontWeight = 'bold';
-      
-      // Match text shadow to color - gold or blue
-      if (textColor === '#FFD700') {
-        div.style.textShadow = '0 0 10px rgba(255,215,0,0.9), 0 0 15px rgba(255,215,0,0.6), 1px 1px 2px rgba(0,0,0,0.5)';
-      } else {
-        div.style.textShadow = '0 0 15px rgba(93,173,226,0.8), 0 0 30px rgba(93,173,226,0.5), 2px 2px 4px #000';
-      }
-      
+      div.style.textShadow = '0 0 15px rgba(93,173,226,0.8), 0 0 30px rgba(93,173,226,0.5), 2px 2px 4px #000';
       div.style.pointerEvents = 'none';
       div.style.zIndex = '100';
       div.style.whiteSpace = 'nowrap';
@@ -6287,9 +6219,6 @@
       isPaused = true;
       isGameActive = false;
       
-      // Hide gold-text HUD on game over
-      document.getElementById('gold-text').style.display = 'none';
-      
       // Calculate run stats
       const survivalTime = Math.floor((Date.now() - gameStartTime) / 1000);
       const goldEarned = playerStats.gold - runStartGold;
@@ -6310,17 +6239,6 @@
     }
 
     function resetGame() {
-      // Ensure all menu/overlay elements are properly hidden
-      const loadingScreen = document.getElementById('loading-screen');
-      loadingScreen.style.display = 'none';
-      loadingScreen.style.visibility = 'hidden';
-      loadingScreen.style.zIndex = '-1';
-      
-      const mainMenu = document.getElementById('main-menu');
-      mainMenu.style.display = 'none';
-      mainMenu.style.visibility = 'hidden';
-      mainMenu.style.zIndex = '-1';
-      
       // Apply permanent upgrades from save data
       const baseHp = 100 + PERMANENT_UPGRADES.maxHp.effect(saveData.upgrades.maxHp);
       const baseRegen = PERMANENT_UPGRADES.hpRegen.effect(saveData.upgrades.hpRegen);
@@ -6350,9 +6268,6 @@
       waveCount = 0;
       gameStartTime = Date.now();
       runStartGold = saveData.gold;
-      
-      // Show gold-text HUD during gameplay
-      document.getElementById('gold-text').style.display = 'block';
       
       const gunCooldown = 1000 * (1 - cdReduction);
       weapons.gun = { active: true, level: 1, damage: 15, cooldown: gunCooldown, lastShot: 0, range: 12, barrels: 1 };
@@ -6461,14 +6376,9 @@
       playSound('levelup'); // Add button sound
       const modal = document.getElementById('stats-modal');
       const levelUpModal = document.getElementById('levelup-modal');
-      const goldText = document.getElementById('gold-text');
       
       if (modal.style.display === 'flex') {
         modal.style.display = 'none';
-        // Restore gold text visibility if game is active
-        if (isGameActive && !isGameOver) {
-          goldText.style.display = 'block';
-        }
         if (levelUpModal.style.display !== 'flex' && !isGameOver) {
           isPaused = false;
         }
@@ -6549,8 +6459,6 @@
 </div>
         `;
         modal.style.display = 'flex';
-        // Hide gold text when stats modal is open for UI consistency
-        goldText.style.display = 'none';
         isPaused = true;
       }
     }
@@ -6814,7 +6722,7 @@
 
     function onWindowResize() {
       const aspect = window.innerWidth / window.innerHeight;
-      let d = CAMERA_CONFIG.defaultDistance;
+      let d = 20;
       
       // Landscape camera zoom - 50% closer in landscape mode
       const isPortrait = window.innerHeight > window.innerWidth;
@@ -6823,10 +6731,6 @@
       if (!isPortrait) {
         d *= 0.5; // Zoom in 50% for landscape
       }
-      
-      // Clamp camera distance to prevent extreme zoom issues
-      // Min prevents UI overlap and disorientation, Max prevents entities becoming too small
-      d = Math.max(CAMERA_CONFIG.minDistance, Math.min(CAMERA_CONFIG.maxDistance, d));
       
       camera.left = -d * aspect;
       camera.right = d * aspect;
@@ -6857,11 +6761,7 @@
       lastTime = time;
       gameTime = time / 1000; // Update game time in seconds
 
-      if (isPaused || isGameOver || !isGameActive) {
-        // Still render the scene even when paused so the game world is visible
-        renderer.render(scene, camera);
-        return;
-      }
+      if (isPaused || isGameOver || !isGameActive) return;
       
       // Handle keyboard/gamepad input updates (integrated into game loop)
       if (gameSettings.controlType === 'keyboard') {
