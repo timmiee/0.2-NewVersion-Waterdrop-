@@ -6644,12 +6644,12 @@
               }, 80);
               activeTimeouts.push(timeoutId);
               
-              // Lightning effect from gun - more visible
-              const lightning = new LightningBolt(
-                player.mesh.position.clone(),
-                nearest.mesh.position.clone()
-              );
-              particles.push(lightning);
+              // Gun kickback effect - slight recoil visual
+              const originalY = player.mesh.position.y;
+              player.mesh.position.y = originalY - 0.05;
+              setTimeout(() => {
+                player.mesh.position.y = originalY;
+              }, 50);
               
               // ENHANCED Muzzle flash particles (bright and intense) - MORE particles
               spawnParticles(player.mesh.position, 0xFFFF00, 12); // Increased from 8
