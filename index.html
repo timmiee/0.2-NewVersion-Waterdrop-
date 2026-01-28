@@ -198,36 +198,16 @@
 
     .modal-content {
       background: linear-gradient(to bottom, #5a5a5a, #3a3a3a); /* Lighter gradient for better visibility */
-      padding: 25px;
+      padding: 20px;
       border-radius: 20px;
       border: 5px solid #FFD700; /* Golden border for level-up emphasis */
-      width: 80%;
-      max-width: 400px;
-      max-height: 85vh; /* Scrollable modals */
-      overflow-y: auto; /* Enable scrolling */
+      width: 85%;
+      max-width: 350px;
+      max-height: none; /* Remove height restriction - no scrolling needed */
+      overflow-y: visible; /* No scrolling */
       text-align: center;
       box-shadow: 0 15px 30px rgba(0,0,0,0.7), 0 0 50px rgba(255,215,0,0.7), inset 0 0 40px rgba(255,215,0,0.15); /* Golden glow */
       pointer-events: auto; /* Modal content should receive clicks */
-    }
-
-    /* Custom scrollbar styling */
-    .modal-content::-webkit-scrollbar {
-      width: 10px;
-    }
-    
-    .modal-content::-webkit-scrollbar-track {
-      background: rgba(0, 0, 0, 0.3);
-      border-radius: 10px;
-    }
-    
-    .modal-content::-webkit-scrollbar-thumb {
-      background: linear-gradient(to bottom, #5DADE2, #4A9CCF);
-      border-radius: 10px;
-      border: 2px solid rgba(0, 0, 0, 0.3);
-    }
-    
-    .modal-content::-webkit-scrollbar-thumb:hover {
-      background: linear-gradient(to bottom, #6BBDEF, #5DADE2);
     }
 
     h2 {
@@ -1819,9 +1799,9 @@
         camera.position.z = this.mesh.position.z + 20; // Isometric offset
         camera.lookAt(this.mesh.position);
 
-        // Bounds (Map is 200x200)
-        this.mesh.position.x = Math.max(-95, Math.min(95, this.mesh.position.x));
-        this.mesh.position.z = Math.max(-95, Math.min(95, this.mesh.position.z));
+        // Bounds (Map is 400x400, from -200 to 200)
+        this.mesh.position.x = Math.max(-195, Math.min(195, this.mesh.position.x));
+        this.mesh.position.z = Math.max(-195, Math.min(195, this.mesh.position.z));
       }
 
       dash(dx, dz) {
@@ -1835,13 +1815,11 @@
           spawnWaterDroplet(this.mesh.position);
         }
         
-        // Convert Screen Swipe (dx, dy) to Isometric World Direction
-        // Screen Right (dx+) -> World (1, 0, -1)
-        // Screen Down (dy+) -> World (1, 0, 1)
-        const wx = dx + dy;
-        const wz = dy - dx;
-        
-        this.dashVec.set(wx, 0, wz).normalize();
+        // Direct mapping: Screen coordinates to World coordinates
+        // Screen X-axis maps to World X-axis
+        // Screen Y-axis maps to World Z-axis
+        // This gives us proper 360-degree directional dash
+        this.dashVec.set(dx, 0, dz).normalize();
         
         // Water splash sound
         playSound('splash');
@@ -5274,12 +5252,12 @@
     }
     
     function showStatChange(text) {
-      // Create floating text on left side of screen
+      // Create floating text on bottom-left of screen (not blocking character)
       const div = document.createElement('div');
       div.style.position = 'fixed';
-      div.style.top = '50%';
+      div.style.bottom = '80px'; // Bottom-left position
       div.style.left = '20px';
-      div.style.transform = 'translateX(-100%) translateY(-50%) scale(0)';
+      div.style.transform = 'translateX(-100%) scale(0)'; // Start off-screen left
       div.style.color = '#FFD700';
       div.style.fontSize = '20px';
       div.style.fontWeight = 'bold';
@@ -5294,9 +5272,10 @@
       
       document.body.appendChild(div);
       
-      // Animate: slide in from left, scale up, then scale down
+      // Animate: slide in from left, scale up, stay visible longer, then fade out matching fade-in
       let scale = 0;
-      const animDuration = 1500; // ms
+      let opacity = 1;
+      const animDuration = 1700; // Increased from 1500ms by 200ms
       const startTime = Date.now();
       
       const animate = () => {
@@ -5308,11 +5287,26 @@
           return;
         }
         
-        // Scale up then down (sine wave)
-        scale = Math.sin(t * Math.PI);
+        // Scale and fade animation: ease-in, hold, ease-out (matching style)
+        if (t < 0.2) {
+          // Fade in (0 to 0.2)
+          scale = Math.sin((t / 0.2) * Math.PI / 2); // Ease in
+          opacity = scale;
+        } else if (t < 0.8) {
+          // Hold at full scale (0.2 to 0.8)
+          scale = 1;
+          opacity = 1;
+        } else {
+          // Fade out (0.8 to 1.0) - matching fade-in curve
+          const fadeT = (t - 0.8) / 0.2;
+          scale = Math.cos(fadeT * Math.PI / 2); // Ease out (mirror of ease in)
+          opacity = scale;
+        }
+        
         // Slide in from left
-        const translateX = (1 - Math.min(t * 2, 1)) * -100;
-        div.style.transform = `translateX(${translateX}%) translateY(-50%) scale(${scale})`;
+        const translateX = t < 0.2 ? (1 - (t / 0.2)) * -100 : 0;
+        div.style.transform = `translateX(${translateX}%) scale(${scale})`;
+        div.style.opacity = opacity;
         
         requestAnimationFrame(animate);
       };
@@ -5639,21 +5633,16 @@
               const swipeTime = Date.now() - swipeStart.time;
               
               if (swipeTime < 250 && swipeDist > 60) {
-                // Perform dash!
+                // Perform dash in the exact direction of the swipe!
                 swipeDetected = true;
-                player.isDashing = true;
-                player.dashTime = player.dashDuration;
                 
-                // Dash direction normalized
+                // Use the centralized dash method for proper direction handling
+                // Pass normalized screen-space swipe direction
                 const dist = Math.sqrt(dx*dx + dy*dy);
-                player.dashVec.set(dx / dist, 0, dy / dist);
+                player.dash(dx / dist, dy / dist);
                 
                 // Track dash
                 playerStats.dashesPerformed++;
-                
-                // Visual/sound effects
-                playSound('dash');
-                spawnParticles(player.mesh.position, COLORS.player, 20);
                 
                 // Reset swipe
                 swipeStart = null;
