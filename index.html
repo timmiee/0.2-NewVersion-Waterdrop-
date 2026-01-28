@@ -4629,6 +4629,7 @@
       // Restore visibility and z-index when showing
       mainMenu.style.visibility = 'visible';
       mainMenu.style.zIndex = '50';
+      mainMenu.style.pointerEvents = 'auto';
       updateGoldDisplays();
       isGameActive = false;
       isPaused = true;
@@ -4643,6 +4644,7 @@
       mainMenu.style.visibility = 'hidden';
       // Lower z-index to ensure it doesn't block game even if display fails
       mainMenu.style.zIndex = '-1';
+      mainMenu.style.pointerEvents = 'none';
     }
     
     function showProgressionShop() {
