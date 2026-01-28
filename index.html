@@ -206,7 +206,7 @@
       max-height: none; /* Remove height restriction - no scrolling needed */
       overflow-y: visible; /* No scrolling */
       text-align: center;
-      box-shadow: 0 15px 30px rgba(0,0,0,0.7), 0 0 50px rgba(255,215,0,0.7), inset 0 0 40px rgba(255,215,0,0.15); /* Golden glow */
+      box-shadow: 0 15px 30px rgba(0,0,0,0.9), 0 0 50px rgba(255,215,0,0.7), inset 0 0 40px rgba(255,215,0,0.15), inset 0 0 0 2px rgba(0,0,0,0.5); /* Darker shadow and inner dark edge */
       pointer-events: auto; /* Modal content should receive clicks */
     }
 
@@ -225,7 +225,7 @@
       border: 3px solid #FFD700; /* Golden border */
       cursor: pointer;
       transition: transform 0.1s, box-shadow 0.1s;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.3), 0 0 15px rgba(255,215,0,0.4); /* Golden glow */
+      box-shadow: 0 4px 8px rgba(0,0,0,0.5), 0 0 15px rgba(255,215,0,0.4), inset 0 0 0 2px rgba(0,0,0,0.4); /* Darker shadow and inner dark edge */
     }
 
     .upgrade-card:hover {
@@ -539,8 +539,8 @@
       font-size: 0;
       box-shadow: none;
       position: absolute;
-      width: 300px;
-      height: 60px;
+      width: 260px; /* Reduced from 300px */
+      height: 50px; /* Reduced from 60px */
       cursor: pointer;
       transition: all 0.2s ease;
       overflow: visible;
@@ -549,9 +549,9 @@
     }
 
     #start-game-btn { top: 50.25%; } /* Moved 3.5% lower from 46.75% */
-    #progression-btn { top: 61.25%; } /* Moved 3.5% lower from 57.75% */
-    #achievements-btn { top: 72.25%; } /* Moved 3.5% lower from 68.75% */
-    #credits-btn { top: min(82.75%, calc(100% - 60px)); } /* Clamp to avoid viewport cutoff on short screens */
+    #progression-btn { top: 59.75%; } /* Adjusted spacing - reduced from 61.25% */
+    #achievements-btn { top: 69.25%; } /* Adjusted spacing - reduced from 72.25% */
+    #credits-btn { top: min(78.75%, calc(100% - 60px)); } /* Adjusted spacing - reduced from 82.75% */
 
     .menu-btn::before {
       content: '';
@@ -576,8 +576,8 @@
     }
 
     .menu-btn:active::before {
-      width: 300px;
-      height: 300px;
+      width: 260px; /* Reduced from 300px */
+      height: 260px; /* Reduced from 300px */
     }
 
     @keyframes lightning-flash {
@@ -1418,6 +1418,7 @@
     let gameTime = 0;
     let gameStartTime = 0;
     let waveCount = 0;
+    let lastWaveEndTime = 0; // Track when last wave was cleared
     let windmillQuest = { active: false, timer: 0, duration: 30, windmill: null, hasCompleted: false };
     let runStartGold = 0;  // Track gold at start of run for end-of-run calculation
 
@@ -1666,9 +1667,32 @@
         this.dashTime = 0;
         this.dashDuration = 0.2;
         this.dashVec = new THREE.Vector3();
+        
+        // Invulnerability frames to prevent instant death
+        this.invulnerable = false;
+        this.invulnerabilityTime = 0;
+        this.invulnerabilityDuration = 0.5; // 500ms of invulnerability after taking damage
       }
 
       update(dt) {
+        // Update invulnerability timer
+        const INVULNERABILITY_FLASH_FREQUENCY = 20; // Flash 20 times per second during invulnerability
+        if (this.invulnerable) {
+          this.invulnerabilityTime += dt;
+          if (this.invulnerabilityTime >= this.invulnerabilityDuration) {
+            this.invulnerable = false;
+            this.invulnerabilityTime = 0;
+          }
+          // Flash effect during invulnerability
+          if (Math.floor(this.invulnerabilityTime * INVULNERABILITY_FLASH_FREQUENCY) % 2 === 0) {
+            this.mesh.material.opacity = 0.5;
+          } else {
+            this.mesh.material.opacity = 0.75;
+          }
+        } else {
+          this.mesh.material.opacity = 0.75; // Normal opacity
+        }
+        
         // Dash Logic
         if (this.isDashing) {
           this.dashTime -= dt;
@@ -1726,12 +1750,12 @@
             // Turn to face the direction of right stick
             const angle = Math.atan2(joystickRight.x, joystickRight.y);
             this.mesh.rotation.y = angle;
-          } else if (gameSettings.autoAim && gameSettings.isPortrait && enemies.length > 0) {
-            // Auto-aim in portrait mode: aim at nearest enemy
+          } else if (gameSettings.autoAim && gameSettings.isPortrait && enemies && enemies.length > 0) {
+            // Auto-aim only in portrait mode when enabled
             let nearestEnemy = null;
             let minDist = Infinity;
             enemies.forEach(e => {
-              if (!e.isDead) {
+              if (e && !e.isDead) {
                 const dist = this.mesh.position.distanceTo(e.mesh.position);
                 if (dist < minDist) {
                   minDist = dist;
@@ -1933,11 +1957,18 @@
       }
 
       takeDamage(amount) {
+        // Check invulnerability frames
+        if (this.invulnerable) return;
+        
         // Armor reduction
         const reduced = Math.max(1, amount * (1 - playerStats.armor / 100));
         playerStats.hp -= reduced;
         updateHUD();
         playSound('hit');
+        
+        // Set invulnerability
+        this.invulnerable = true;
+        this.invulnerabilityTime = 0;
         
         // Visual flash
         this.mesh.material.color.setHex(0xFF0000);
@@ -2301,6 +2332,14 @@
         } else if (dist < 1.0 && this.type !== 4) { // Ranged enemies don't melee attack
           // Attack player
           player.takeDamage(this.damage);
+          
+          // Thorns damage - reflect damage back to enemy if still alive
+          if (playerStats.thornsPercent > 0 && !this.isDead) {
+            const thornsDamage = this.damage * playerStats.thornsPercent;
+            this.takeDamage(thornsDamage, false);
+            createDamageNumber(thornsDamage, this.mesh.position, false);
+            spawnParticles(this.mesh.position, 0xFF6347, 8); // Tomato red thorns
+          }
           
           // Slowing enemy slows player on hit
           if (this.type === 3) {
@@ -3667,6 +3706,9 @@
       // Refresh screen
       updateAchievementsScreen();
     }
+    
+    // Expose to global scope for onclick handlers
+    window.claimAchievement = claimAchievement;
 
     function showGoldBagAnimation(amount) {
       const bag = document.createElement('div');
@@ -4826,8 +4868,8 @@
         enemies.push(new Enemy(10, ex, ez, playerStats.lvl));
         createFloatingText("MINI-BOSS INCOMING!", player.mesh.position);
         
-        // Spawn 2-3 regular enemies with the mini-boss
-        const supportCount = 2 + Math.floor(Math.random() * 2);
+        // Spawn 1-2 regular enemies with the mini-boss (reduced from 2-3)
+        const supportCount = 1 + Math.floor(Math.random() * 2);
         for (let i = 0; i < supportCount; i++) {
           const supportAngle = Math.random() * Math.PI * 2;
           const supportDist = 25 + Math.random() * 5;
@@ -5002,10 +5044,20 @@
       playerStats.lvl++;
       playerStats.exp -= playerStats.expReq;
       
-      // Custom XP Curve: 3, 5, 7, 10...
-      // Lvl 1->2 (3 kills=30), 2->3 (5 kills=50), 3->4 (7 kills=70), 4->5 (10 kills=100)
-      const nextKills = [1, 2, 3, 4, 5, 6, 8, 10]; // Even Faster
-      const killsNeeded = nextKills[Math.min(playerStats.lvl-1, nextKills.length-1)] || 25;
+      // Custom XP Curve: Smoother progression up to level 50
+      // Level 1→2: 3 kills, 2→3: 4 kills, 3→4: 5 kills, etc.
+      let killsNeeded;
+      if (playerStats.lvl <= 5) {
+        killsNeeded = 2 + playerStats.lvl; // Levels 1-5: 3, 4, 5, 6, 7 kills respectively
+      } else if (playerStats.lvl <= 15) {
+        killsNeeded = 7 + Math.floor((playerStats.lvl - 5) * 0.5); // Levels 6-15: 7-12 kills
+      } else if (playerStats.lvl <= 30) {
+        killsNeeded = 12 + Math.floor((playerStats.lvl - 15) * 0.7); // Levels 16-30: 12-22 kills
+      } else if (playerStats.lvl <= 50) {
+        killsNeeded = 22 + Math.floor((playerStats.lvl - 30) * 1); // Levels 31-50: 22-42 kills
+      } else {
+        killsNeeded = 42 + Math.floor((playerStats.lvl - 50) * 1.5); // Levels 51+: 42+ kills (harder progression)
+      }
       playerStats.expReq = killsNeeded * GAME_CONFIG.expValue;
       
       // Check for level achievements
@@ -5209,9 +5261,9 @@
         particles.push(particle);
       }
       
-      // Lightning bolts
-      for(let i=0; i<8; i++) {
-        const angle = (i / 8) * Math.PI * 2;
+      // Lightning bolts - Reduced from 8 to 4 for performance
+      for(let i=0; i<4; i++) {
+        const angle = (i / 4) * Math.PI * 2;
         const lightning = new LightningBolt(
           player.mesh.position.clone(),
           new THREE.Vector3(
@@ -5324,13 +5376,13 @@
     class LightningBolt {
       constructor(start, end) {
         const points = [];
-        const segments = 12; // Increased from 8 for more detail
+        const segments = 8; // Reduced from 12 for performance
         
         for(let i=0; i<=segments; i++) {
           const t = i / segments;
-          const x = start.x + (end.x - start.x) * t + (Math.random() - 0.5) * 2; // Increased randomness
-          const y = start.y + (end.y - start.y) * t + (Math.random() - 0.5) * 2;
-          const z = start.z + (end.z - start.z) * t + (Math.random() - 0.5) * 2;
+          const x = start.x + (end.x - start.x) * t + (Math.random() - 0.5) * 1.5; // Reduced randomness
+          const y = start.y + (end.y - start.y) * t + (Math.random() - 0.5) * 1.5;
+          const z = start.z + (end.z - start.z) * t + (Math.random() - 0.5) * 1.5;
           points.push(new THREE.Vector3(x, y, z));
         }
         
@@ -5344,8 +5396,8 @@
         
         this.mesh = new THREE.Line(geometry, material);
         scene.add(this.mesh);
-        this.life = 30; // Increased from 20 for longer visibility
-        this.maxLife = 30;
+        this.life = 20; // Reduced from 30 for performance
+        this.maxLife = 20;
       }
       
       update() {
@@ -5842,6 +5894,27 @@
               weapons.lightning.active = true;
               weapons.lightning.level = 1;
               showStatChange('New Weapon: Lightning');
+              
+              // Create powerful lightning effect when unlocked
+              for(let i=0; i<6; i++) {
+                const angle = (i / 6) * Math.PI * 2;
+                const lightning = new LightningBolt(
+                  new THREE.Vector3(player.mesh.position.x, 20, player.mesh.position.z),
+                  new THREE.Vector3(
+                    player.mesh.position.x + Math.cos(angle) * 8,
+                    0,
+                    player.mesh.position.z + Math.sin(angle) * 8
+                  )
+                );
+                particles.push(lightning);
+              }
+              
+              // Screen flash
+              if (flashOverlay) {
+                flashOverlay.style.opacity = '0.4';
+                flashOverlay.style.background = 'rgba(0, 255, 255, 0.4)';
+                setTimeout(() => { flashOverlay.style.opacity = '0'; }, 200);
+              }
             } 
           },
           { 
@@ -6245,8 +6318,15 @@
       playerStats.hpRegen = baseRegen;
       playerStats.gold = 0;
       waveCount = 0;
+      lastWaveEndTime = 0; // Reset wave timing
       gameStartTime = Date.now();
       runStartGold = saveData.gold;
+      
+      // Reset player invulnerability state
+      if (player) {
+        player.invulnerable = false;
+        player.invulnerabilityTime = 0;
+      }
       
       const gunCooldown = 1000 * (1 - cdReduction);
       weapons.gun = { active: true, level: 1, damage: 15, cooldown: gunCooldown, lastShot: 0, range: 12, barrels: 1 };
@@ -6840,9 +6920,19 @@
         }
       }
 
-      // Spawn Logic
+      // Spawn Logic - Only spawn new wave if previous wave is cleared
       frameCount++;
-      if (frameCount % GAME_CONFIG.waveInterval === 0) {
+      const aliveEnemies = enemies.filter(e => !e.isDead).length;
+      const timeSinceLastWave = frameCount - lastWaveEndTime;
+      const minWaveDelay = Math.floor(GAME_CONFIG.waveInterval * 0.6); // 60% of wave interval (3 seconds at 60fps)
+      
+      // Spawn new wave if: interval passed AND (no enemies alive OR enough time since last spawn)
+      if (frameCount % GAME_CONFIG.waveInterval === 0 && (aliveEnemies === 0 || timeSinceLastWave > GAME_CONFIG.waveInterval)) {
+        lastWaveEndTime = frameCount; // Update last wave time on every spawn
+        spawnWave();
+      } else if (aliveEnemies === 0 && timeSinceLastWave >= minWaveDelay) {
+        // Quick spawn if all enemies cleared and minimum delay passed
+        lastWaveEndTime = frameCount;
         spawnWave();
       }
       
