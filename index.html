@@ -218,61 +218,145 @@
     }
 
     .upgrade-card {
-      background: linear-gradient(to bottom, #6a6a6a, #4a4a4a); /* Lighter gradient */
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); /* Match menu gradient */
       margin: 10px 0;
-      padding: 15px;
-      border-radius: 15px;
-      border: 3px solid #FFD700; /* Golden border */
+      padding: 20px;
+      border-radius: 20px; /* More rounded for soft feel */
+      border: 3px solid #5DADE2; /* Blue border matching achievement screen */
       cursor: pointer;
-      transition: transform 0.1s, box-shadow 0.1s;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.5), 0 0 15px rgba(255,215,0,0.4), inset 0 0 0 2px rgba(0,0,0,0.4); /* Darker shadow and inner dark edge */
+      transition: all 0.2s ease;
+      box-shadow: 
+        0 8px 16px rgba(0,0,0,0.6), /* Deep shadow for depth */
+        0 0 20px rgba(93,173,226,0.3), /* Soft blue glow */
+        inset 0 -4px 8px rgba(0,0,0,0.3), /* Inner shadow for depth */
+        inset 0 2px 4px rgba(255,255,255,0.1); /* Top highlight */
+      position: relative;
+      overflow: hidden;
+    }
+    
+    /* Lightning effect on hover */
+    .upgrade-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(93,173,226,0.3) 0%, transparent 70%);
+      opacity: 0;
+      pointer-events: none;
     }
 
     .upgrade-card:hover {
-      box-shadow: 0 6px 12px rgba(255,215,0,0.6), 0 0 25px rgba(255,215,0,0.5); /* Stronger golden glow on hover */
+      transform: translateY(-4px) scale(1.02); /* Lift effect */
+      box-shadow: 
+        0 12px 24px rgba(0,0,0,0.8), /* Stronger shadow when lifted */
+        0 0 35px rgba(93,173,226,0.6), /* Stronger blue glow */
+        0 0 50px rgba(93,173,226,0.3), /* Extended glow */
+        inset 0 -4px 8px rgba(0,0,0,0.3),
+        inset 0 2px 4px rgba(255,255,255,0.2); /* Brighter top highlight */
+      border-color: #FFD700; /* Golden border on hover */
+    }
+    
+    .upgrade-card:hover::before {
+      animation: lightning-pulse 1s ease-in-out infinite;
     }
 
     .upgrade-card:active {
-      transform: scale(0.95);
+      transform: translateY(2px) scale(0.98); /* Push down animation */
+      box-shadow: 
+        0 4px 8px rgba(0,0,0,0.6),
+        0 0 15px rgba(93,173,226,0.4),
+        inset 0 2px 8px rgba(0,0,0,0.4); /* Pressed effect */
+    }
+    
+    @keyframes lightning-pulse {
+      0%, 100% { 
+        opacity: 0.4;
+        transform: translate(0, 0);
+      }
+      50% { 
+        opacity: 0.7;
+        transform: translate(-10%, -10%);
+      }
     }
 
     .upgrade-title {
       font-weight: bold;
-      color: #FFD700;
-      font-size: 18px;
-      text-shadow: 0 0 8px rgba(255,215,0,0.6), 0 0 15px rgba(255,215,0,0.3), 1px 1px 2px rgba(0,0,0,0.8);
+      color: #5DADE2; /* Blue matching achievement screen */
+      font-size: 20px;
+      text-shadow: 
+        0 0 8px rgba(93,173,226,0.8), 
+        0 0 15px rgba(93,173,226,0.5), 
+        1px 1px 2px rgba(0,0,0,0.8);
+      margin-bottom: 8px;
     }
 
     .upgrade-desc {
-      font-size: 12px;
-      color: #bbb;
-      display: none; /* Hidden - only show funny names */
+      font-size: 13px;
+      color: #ecf0f1; /* Lighter text matching menu */
+      display: block; /* Show descriptions */
+      margin-top: 5px;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.6);
     }
     
     /* Special upgrade cards */
     .upgrade-card.perk {
       border-color: #9b59b6;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.3), 0 0 20px rgba(155,89,182,0.6);
-      animation: perkPulse 2s infinite;
+      background: linear-gradient(135deg, #2c1a3d 0%, #3d2859 50%, #4e3870 100%);
+      box-shadow: 
+        0 8px 16px rgba(0,0,0,0.6),
+        0 0 25px rgba(155,89,182,0.5),
+        inset 0 -4px 8px rgba(0,0,0,0.3),
+        inset 0 2px 4px rgba(255,255,255,0.1);
+      animation: perkPulse 2.5s ease-in-out infinite;
     }
     
     .upgrade-card.perk:hover {
-      box-shadow: 0 6px 12px rgba(155,89,182,0.8), 0 0 30px rgba(155,89,182,0.7);
+      animation-play-state: paused; /* Pause pulse animation on hover */
+      box-shadow: 
+        0 12px 24px rgba(0,0,0,0.8),
+        0 0 40px rgba(155,89,182,0.7),
+        0 0 60px rgba(155,89,182,0.4),
+        inset 0 -4px 8px rgba(0,0,0,0.3),
+        inset 0 2px 4px rgba(255,255,255,0.2);
     }
     
     .upgrade-card.legendary {
       border-color: #ff6b6b;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.3), 0 0 20px rgba(255,107,107,0.6);
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      box-shadow: 
+        0 8px 16px rgba(0,0,0,0.6),
+        0 0 25px rgba(255,107,107,0.5),
+        inset 0 -4px 8px rgba(0,0,0,0.3),
+        inset 0 2px 4px rgba(255,255,255,0.1);
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #8b5ea3 100%);
     }
     
     .upgrade-card.legendary:hover {
-      box-shadow: 0 6px 12px rgba(255,107,107,0.8), 0 0 30px rgba(255,107,107,0.7);
+      box-shadow: 
+        0 12px 24px rgba(0,0,0,0.8),
+        0 0 40px rgba(255,107,107,0.7),
+        0 0 60px rgba(255,107,107,0.4),
+        inset 0 -4px 8px rgba(0,0,0,0.3),
+        inset 0 2px 4px rgba(255,255,255,0.2);
     }
     
     @keyframes perkPulse {
-      0%, 100% { box-shadow: 0 4px 8px rgba(0,0,0,0.3), 0 0 20px rgba(155,89,182,0.6); }
-      50% { box-shadow: 0 4px 8px rgba(0,0,0,0.3), 0 0 30px rgba(155,89,182,0.9); }
+      0%, 100% { 
+        box-shadow: 
+          0 8px 16px rgba(0,0,0,0.6),
+          0 0 25px rgba(155,89,182,0.5),
+          inset 0 -4px 8px rgba(0,0,0,0.3),
+          inset 0 2px 4px rgba(255,255,255,0.1);
+      }
+      50% { 
+        box-shadow: 
+          0 8px 16px rgba(0,0,0,0.6),
+          0 0 35px rgba(155,89,182,0.8),
+          0 0 50px rgba(155,89,182,0.4),
+          inset 0 -4px 8px rgba(0,0,0,0.3),
+          inset 0 2px 4px rgba(255,255,255,0.1);
+      }
     }
 
     /* Damage Numbers */
@@ -1425,6 +1509,22 @@
     let runStartGold = 0;  // Track gold at start of run for end-of-run calculation
     let lastCleanupTime = 0; // Track last memory cleanup time
     let miniBossesSpawned = new Set(); // Track which mini-boss levels have been spawned
+    
+    // Performance optimization - particle cap to prevent memory overflow
+    const MAX_PARTICLES = 150;
+    const MAX_PROJECTILES = 100;
+    const MAX_METEORS = 50;
+    
+    // Cache animated objects to avoid scene.traverse() every frame
+    let animatedObjects = {
+      windmills: [],
+      waterRipples: [],
+      sparkles: [],
+      crystals: [],
+      waterfalls: [],
+      waterDrops: [],
+      splashes: []
+    };
 
     // Game Settings
     const gameSettings = {
@@ -3991,6 +4091,7 @@
       ripple.position.set(30, 0.02, -30);
       ripple.userData = { isWaterRipple: true, phase: 0 };
       scene.add(ripple);
+      animatedObjects.waterRipples.push(ripple); // Cache for optimized animation
 
       // Smooth nice roads connecting areas
       const roadMat = new THREE.MeshPhysicalMaterial({ 
@@ -4028,8 +4129,10 @@
       // 3. Statue (0,0) to Stonehenge (-60,-20) - curved path
       createCurvedRoad(0, 0, -60, -20, 30, 5);
       
-      // 4. Statue (0,0) to Pyramid (50,-50) - curved path
-      createCurvedRoad(0, 0, 50, -50, 35, -4);
+      // 4. REMOVED: Statue (0,0) to Pyramid (50,-50) - road was going through lake
+      // Instead, create road that goes around the lake to the east
+      createCurvedRoad(0, 0, 50, 0, 25, 2); // Road to east first
+      createCurvedRoad(50, 0, 50, -50, 25, 3); // Then south to pyramid
       
       // 5. Statue (0,0) to Mine (-40,40) - curved path
       createCurvedRoad(0, 0, -40, 40, 25, 4);
@@ -4137,6 +4240,7 @@
       // Store blades reference for rotation animation
       wmGroup.userData = { isWindmill: true, blades: [wmBlades, wmBlades2], hp: 600, maxHp: 600, questActive: false, light: wmLight };
       scene.add(wmGroup);
+      animatedObjects.windmills.push(wmGroup); // Cache for optimized animation
       
       // Mine
       const mineGeo = new THREE.DodecahedronGeometry(5);
@@ -4265,61 +4369,84 @@
       
       scene.add(statueGroup);
 
-      // Comet Stone - Beside the lake where player spawns (brings the water droplet to life)
-      const cometGroup = new THREE.Group();
-      cometGroup.position.set(37, 0, -30); // Right beside lake where player spawns
+      // REMOVED: Comet Stone artifact (was beside the lake, now replaced with better structures below)
+
+      // Additional Mountain near lake
+      const mountainGroup = new THREE.Group();
+      mountainGroup.position.set(37, 0, -30); // Where comet was
       
-      // Impact crater (dark brown ring)
-      const craterGeo = new THREE.RingGeometry(2, 3, 32);
-      const craterMat = new THREE.MeshToonMaterial({ color: 0x3E2723 }); // Dark brown
-      const crater = new THREE.Mesh(craterGeo, craterMat);
-      crater.rotation.x = -Math.PI/2;
-      crater.position.y = 0.02;
-      cometGroup.add(crater);
+      const mountainGeo = new THREE.ConeGeometry(4, 12, 8);
+      const mountainMat = new THREE.MeshToonMaterial({ color: 0x8B7355 });
+      const mountain = new THREE.Mesh(mountainGeo, mountainMat);
+      mountain.position.y = 6;
+      mountain.castShadow = true;
+      mountainGroup.add(mountain);
       
-      // Comet stone (dark metallic rock with glow)
-      const cometGeo = new THREE.DodecahedronGeometry(1.2, 1);
-      const cometMat = new THREE.MeshPhysicalMaterial({ 
-        color: 0x1a1a1a, // Very dark gray, almost black
-        metalness: 0.8,
-        roughness: 0.3,
-        emissive: 0x4FC3F7, // Blue glow
-        emissiveIntensity: 0.3
-      });
-      const cometStone = new THREE.Mesh(cometGeo, cometMat);
-      cometStone.position.y = 0.6;
-      cometStone.castShadow = true;
-      // Slight tilt for dramatic effect
-      cometStone.rotation.x = 0.2;
-      cometStone.rotation.z = 0.3;
-      cometGroup.add(cometStone);
+      // Snow cap on mountain
+      const snowGeo = new THREE.ConeGeometry(2.5, 4, 8);
+      const snowMat = new THREE.MeshToonMaterial({ color: 0xFFFFFF });
+      const snow = new THREE.Mesh(snowGeo, snowMat);
+      snow.position.y = 10;
+      mountainGroup.add(snow);
       
-      // Glowing particles around comet stone
-      for(let i=0; i<8; i++) {
-        const particleGeo = new THREE.SphereGeometry(0.1, 8, 8);
-        const particleMat = new THREE.MeshBasicMaterial({ 
-          color: 0x4FC3F7,
-          transparent: true,
-          opacity: 0.6
-        });
-        const particle = new THREE.Mesh(particleGeo, particleMat);
-        const angle = (i / 8) * Math.PI * 2;
-        particle.position.set(
-          Math.cos(angle) * 1.5,
-          0.6 + Math.random() * 0.5,
-          Math.sin(angle) * 1.5
-        );
-        particle.userData = { 
-          isCometParticle: true,
-          angle: angle,
-          radius: 1.5,
-          speed: 0.5 + Math.random() * 0.5,
-          height: particle.position.y
-        };
-        cometGroup.add(particle);
+      scene.add(mountainGroup);
+      
+      // Fishing Dock by the lake
+      const dockGroup = new THREE.Group();
+      dockGroup.position.set(30, 0.1, -15); // North edge of lake
+      
+      // Dock planks
+      const plankGeo = new THREE.BoxGeometry(8, 0.3, 2);
+      const plankMat = new THREE.MeshToonMaterial({ color: 0x8B4513 });
+      const dock = new THREE.Mesh(plankGeo, plankMat);
+      dockGroup.add(dock);
+      
+      // Dock posts
+      for(let i = 0; i < 3; i++) {
+        const postGeo = new THREE.CylinderGeometry(0.2, 0.2, 2, 8);
+        const post = new THREE.Mesh(postGeo, plankMat);
+        post.position.set(-3 + i * 3, -1, 0);
+        dockGroup.add(post);
       }
       
-      scene.add(cometGroup);
+      scene.add(dockGroup);
+
+      // Small House near lake
+      const houseGroup = new THREE.Group();
+      houseGroup.position.set(20, 0, -30); // West of lake
+      
+      // House base
+      const houseBaseGeo = new THREE.BoxGeometry(6, 4, 5);
+      const houseBaseMat = new THREE.MeshToonMaterial({ color: 0xD2691E });
+      const houseBase = new THREE.Mesh(houseBaseGeo, houseBaseMat);
+      houseBase.position.y = 2;
+      houseBase.castShadow = true;
+      houseGroup.add(houseBase);
+      
+      // Roof
+      const roofGeo = new THREE.ConeGeometry(4.5, 3, 4);
+      const roofMat = new THREE.MeshToonMaterial({ color: 0x8B4513 });
+      const roof = new THREE.Mesh(roofGeo, roofMat);
+      roof.position.y = 5.5;
+      roof.rotation.y = Math.PI / 4;
+      roof.castShadow = true;
+      houseGroup.add(roof);
+      
+      // Door
+      const doorGeo = new THREE.PlaneGeometry(1, 2);
+      const doorMat = new THREE.MeshToonMaterial({ color: 0x654321 });
+      const door = new THREE.Mesh(doorGeo, doorMat);
+      door.position.set(0, 1, 2.51);
+      houseGroup.add(door);
+      
+      // Window
+      const windowGeo = new THREE.PlaneGeometry(1, 1);
+      const windowMat = new THREE.MeshBasicMaterial({ color: 0xADD8E6 });
+      const window1 = new THREE.Mesh(windowGeo, windowMat);
+      window1.position.set(-1.5, 2.5, 2.51);
+      houseGroup.add(window1);
+      
+      scene.add(houseGroup);
 
       // Farm Area near windmill
       const farmGroup = new THREE.Group();
@@ -4410,6 +4537,7 @@
         };
         crystal.castShadow = true;
         crystalGroup.add(crystal);
+        animatedObjects.crystals.push(crystal); // Cache for optimized animation
       }
       
       scene.add(crystalGroup);
@@ -4438,6 +4566,7 @@
         water.position.set(0, tier * 3 + 1.5, tier * 2 + 1.1);
         water.userData = { isWaterfall: true, tier: tier };
         waterfallGroup.add(water);
+        animatedObjects.waterfalls.push(water); // Cache for optimized animation
       }
       
       scene.add(waterfallGroup);
@@ -4480,6 +4609,7 @@
           speed: 1 + Math.random() * 2
         };
         scene.add(sparkle);
+        animatedObjects.sparkles.push(sparkle); // Cache for optimized animation
       }
 
       // More fences around farm area
@@ -4608,6 +4738,7 @@
       waterfall.rotation.x = -0.2; // Slight angle
       waterfall.userData = { isWaterfall: true, phase: 0 };
       waterfallGroup2.add(waterfall);
+      animatedObjects.waterfalls.push(waterfall); // Cache for optimized animation
       
       // Add flowing water particles
       for(let i=0; i<5; i++) {
@@ -4621,6 +4752,7 @@
         drop.position.set(30 + (Math.random()-0.5)*2, 12 - i*2, -39);
         drop.userData = { isWaterDrop: true, speed: 0.1 + Math.random()*0.1, startY: 12 - i*2 };
         waterfallGroup2.add(drop);
+        animatedObjects.waterDrops.push(drop); // Cache for optimized animation
       }
       
       // Splash at bottom
@@ -4635,6 +4767,7 @@
       splash.position.set(30, 0.1, -33);
       splash.userData = { isSplash: true, phase: 0 };
       waterfallGroup2.add(splash);
+      animatedObjects.splashes.push(splash); // Cache for optimized animation
       
       scene.add(waterfallGroup2);
       
@@ -7463,6 +7596,41 @@
 
       // Entities Update
       enemies.forEach(e => e.update(dt, player.mesh.position));
+      
+      // Apply particle limits to prevent memory overflow (CRITICAL FIX for freeze bug)
+      if (particles.length > MAX_PARTICLES) {
+        const excess = particles.splice(0, particles.length - MAX_PARTICLES);
+        excess.forEach(p => {
+          if (p.mesh && p.mesh.parent) {
+            scene.remove(p.mesh);
+            if (p.mesh.geometry) p.mesh.geometry.dispose();
+            if (p.mesh.material) p.mesh.material.dispose();
+          }
+        });
+      }
+      
+      if (projectiles.length > MAX_PROJECTILES) {
+        const excess = projectiles.splice(0, projectiles.length - MAX_PROJECTILES);
+        excess.forEach(p => {
+          if (p.mesh && p.mesh.parent) {
+            scene.remove(p.mesh);
+            if (p.mesh.geometry) p.mesh.geometry.dispose();
+            if (p.mesh.material) p.mesh.material.dispose();
+          }
+        });
+      }
+      
+      if (meteors.length > MAX_METEORS) {
+        const excess = meteors.splice(0, meteors.length - MAX_METEORS);
+        excess.forEach(m => {
+          if (m.mesh && m.mesh.parent) {
+            scene.remove(m.mesh);
+            if (m.mesh.geometry) m.mesh.geometry.dispose();
+            if (m.mesh.material) m.mesh.material.dispose();
+          }
+        });
+      }
+      
       // Projectiles update returns false if dead
       projectiles = projectiles.filter(p => p.update() !== false);
       meteors = meteors.filter(m => m.update() !== false);
@@ -7471,104 +7639,89 @@
       chests.forEach(c => c.update(player.mesh.position));
       particles = particles.filter(p => p.update() !== false);
       
+      // OPTIMIZED: Use cached animated objects instead of scene.traverse() every frame
       // Windmill Rotation and Light Animation
-      scene.children.forEach(c => {
-        if (c.userData.isWindmill) {
-          // Rotate the blades stored in userData
-          if (c.userData.blades && c.userData.blades.length > 0) {
-            c.userData.blades[0].rotation.z += 0.05;
-            c.userData.blades[1].rotation.z += 0.05;
-          }
-          
-          // Animate windmill light (pulsing) with null check
-          if (c.userData.light && c.userData.light.material) {
-            c.userData.light.material.opacity = 0.8 + Math.sin(gameTime * 3) * 0.2;
-          }
+      animatedObjects.windmills.forEach(c => {
+        if (!c || !c.parent) return; // Skip if removed from scene
+        // Rotate the blades stored in userData
+        if (c.userData.blades && c.userData.blades.length > 0) {
+          c.userData.blades[0].rotation.z += 0.05;
+          c.userData.blades[1].rotation.z += 0.05;
         }
-        // Water ripple animation
-        if (c.userData.isWaterRipple) {
-          c.userData.phase += 0.05;
-          const scale = 1 + Math.sin(c.userData.phase) * 0.1;
-          c.scale.set(scale, 1, scale);
-          c.material.opacity = 0.3 + Math.sin(c.userData.phase) * 0.2;
-        }
-        // Lake sparkles animation
-        if (c.userData.isSparkle) {
-          c.userData.phase += 0.02 * c.userData.speed;
-          c.material.opacity = 0.3 + Math.abs(Math.sin(c.userData.phase)) * 0.7;
-          c.scale.set(
-            1 + Math.sin(c.userData.phase * 2) * 0.5,
-            1,
-            1 + Math.sin(c.userData.phase * 2) * 0.5
-          );
+        
+        // Animate windmill light (pulsing) with null check
+        if (c.userData.light && c.userData.light.material) {
+          c.userData.light.material.opacity = 0.8 + Math.sin(gameTime * 3) * 0.2;
         }
       });
       
+      // Water ripple animation
+      animatedObjects.waterRipples.forEach(c => {
+        if (!c || !c.parent) return;
+        c.userData.phase += 0.05;
+        const scale = 1 + Math.sin(c.userData.phase) * 0.1;
+        c.scale.set(scale, 1, scale);
+        c.material.opacity = 0.3 + Math.sin(c.userData.phase) * 0.2;
+      });
+      
+      // Lake sparkles animation
+      animatedObjects.sparkles.forEach(c => {
+        if (!c || !c.parent) return;
+        c.userData.phase += 0.02 * c.userData.speed;
+        c.material.opacity = 0.3 + Math.abs(Math.sin(c.userData.phase)) * 0.7;
+        c.scale.set(
+          1 + Math.sin(c.userData.phase * 2) * 0.5,
+          1,
+          1 + Math.sin(c.userData.phase * 2) * 0.5
+        );
+      });
+      
       // Crystal tower animation
-      scene.traverse(obj => {
-        if (obj.userData.isCrystal) {
-          // Rotate crystals
-          obj.rotation.x += 0.01;
-          obj.rotation.y += 0.02;
-          
-          // Orbit animation
-          obj.userData.phase += 0.01 * obj.userData.orbitSpeed;
-          const offsetY = Math.sin(obj.userData.phase) * 0.5;
-          obj.position.y += offsetY * 0.05;
-          
-          // Pulsing emissive
-          if (obj.material.emissiveIntensity !== undefined) {
-            obj.material.emissiveIntensity = 0.3 + Math.sin(obj.userData.phase * 2) * 0.2;
-          }
-        }
+      animatedObjects.crystals.forEach(obj => {
+        if (!obj || !obj.parent) return;
+        // Rotate crystals
+        obj.rotation.x += 0.01;
+        obj.rotation.y += 0.02;
         
-        // Comet particle animation (orbiting particles)
-        if (obj.userData.isCometParticle) {
-          // Store the initial position as the orbit center (relative to parent/comet group)
-          if (!obj.userData.basePosition) {
-            obj.userData.basePosition = obj.position.clone();
-          }
-          
-          obj.userData.angle += obj.userData.speed * 0.02;
-          
-          const centerX = obj.userData.basePosition.x;
-          const centerZ = obj.userData.basePosition.z;
-          const centerY = obj.userData.basePosition.y;
-          
-          obj.position.x = centerX + Math.cos(obj.userData.angle) * obj.userData.radius;
-          obj.position.z = centerZ + Math.sin(obj.userData.angle) * obj.userData.radius;
-          obj.position.y = centerY + obj.userData.height + Math.sin(obj.userData.angle * 2) * 0.3;
-          
-          // Pulsing opacity (between 0.3 and 0.7 for good visibility)
-          obj.material.opacity = 0.5 + Math.sin(obj.userData.angle * 3) * 0.2;
+        // Orbit animation
+        obj.userData.phase += 0.01 * obj.userData.orbitSpeed;
+        const offsetY = Math.sin(obj.userData.phase) * 0.5;
+        obj.position.y += offsetY * 0.05;
+        
+        // Pulsing emissive
+        if (obj.material.emissiveIntensity !== undefined) {
+          obj.material.emissiveIntensity = 0.3 + Math.sin(obj.userData.phase * 2) * 0.2;
         }
       });
       
       // Waterfall animation
-      scene.traverse(obj => {
-        if (obj.userData.isWaterfall) {
-          obj.userData.phase += 0.05;
-          obj.material.opacity = 0.6 + Math.sin(obj.userData.phase) * 0.1;
-        }
-        if (obj.userData.isWaterDrop) {
-          obj.position.y -= obj.userData.speed;
-          if (obj.position.y < 0) {
-            obj.position.y = obj.userData.startY;
-          }
-        }
-        if (obj.userData.isSplash) {
-          obj.userData.phase += 0.1;
-          const scale = 1 + Math.sin(obj.userData.phase) * 0.3;
-          obj.scale.set(scale, 1, scale);
-          obj.material.opacity = 0.4 + Math.sin(obj.userData.phase) * 0.2;
+      animatedObjects.waterfalls.forEach(obj => {
+        if (!obj || !obj.parent) return;
+        obj.userData.phase += 0.05;
+        obj.material.opacity = 0.6 + Math.sin(obj.userData.phase) * 0.1;
+      });
+      
+      animatedObjects.waterDrops.forEach(obj => {
+        if (!obj || !obj.parent) return;
+        obj.position.y -= obj.userData.speed;
+        if (obj.position.y < 0) {
+          obj.position.y = obj.userData.startY;
         }
       });
+      
+      animatedObjects.splashes.forEach(obj => {
+        if (!obj || !obj.parent) return;
+        obj.userData.phase += 0.1;
+        const scale = 1 + Math.sin(obj.userData.phase) * 0.3;
+        obj.scale.set(scale, 1, scale);
+        obj.material.opacity = 0.4 + Math.sin(obj.userData.phase) * 0.2;
+      });
 
-      // Cleanup and memory management (run every 3 seconds to avoid performance issues)
+      // Cleanup and memory management (OPTIMIZED: Run more frequently to prevent lag spikes)
       enemies = enemies.filter(e => !e.isDead);
       
       const now = Date.now();
-      if (now - lastCleanupTime > 3000) { // Run cleanup every 3 seconds
+      if (now - lastCleanupTime > 500) { // Run cleanup every 500ms instead of 3 seconds
         lastCleanupTime = now;
         
         // Limit max items on ground (memory optimization)
