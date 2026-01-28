@@ -435,11 +435,19 @@
       justify-content: flex-end;
       z-index: 10000;
       transition: opacity 0.5s ease-out;
+      pointer-events: auto;
     }
 
     #loading-screen.fade-out {
       opacity: 0;
       pointer-events: none;
+    }
+    
+    /* Ensure loading screen is completely hidden when display is none */
+    #loading-screen[style*="display: none"] {
+      visibility: hidden !important;
+      z-index: -1 !important;
+      pointer-events: none !important;
     }
 
     .loading-splash-logo {
@@ -498,6 +506,7 @@
       align-items: center;
       justify-content: center;
       z-index: 50; /* Lower than UI layer buttons */
+      pointer-events: auto;
     }
 
     #main-menu::before {
@@ -513,6 +522,18 @@
       background-repeat: no-repeat;
       opacity: 1;
       z-index: -1;
+    }
+    
+    /* Ensure main menu is completely hidden when display is none */
+    #main-menu[style*="display: none"] {
+      visibility: hidden !important;
+      z-index: -1 !important;
+      pointer-events: none !important;
+    }
+    
+    /* Hide pseudo-element when main menu is hidden */
+    #main-menu[style*="display: none"]::before {
+      display: none !important;
     }
 
     .menu-title {
@@ -4591,6 +4612,10 @@
             loadingScreen.classList.add('fade-out');
             setTimeout(() => {
               loadingScreen.style.display = 'none';
+              // Extra safeguards to ensure loading screen is completely hidden
+              loadingScreen.style.visibility = 'hidden';
+              loadingScreen.style.zIndex = '-1';
+              loadingScreen.style.pointerEvents = 'none';
               showMainMenu();
             }, 500);
           }, 600); // Extended delay before fade
@@ -4599,7 +4624,12 @@
     }
     
     function showMainMenu() {
-      document.getElementById('main-menu').style.display = 'flex';
+      const mainMenu = document.getElementById('main-menu');
+      mainMenu.style.display = 'flex';
+      // Restore visibility and z-index when showing
+      mainMenu.style.visibility = 'visible';
+      mainMenu.style.zIndex = '50';
+      mainMenu.style.pointerEvents = 'auto';
       updateGoldDisplays();
       isGameActive = false;
       isPaused = true;
@@ -4608,7 +4638,13 @@
     }
     
     function hideMainMenu() {
-      document.getElementById('main-menu').style.display = 'none';
+      const mainMenu = document.getElementById('main-menu');
+      mainMenu.style.display = 'none';
+      // Force hide by also setting visibility to ensure ::before pseudo-element doesn't show
+      mainMenu.style.visibility = 'hidden';
+      // Lower z-index to ensure it doesn't block game even if display fails
+      mainMenu.style.zIndex = '-1';
+      mainMenu.style.pointerEvents = 'none';
     }
     
     function showProgressionShop() {
@@ -6262,6 +6298,17 @@
     }
 
     function resetGame() {
+      // Ensure all menu/overlay elements are properly hidden
+      const loadingScreen = document.getElementById('loading-screen');
+      loadingScreen.style.display = 'none';
+      loadingScreen.style.visibility = 'hidden';
+      loadingScreen.style.zIndex = '-1';
+      
+      const mainMenu = document.getElementById('main-menu');
+      mainMenu.style.display = 'none';
+      mainMenu.style.visibility = 'hidden';
+      mainMenu.style.zIndex = '-1';
+      
       // Apply permanent upgrades from save data
       const baseHp = 100 + PERMANENT_UPGRADES.maxHp.effect(saveData.upgrades.maxHp);
       const baseRegen = PERMANENT_UPGRADES.hpRegen.effect(saveData.upgrades.hpRegen);
