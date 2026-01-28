@@ -1398,6 +1398,7 @@
     let particles = [];
     let damageNumbers = [];
     let meteors = [];
+    let flashLights = []; // Track temporary flash lights for cleanup
     let lastTime = 0;
     let frameCount = 0;
     let isPaused = false;
@@ -2888,7 +2889,12 @@
           flashLight.position.copy(this.mesh.position);
           flashLight.position.y += 1;
           scene.add(flashLight);
-          setTimeout(() => scene.remove(flashLight), 100);
+          flashLights.push(flashLight);
+          setTimeout(() => {
+            scene.remove(flashLight);
+            const idx = flashLights.indexOf(flashLight);
+            if (idx > -1) flashLights.splice(idx, 1);
+          }, 100);
           
           this.destroy();
         }
@@ -5424,6 +5430,12 @@
       });
       particles = [];
       
+      // Clean up any active flash lights
+      flashLights.forEach(light => {
+        scene.remove(light);
+      });
+      flashLights = [];
+      
       meteors.forEach(m => {
         scene.remove(m.mesh);
         scene.remove(m.shadow);
@@ -6011,10 +6023,13 @@
               flashLight.position.copy(player.mesh.position);
               flashLight.position.y += 1;
               scene.add(flashLight);
+              flashLights.push(flashLight);
               
               // Remove flash after short time
               setTimeout(() => {
                 scene.remove(flashLight);
+                const idx = flashLights.indexOf(flashLight);
+                if (idx > -1) flashLights.splice(idx, 1);
               }, 80); // Increased from 50ms to 80ms for better visibility
               
               // Lightning effect from gun - more visible
@@ -6107,7 +6122,12 @@
           flashLight.position.copy(enemy.mesh.position);
           flashLight.position.y += 2;
           scene.add(flashLight);
-          setTimeout(() => scene.remove(flashLight), 150); // Increased from 100ms to 150ms
+          flashLights.push(flashLight);
+          setTimeout(() => {
+            scene.remove(flashLight);
+            const idx = flashLights.indexOf(flashLight);
+            if (idx > -1) flashLights.splice(idx, 1);
+          }, 150); // Increased from 100ms to 150ms
           
           // Damage enemy
           const dmg = weapons.lightning.damage * playerStats.strength;
@@ -6156,7 +6176,12 @@
             chainFlashLight.position.copy(chainTarget.mesh.position);
             chainFlashLight.position.y += 1;
             scene.add(chainFlashLight);
-            setTimeout(() => scene.remove(chainFlashLight), 80);
+            flashLights.push(chainFlashLight);
+            setTimeout(() => {
+              scene.remove(chainFlashLight);
+              const idx = flashLights.indexOf(chainFlashLight);
+              if (idx > -1) flashLights.splice(idx, 1);
+            }, 80);
           }
         }
         
@@ -6212,7 +6237,12 @@
           flashLight.position.copy(player.mesh.position);
           flashLight.position.y += 1;
           scene.add(flashLight);
-          setTimeout(() => scene.remove(flashLight), 80);
+          flashLights.push(flashLight);
+          setTimeout(() => {
+            scene.remove(flashLight);
+            const idx = flashLights.indexOf(flashLight);
+            if (idx > -1) flashLights.splice(idx, 1);
+          }, 80);
           
           spawnParticles(player.mesh.position, 0xFFFF00, 8);
           spawnParticles(player.mesh.position, 0xFFFFFF, 5);
