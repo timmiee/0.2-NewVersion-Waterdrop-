@@ -4104,11 +4104,13 @@
       // Settings button
       document.getElementById('settings-btn').onclick = () => {
         playSound('levelup');
+        isPaused = true;
         document.getElementById('settings-modal').style.display = 'flex';
       };
       
       document.getElementById('settings-close-btn').onclick = () => {
         playSound('levelup');
+        isPaused = false;
         document.getElementById('settings-modal').style.display = 'none';
       };
       
