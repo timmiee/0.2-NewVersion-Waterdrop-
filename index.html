@@ -3442,7 +3442,7 @@
       for (const key in ACHIEVEMENTS) {
         const achievement = ACHIEVEMENTS[key];
         
-        // Skip if already claimed
+        // Skip if already claimed - achievements are permanent once unlocked
         if (saveData.achievements && saveData.achievements.includes(achievement.id)) {
           continue;
         }
@@ -3451,11 +3451,15 @@
         if (achievement.check()) {
           hasNewAchievement = true;
           
-          // Show notification that achievement is available
-          if (!achievement.notified) {
-            achievement.notified = true;
-            createFloatingText(`NEW ACHIEVEMENT UNLOCKED!`, player.mesh.position);
-            createFloatingText(`Check Achievements Menu`, player.mesh.position);
+          // Show notification only the FIRST TIME it's unlocked (not on every run)
+          // Check if this specific achievement has been notified before by storing in localStorage
+          const notifyKey = `achievement_notified_${achievement.id}`;
+          const hasBeenNotified = localStorage.getItem(notifyKey);
+          
+          if (!hasBeenNotified) {
+            localStorage.setItem(notifyKey, 'true');
+            // Use showStatChange style for first-time achievements
+            showStatChange(`🏆 ${achievement.name} - Check Achievements Menu!`);
             playSound('levelup');
           }
         }
