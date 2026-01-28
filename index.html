@@ -4141,6 +4141,31 @@
         gameSettings.musicEnabled = e.target.checked;
         updateBackgroundMusic();
       };
+
+      // Sync settings UI controls with current gameSettings state
+      const autoAimCheckbox = document.getElementById('auto-aim-checkbox');
+      if (autoAimCheckbox) {
+        autoAimCheckbox.checked = !!gameSettings.autoAim;
+      }
+
+      const controlTypeSelect = document.getElementById('control-type-select');
+      if (controlTypeSelect && typeof gameSettings.controlType === 'string') {
+        controlTypeSelect.value = gameSettings.controlType;
+      }
+
+      const soundToggle = document.getElementById('sound-toggle');
+      if (soundToggle) {
+        soundToggle.checked = !!gameSettings.soundEnabled;
+      }
+
+      const musicToggle = document.getElementById('music-toggle');
+      if (musicToggle) {
+        musicToggle.checked = !!gameSettings.musicEnabled;
+      }
+
+      // Ensure game systems reflect the current settings
+      updateControlType();
+      updateBackgroundMusic();
       
       // Main Menu Buttons
       document.getElementById('start-game-btn').onclick = () => {
