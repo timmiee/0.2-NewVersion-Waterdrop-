@@ -1039,7 +1039,7 @@
       
       <div class="stat-text" id="lvl-text" style="color: #5DADE2; text-shadow: 0 0 8px rgba(93,173,226,0.8), 0 0 12px rgba(93,173,226,0.5), 1px 1px 2px rgba(0,0,0,0.5);">LVL: 1</div>
       <div class="stat-text" id="score-text" style="color: #8B4513;">KILLS: 0</div>
-      <div class="stat-text gold-text" id="gold-text" style="color: #FFD700; text-shadow: 0 0 10px rgba(255,215,0,0.9), 0 0 15px rgba(255,215,0,0.6), 1px 1px 2px rgba(0,0,0,0.5);">GOLD: 0</div>
+      <div class="stat-text gold-text" id="gold-text" style="color: #FFD700; text-shadow: 0 0 10px rgba(255,215,0,0.9), 0 0 15px rgba(255,215,0,0.6), 1px 1px 2px rgba(0,0,0,0.5); display: none;">GOLD: 0</div>
       
       <!-- Windmill Quest UI -->
       <div id="windmill-quest-ui" style="display: none; margin-top: 10px;">
@@ -4603,6 +4603,8 @@
       updateGoldDisplays();
       isGameActive = false;
       isPaused = true;
+      // Hide gold-text HUD element in main menu
+      document.getElementById('gold-text').style.display = 'none';
     }
     
     function hideMainMenu() {
@@ -4612,6 +4614,9 @@
     function showProgressionShop() {
       const shopGrid = document.getElementById('shop-grid');
       shopGrid.innerHTML = '';
+      
+      // Show gold-text HUD in progression shop
+      document.getElementById('gold-text').style.display = 'block';
       
       // Create upgrade cards for each permanent upgrade
       Object.keys(PERMANENT_UPGRADES).forEach(key => {
@@ -4766,6 +4771,8 @@
       document.getElementById('shop-back-btn').onclick = () => {
         playSound('levelup');
         document.getElementById('progression-shop').style.display = 'none';
+        // Hide gold-text HUD when leaving progression shop
+        document.getElementById('gold-text').style.display = 'none';
         showMainMenu();
       };
       
@@ -5419,13 +5426,26 @@
       }
     }
     
-    function createFloatingText(text, pos) {
+    function createFloatingText(text, pos, color = null) {
       const div = document.createElement('div');
       div.style.position = 'absolute';
-      div.style.color = '#5DADE2';
+      
+      // Determine color - gold for chest rewards (GOLD/HP/EXP/BOOST), blue for others
+      const isChestReward = text.includes('GOLD') || text.includes('HP') || text.includes('EXP') || 
+                           text.includes('BOOST') || text.includes('CHEST');
+      const textColor = color || (isChestReward ? '#FFD700' : '#5DADE2');
+      
+      div.style.color = textColor;
       div.style.fontSize = '28px';
       div.style.fontWeight = 'bold';
-      div.style.textShadow = '0 0 15px rgba(93,173,226,0.8), 0 0 30px rgba(93,173,226,0.5), 2px 2px 4px #000';
+      
+      // Match text shadow to color - gold or blue
+      if (textColor === '#FFD700') {
+        div.style.textShadow = '0 0 10px rgba(255,215,0,0.9), 0 0 15px rgba(255,215,0,0.6), 1px 1px 2px rgba(0,0,0,0.5)';
+      } else {
+        div.style.textShadow = '0 0 15px rgba(93,173,226,0.8), 0 0 30px rgba(93,173,226,0.5), 2px 2px 4px #000';
+      }
+      
       div.style.pointerEvents = 'none';
       div.style.zIndex = '100';
       div.style.whiteSpace = 'nowrap';
@@ -6219,6 +6239,9 @@
       isPaused = true;
       isGameActive = false;
       
+      // Hide gold-text HUD on game over
+      document.getElementById('gold-text').style.display = 'none';
+      
       // Calculate run stats
       const survivalTime = Math.floor((Date.now() - gameStartTime) / 1000);
       const goldEarned = playerStats.gold - runStartGold;
@@ -6268,6 +6291,9 @@
       waveCount = 0;
       gameStartTime = Date.now();
       runStartGold = saveData.gold;
+      
+      // Show gold-text HUD during gameplay
+      document.getElementById('gold-text').style.display = 'block';
       
       const gunCooldown = 1000 * (1 - cdReduction);
       weapons.gun = { active: true, level: 1, damage: 15, cooldown: gunCooldown, lastShot: 0, range: 12, barrels: 1 };
@@ -6376,9 +6402,14 @@
       playSound('levelup'); // Add button sound
       const modal = document.getElementById('stats-modal');
       const levelUpModal = document.getElementById('levelup-modal');
+      const goldText = document.getElementById('gold-text');
       
       if (modal.style.display === 'flex') {
         modal.style.display = 'none';
+        // Restore gold text visibility if game is active
+        if (isGameActive && !isGameOver) {
+          goldText.style.display = 'block';
+        }
         if (levelUpModal.style.display !== 'flex' && !isGameOver) {
           isPaused = false;
         }
@@ -6459,6 +6490,8 @@
 </div>
         `;
         modal.style.display = 'flex';
+        // Hide gold text when stats modal is open for UI consistency
+        goldText.style.display = 'none';
         isPaused = true;
       }
     }
@@ -6761,7 +6794,11 @@
       lastTime = time;
       gameTime = time / 1000; // Update game time in seconds
 
-      if (isPaused || isGameOver || !isGameActive) return;
+      if (isPaused || isGameOver || !isGameActive) {
+        // Still render the scene even when paused so the game world is visible
+        renderer.render(scene, camera);
+        return;
+      }
       
       // Handle keyboard/gamepad input updates (integrated into game loop)
       if (gameSettings.controlType === 'keyboard') {
