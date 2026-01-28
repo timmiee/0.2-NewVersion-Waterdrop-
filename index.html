@@ -1040,6 +1040,9 @@
       <div class="stat-text" id="score-text" style="color: #8B4513;">KILLS: 0</div>
       <div class="stat-text gold-text" id="gold-text" style="color: #FFD700; text-shadow: 0 0 10px rgba(255,215,0,0.9), 0 0 15px rgba(255,215,0,0.6), 1px 1px 2px rgba(0,0,0,0.5);">GOLD: 0</div>
       
+      <!-- Status Message Bar -->
+      <div class="stat-text" id="status-message" style="color: #5DADE2; text-shadow: 0 0 8px rgba(93,173,226,0.8), 0 0 12px rgba(93,173,226,0.5), 1px 1px 2px rgba(0,0,0,0.5); font-size: 16px; min-height: 20px; margin-top: 5px;"></div>
+      
       <!-- Windmill Quest UI -->
       <div id="windmill-quest-ui" style="display: none; margin-top: 10px;">
         <div class="bar-container" style="border-color: #8B4513;">
@@ -1420,6 +1423,8 @@
     let lastWaveEndTime = 0; // Track when last wave was cleared
     let windmillQuest = { active: false, timer: 0, duration: 30, windmill: null, hasCompleted: false };
     let runStartGold = 0;  // Track gold at start of run for end-of-run calculation
+    let lastCleanupTime = 0; // Track last memory cleanup time
+    let miniBossesSpawned = new Set(); // Track which mini-boss levels have been spawned
 
     // Game Settings
     const gameSettings = {
@@ -1964,6 +1969,33 @@
         playerStats.hp -= reduced;
         updateHUD();
         playSound('hit');
+        
+        // Show damage number for player (red color)
+        const div = document.createElement('div');
+        div.className = 'damage-number player-damage';
+        div.innerText = `-${Math.floor(reduced)}`;
+        div.style.color = '#FF4444';
+        div.style.fontSize = '24px';
+        div.style.fontWeight = 'bold';
+        div.style.textShadow = '0 0 8px rgba(255,68,68,0.8), 2px 2px 4px #000';
+        
+        // Project 3D pos to 2D screen
+        const vec = this.mesh.position.clone();
+        vec.y += 2;
+        vec.project(camera);
+        
+        const x = (vec.x * .5 + .5) * window.innerWidth;
+        const y = (-(vec.y * .5) + .5) * window.innerHeight;
+        
+        div.style.position = 'absolute';
+        div.style.left = `${x}px`;
+        div.style.top = `${y}px`;
+        div.style.transform = 'translate(-50%, -50%)';
+        div.style.pointerEvents = 'none';
+        div.style.zIndex = '1000';
+        
+        document.body.appendChild(div);
+        setTimeout(() => div.remove(), 1000);
         
         // Set invulnerability
         this.invulnerable = true;
@@ -2684,33 +2716,33 @@
           spawnExp(this.mesh.position.x, this.mesh.position.z);
         }
         
-        // Drop GOLD based on enemy type
+        // Drop GOLD based on enemy type (REDUCED for better balance)
         let goldAmount = 0;
         if (this.isMiniBoss) {
-          // MiniBoss: guaranteed 50-100 gold
-          goldAmount = 50 + Math.floor(Math.random() * 51);
+          // MiniBoss: guaranteed 30-60 gold (reduced from 50-100)
+          goldAmount = 30 + Math.floor(Math.random() * 31);
         } else if (this.type === 0) { // Tank
-          goldAmount = 3 + Math.floor(Math.random() * 3); // 3-5 gold
+          goldAmount = 2 + Math.floor(Math.random() * 2); // 2-3 gold (reduced from 3-5)
         } else if (this.type === 1) { // Fast
-          goldAmount = 1 + Math.floor(Math.random() * 2); // 1-2 gold
+          goldAmount = 1; // 1 gold (fast enemies drop less)
         } else if (this.type === 2) { // Balanced
-          goldAmount = 2 + Math.floor(Math.random() * 2); // 2-3 gold
+          goldAmount = 1 + Math.floor(Math.random() * 2); // 1-2 gold (reduced from 2-3)
         } else if (this.type === 3) { // Slowing
-          goldAmount = 3 + Math.floor(Math.random() * 2); // 3-4 gold
+          goldAmount = 2 + Math.floor(Math.random() * 2); // 2-3 gold (reduced from 3-4)
         } else if (this.type === 4) { // Ranged
-          goldAmount = 2 + Math.floor(Math.random() * 3); // 2-4 gold
+          goldAmount = 1 + Math.floor(Math.random() * 2); // 1-2 gold (reduced from 2-4)
         } else if (this.type === 5) { // Flying
-          goldAmount = 3 + Math.floor(Math.random() * 3); // 3-5 gold
+          goldAmount = 2 + Math.floor(Math.random() * 2); // 2-3 gold (reduced from 3-5)
         } else if (this.type === 6) { // Hard Tank
-          goldAmount = 5 + Math.floor(Math.random() * 4); // 5-8 gold
+          goldAmount = 3 + Math.floor(Math.random() * 3); // 3-5 gold (reduced from 5-8)
         } else if (this.type === 7) { // Hard Fast
-          goldAmount = 4 + Math.floor(Math.random() * 3); // 4-6 gold
+          goldAmount = 2 + Math.floor(Math.random() * 3); // 2-4 gold (reduced from 4-6)
         } else if (this.type === 8) { // Hard Balanced
-          goldAmount = 4 + Math.floor(Math.random() * 4); // 4-7 gold
+          goldAmount = 3 + Math.floor(Math.random() * 3); // 3-5 gold (reduced from 4-7)
         } else if (this.type === 9) { // Elite
-          goldAmount = 8 + Math.floor(Math.random() * 5); // 8-12 gold
+          goldAmount = 5 + Math.floor(Math.random() * 4); // 5-8 gold (reduced from 8-12)
         } else {
-          goldAmount = 2 + Math.floor(Math.random() * 2); // 2-3 gold (fallback)
+          goldAmount = 1 + Math.floor(Math.random() * 2); // 1-2 gold (reduced from 2-3)
         }
         spawnGold(this.mesh.position.x, this.mesh.position.z, goldAmount);
         
@@ -3478,7 +3510,7 @@
           spawnParticles(this.mesh.position, 0xFF69B4, 20); // Pink health particles
         } else if (rand < 0.6) {
           // Gold (25% chance)
-          const goldAmount = 20 + Math.floor(Math.random() * 31); // 20-50 gold
+          const goldAmount = 12 + Math.floor(Math.random() * 19); // 12-30 gold (reduced from 20-50)
           addGold(goldAmount);
           createFloatingText(`+${goldAmount} Gold!`, this.mesh.position);
         } else if (rand < 0.85) {
@@ -3498,8 +3530,9 @@
       applyRandomPerk() {
         const perks = [
           { name: 'Speed Boost', apply: () => { 
-            // Cap max speed at 2x base speed to prevent breaking physics
-            if (playerStats.walkSpeed < GAME_CONFIG.playerSpeedBase * 2) {
+            // Cap max speed at 2x initial walkSpeed (50) to prevent breaking physics
+            const maxWalkSpeed = 50; // 2x the initial 25
+            if (playerStats.walkSpeed < maxWalkSpeed) {
               playerStats.walkSpeed *= 1.1;
               showStatChange('+10% Move Speed');
             } else {
@@ -4939,10 +4972,14 @@
     function spawnWave() {
       waveCount++;
       
-      // Check if this is a mini-boss wave (levels 10, 15, 20, and every 5 levels after)
-      const isMiniBossWave = playerStats.lvl >= 10 && playerStats.lvl % 5 === 0;
+      // Check if this is a mini-boss wave (ONLY levels 10, 25, 50)
+      const miniBossLevels = [10, 25, 50];
+      const isMiniBossWave = miniBossLevels.includes(playerStats.lvl) && !miniBossesSpawned.has(playerStats.lvl);
       
       if (isMiniBossWave) {
+        // Mark this level's mini-boss as spawned
+        miniBossesSpawned.add(playerStats.lvl);
+        
         // Spawn mini-boss with 2-3 regular enemies
         const angle = Math.random() * Math.PI * 2;
         const dist = 28;
@@ -5126,6 +5163,17 @@
       isPaused = true;
       playerStats.lvl++;
       playerStats.exp -= playerStats.expReq;
+      
+      // Victory condition: Reaching level 50
+      if (playerStats.lvl === 50) {
+        setTimeout(() => {
+          showStatChange('🎉 VICTORY! You reached Level 50! 🎉');
+          setTimeout(() => {
+            gameOver(); // Show game over screen as victory screen
+          }, 2000);
+        }, 1000);
+        return;
+      }
       
       // Custom XP Curve: Smoother progression up to level 50
       // Level 1→2: 3 kills, 2→3: 4 kills, 3→4: 5 kills, etc.
@@ -5533,56 +5581,46 @@
       }
     }
     
+    // Floating text fade tracking to prevent memory leaks
+    let floatingTextFadeInterval = null;
+    let floatingTextFadeTimeout = null;
+    
     function createFloatingText(text, pos) {
-      const div = document.createElement('div');
-      div.style.position = 'absolute';
-      div.style.color = '#5DADE2';
-      div.style.fontSize = '28px';
-      div.style.fontWeight = 'bold';
-      div.style.textShadow = '0 0 15px rgba(93,173,226,0.8), 0 0 30px rgba(93,173,226,0.5), 2px 2px 4px #000';
-      div.style.pointerEvents = 'none';
-      div.style.zIndex = '100';
-      div.style.whiteSpace = 'nowrap';
-      div.innerText = text;
+      // Display message in status bar instead of floating text
+      const statusEl = document.getElementById('status-message');
+      if (!statusEl) return;
       
-      const vec = pos.clone();
-      vec.y += 1;
-      vec.project(camera);
+      // Clear any existing fade interval and timeout
+      if (floatingTextFadeInterval) {
+        clearInterval(floatingTextFadeInterval);
+        floatingTextFadeInterval = null;
+      }
+      if (floatingTextFadeTimeout) {
+        clearTimeout(floatingTextFadeTimeout);
+        floatingTextFadeTimeout = null;
+      }
       
-      const x = (vec.x * .5 + .5) * window.innerWidth;
-      const y = (-(vec.y * .5) + .5) * window.innerHeight;
+      statusEl.innerText = text;
+      statusEl.style.color = '#FF4444'; // Red for important messages like mini-boss
+      statusEl.style.fontSize = '18px';
+      statusEl.style.opacity = '1';
       
-      div.style.left = `${x}px`;
-      div.style.top = `${y}px`;
-      div.style.transform = 'translate(-50%, -50%)';
-      
-      document.body.appendChild(div);
-      
-      // Animate upward
-      let offsetY = 0;
-      const animateDuration = 2000;
-      const startTime = Date.now();
-      
-      const animate = () => {
-        const elapsed = Date.now() - startTime;
-        const t = elapsed / animateDuration;
-        
-        if (t >= 1) {
-          div.remove();
-          return;
-        }
-        
-        offsetY = -100 * t;
-        const opacity = 1 - t;
-        const scale = 1 + t * 0.5;
-        
-        div.style.top = `${y + offsetY}px`;
-        div.style.opacity = opacity;
-        div.style.transform = `translate(-50%, -50%) scale(${scale})`;
-        
-        requestAnimationFrame(animate);
-      };
-      animate();
+      // Clear after 4 seconds with fade out
+      floatingTextFadeTimeout = setTimeout(() => {
+        let opacity = 1;
+        floatingTextFadeInterval = setInterval(() => {
+          opacity -= 0.05;
+          if (opacity <= 0) {
+            clearInterval(floatingTextFadeInterval);
+            floatingTextFadeInterval = null;
+            statusEl.innerText = '';
+            statusEl.style.opacity = '1';
+            statusEl.style.fontSize = '16px';
+          } else {
+            statusEl.style.opacity = opacity.toString();
+          }
+        }, 50);
+      }, 4000);
     }
 
     function showUpgradeModal() {
@@ -6044,14 +6082,14 @@
           { 
             id: 'class_tank', 
             title: 'TANK', 
-            desc: 'HP+50, Regen+2, Armor+20%, Speed-15%', 
+            desc: 'Survivability: +50 Max HP, +2 HP/sec Regen, +20% Armor, -15% Speed', 
             apply: () => { 
               playerStats.maxHp+=50; 
               playerStats.hp+=50; 
               playerStats.hpRegen+=2; 
               playerStats.armor+=20;
               playerStats.walkSpeed *= 0.85;
-              showStatChange('Class: TANK');
+              showStatChange('Class: TANK (+50 HP, +2 Regen, +20% Armor)');
             } 
           },
           { 
@@ -6105,11 +6143,11 @@
             id: 'perk_vampire', 
             icon: '🧛',
             title: 'VAMPIRE', 
-            desc: `Life Steal +5% (Current: ${Math.round(playerStats.perks.vampire * 5)}%)`, 
+            desc: `Life Steal: Heal 5% of damage dealt (Current: ${Math.round(playerStats.perks.vampire * 5)}%)`, 
             apply: () => { 
               playerStats.perks.vampire++;
               playerStats.lifeStealPercent += 0.05;
-              showStatChange(`Vampire Perk Level ${playerStats.perks.vampire}! (+5% Life Steal)`);
+              showStatChange(`Vampire Level ${playerStats.perks.vampire}! (5% of damage heals you)`);
             } 
           },
           { 
@@ -6287,66 +6325,44 @@
       setTimeout(() => div.remove(), 1000);
     }
     
+    // Message fade tracking to prevent memory leaks
+    let statusMessageFadeInterval = null;
+    let statusMessageFadeTimeout = null;
+    
     function showStatChange(text) {
-      // Create floating text on bottom-left of screen (not blocking character)
-      const div = document.createElement('div');
-      div.style.position = 'fixed';
-      div.style.bottom = '80px'; // Bottom-left position
-      div.style.left = '20px';
-      div.style.transform = 'translateX(-100%) scale(0)'; // Start off-screen left
-      div.style.color = '#FFD700';
-      div.style.fontSize = '20px';
-      div.style.fontWeight = 'bold';
-      div.style.textShadow = '0 0 10px rgba(255,215,0,0.8), 0 0 20px rgba(255,215,0,0.5), 2px 2px 4px #000';
-      div.style.padding = '10px 15px';
-      div.style.background = 'rgba(30,30,30,0.9)';
-      div.style.borderRadius = '10px';
-      div.style.border = '2px solid #FFD700';
-      div.style.zIndex = '2000';
-      div.style.pointerEvents = 'none';
-      div.innerText = text;
+      // Display message in status bar instead of floating text
+      const statusEl = document.getElementById('status-message');
+      if (!statusEl) return;
       
-      document.body.appendChild(div);
+      // Clear any existing fade interval and timeout
+      if (statusMessageFadeInterval) {
+        clearInterval(statusMessageFadeInterval);
+        statusMessageFadeInterval = null;
+      }
+      if (statusMessageFadeTimeout) {
+        clearTimeout(statusMessageFadeTimeout);
+        statusMessageFadeTimeout = null;
+      }
       
-      // Animate: slide in from left, scale up, stay visible longer, then fade out matching fade-in
-      let scale = 0;
-      let opacity = 1;
-      const animDuration = 1700; // Increased from 1500ms by 200ms
-      const startTime = Date.now();
+      statusEl.innerText = text;
+      statusEl.style.color = '#FFD700';
+      statusEl.style.opacity = '1';
       
-      const animate = () => {
-        const elapsed = Date.now() - startTime;
-        const t = elapsed / animDuration;
-        
-        if (t >= 1) {
-          div.remove();
-          return;
-        }
-        
-        // Scale and fade animation: ease-in, hold, ease-out (matching style)
-        if (t < 0.2) {
-          // Fade in (0 to 0.2)
-          scale = Math.sin((t / 0.2) * Math.PI / 2); // Ease in
-          opacity = scale;
-        } else if (t < 0.8) {
-          // Hold at full scale (0.2 to 0.8)
-          scale = 1;
-          opacity = 1;
-        } else {
-          // Fade out (0.8 to 1.0) - matching fade-in curve
-          const fadeT = (t - 0.8) / 0.2;
-          scale = Math.cos(fadeT * Math.PI / 2); // Ease out (mirror of ease in)
-          opacity = scale;
-        }
-        
-        // Slide in from left
-        const translateX = t < 0.2 ? (1 - (t / 0.2)) * -100 : 0;
-        div.style.transform = `translateX(${translateX}%) scale(${scale})`;
-        div.style.opacity = opacity;
-        
-        requestAnimationFrame(animate);
-      };
-      animate();
+      // Clear after 3 seconds with fade out
+      statusMessageFadeTimeout = setTimeout(() => {
+        let opacity = 1;
+        statusMessageFadeInterval = setInterval(() => {
+          opacity -= 0.05;
+          if (opacity <= 0) {
+            clearInterval(statusMessageFadeInterval);
+            statusMessageFadeInterval = null;
+            statusEl.innerText = '';
+            statusEl.style.opacity = '1';
+          } else {
+            statusEl.style.opacity = opacity.toString();
+          }
+        }, 50);
+      }, 3000);
     }
 
     function gameOver() {
@@ -6402,6 +6418,7 @@
       playerStats.gold = 0;
       waveCount = 0;
       lastWaveEndTime = 0; // Reset wave timing
+      miniBossesSpawned.clear(); // Reset mini-boss tracking
       gameStartTime = Date.now();
       runStartGold = saveData.gold;
       
@@ -7547,8 +7564,50 @@
         }
       });
 
-      // Cleanup
+      // Cleanup and memory management (run every 3 seconds to avoid performance issues)
       enemies = enemies.filter(e => !e.isDead);
+      
+      const now = Date.now();
+      if (now - lastCleanupTime > 3000) { // Run cleanup every 3 seconds
+        lastCleanupTime = now;
+        
+        // Limit max items on ground (memory optimization)
+        const MAX_EXP_GEMS = 100;
+        const MAX_GOLD_COINS = 50;
+        
+        // Helper function to cleanup distant items
+        const cleanupDistantItems = (items, maxItems, collectCallback) => {
+          if (items.length > maxItems && player && player.mesh) {
+            // Sort by distance, keep closest ones, auto-collect furthest
+            items.sort((a, b) => {
+              const distA = a.mesh.position.distanceTo(player.mesh.position);
+              const distB = b.mesh.position.distanceTo(player.mesh.position);
+              return distA - distB;
+            });
+            
+            // Auto-collect excess items (furthest ones)
+            const excessItems = items.splice(maxItems);
+            excessItems.forEach(item => {
+              if (item.active) {
+                collectCallback(item);
+                scene.remove(item.mesh);
+                item.mesh.geometry.dispose();
+                item.mesh.material.dispose();
+                item.active = false;
+              }
+            });
+          }
+        };
+        
+        // Clean up exp gems
+        cleanupDistantItems(expGems, MAX_EXP_GEMS, (gem) => addExp(gem.value));
+        
+        // Clean up gold coins
+        cleanupDistantItems(goldCoins, MAX_GOLD_COINS, (coin) => {
+          playerStats.gold += coin.amount;
+        });
+      }
+      
       expGems = expGems.filter(g => g.active);
       goldCoins = goldCoins.filter(g => g.active);
       chests = chests.filter(c => c.active);
