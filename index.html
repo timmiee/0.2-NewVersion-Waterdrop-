@@ -2533,7 +2533,7 @@
         for(let i = 0; i < 15; i++) { // Increased from 8 to 15
           const piece = new THREE.Mesh(
             new THREE.BoxGeometry(0.3, 0.3, 0.3),
-            new THREE.MeshBasicMaterial({ color: enemyColor })
+            new THREE.MeshBasicMaterial({ color: enemyColor, transparent: true }) // Added transparent flag
           );
           piece.position.copy(this.mesh.position);
           scene.add(piece);
@@ -3466,11 +3466,25 @@
           
           // Show notification only the FIRST TIME it's unlocked (not on every run)
           // Check if this specific achievement has been notified before by storing in localStorage
+          // Note: Notification state is tracked separately from claim state to avoid re-showing
+          // notifications in new runs before claiming. If localStorage is cleared, notifications
+          // may re-appear but will still respect the saveData.achievements claim status.
           const notifyKey = `achievement_notified_${achievement.id}`;
-          const hasBeenNotified = localStorage.getItem(notifyKey);
+          let hasBeenNotified = false;
+          
+          try {
+            hasBeenNotified = localStorage.getItem(notifyKey);
+          } catch (e) {
+            // localStorage may fail in private browsing or when quota exceeded
+            console.warn('localStorage not available for achievement tracking');
+          }
           
           if (!hasBeenNotified) {
-            localStorage.setItem(notifyKey, 'true');
+            try {
+              localStorage.setItem(notifyKey, 'true');
+            } catch (e) {
+              // Ignore storage errors - notification will show again next time
+            }
             // Use showStatChange style for first-time achievements
             showStatChange(`🏆 ${achievement.name} - Check Achievements Menu!`);
             playSound('levelup');
@@ -6663,12 +6677,21 @@
         // ENHANCED - Add sword slash visual effects
         spawnParticles(player.mesh.position, 0xC0C0C0, 8); // Silver slash particles
         spawnParticles(player.mesh.position, 0xFFFFFF, 5); // White sparkles
-        // Add flash light for sword slash
+        // Add flash light for sword slash - track timeout for proper cleanup
         const slashLight = new THREE.PointLight(0xC0C0C0, 3, 8);
         slashLight.position.copy(player.mesh.position);
         slashLight.position.y += 1;
         scene.add(slashLight);
-        setTimeout(() => scene.remove(slashLight), 100);
+        flashLights.push(slashLight);
+        
+        const timeoutId = setTimeout(() => {
+          scene.remove(slashLight);
+          const idx = flashLights.indexOf(slashLight);
+          if (idx > -1) flashLights.splice(idx, 1);
+          const tidx = activeTimeouts.indexOf(timeoutId);
+          if (tidx > -1) activeTimeouts.splice(tidx, 1);
+        }, 100);
+        activeTimeouts.push(timeoutId);
       }
 
       // 3. AURA
