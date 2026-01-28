@@ -4851,7 +4851,7 @@
           desc: 'Movement Speed +10% (Faster Movement)', 
           apply: () => { 
             playerStats.walkSpeed += 2.5; 
-            showStatChange('+10% Move Speed (Now: ' + playerStats.walkSpeed + '%)');
+            showStatChange('+10% Move Speed (Now: ' + Math.round(playerStats.walkSpeed / 25 * 100) + '%)');
           } 
         },
         { 
