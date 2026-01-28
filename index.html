@@ -3725,6 +3725,9 @@
       // Refresh screen
       updateAchievementsScreen();
     }
+    
+    // Expose to global scope for onclick handlers
+    window.claimAchievement = claimAchievement;
 
     function showGoldBagAnimation(amount) {
       const bag = document.createElement('div');
