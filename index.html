@@ -3969,46 +3969,62 @@
       });
       const roadGeo = new THREE.PlaneGeometry(4, 4);
       
-      // Road to windmill - smooth curved path
-      for(let i=0; i<30; i++) {
+      // Helper function to create smooth curved road between two points
+      function createCurvedRoad(startX, startZ, endX, endZ, segments, curve = 0) {
+        for(let i = 0; i <= segments; i++) {
+          const t = i / segments;
+          // Smooth interpolation with optional curve
+          const x = startX + (endX - startX) * t + Math.sin(t * Math.PI) * curve;
+          const z = startZ + (endZ - startZ) * t + Math.sin(t * Math.PI) * curve;
+          
+          const road = new THREE.Mesh(roadGeo, roadMat);
+          road.rotation.x = -Math.PI/2;
+          road.position.set(x, 0.03, z);
+          road.receiveShadow = true;
+          scene.add(road);
+        }
+      }
+      
+      // Main roads connecting key locations:
+      // 1. Statue (0,0) to Windmill (40,40) - curved path
+      createCurvedRoad(0, 0, 40, 40, 25, 3);
+      
+      // 2. Statue (0,0) to Cabin (-20,-20) - curved path
+      createCurvedRoad(0, 0, -20, -20, 15, -2);
+      
+      // 3. Statue (0,0) to Stonehenge (-60,-20) - curved path
+      createCurvedRoad(0, 0, -60, -20, 30, 5);
+      
+      // 4. Statue (0,0) to Pyramid (50,-50) - curved path
+      createCurvedRoad(0, 0, 50, -50, 35, -4);
+      
+      // 5. Statue (0,0) to Mine (-40,40) - curved path
+      createCurvedRoad(0, 0, -40, 40, 25, 4);
+      
+      // 6. Windmill (40,40) to Farm (35,35) - short connecting road
+      createCurvedRoad(40, 40, 35, 35, 8, 0);
+      
+      // 7. Circular road around statue - smooth ring road for patrol area
+      for(let i = 0; i < 60; i++) {
         const road = new THREE.Mesh(roadGeo, roadMat);
         road.rotation.x = -Math.PI/2;
-        const t = i / 30;
-        const x = t * 40;
-        const z = t * 40;
+        const angle = (i / 60) * Math.PI * 2;
+        const x = Math.cos(angle) * 8; // Smaller circle around statue
+        const z = Math.sin(angle) * 8;
         road.position.set(x, 0.03, z);
         road.receiveShadow = true;
         scene.add(road);
       }
       
-      // Circular path around center - smooth ring road
-      for(let i=0; i<50; i++) {
-        const road = new THREE.Mesh(roadGeo, roadMat);
-        road.rotation.x = -Math.PI/2;
-        const angle = (i / 50) * Math.PI * 2;
-        const x = Math.cos(angle) * 25;
-        const z = Math.sin(angle) * 25;
-        road.position.set(x, 0.03, z);
-        road.receiveShadow = true;
-        scene.add(road);
-      }
-      
-      // Additional main roads (cross pattern)
-      for(let i=-20; i<20; i++) {
-        // Horizontal road
-        const road1 = new THREE.Mesh(roadGeo, roadMat);
-        road1.rotation.x = -Math.PI/2;
-        road1.position.set(i * 2, 0.03, 0);
-        road1.receiveShadow = true;
-        scene.add(road1);
-        
-        // Vertical road
-        const road2 = new THREE.Mesh(roadGeo, roadMat);
-        road2.rotation.x = -Math.PI/2;
-        road2.position.set(0, 0.03, i * 2);
-        road2.receiveShadow = true;
-        scene.add(road2);
-      }
+      // 8. Map edge access roads (from edges to main areas)
+      // North edge to Windmill
+      createCurvedRoad(40, 90, 40, 40, 30, 3);
+      // South edge to Pyramid
+      createCurvedRoad(50, -90, 50, -50, 25, -3);
+      // West edge to Stonehenge
+      createCurvedRoad(-90, -20, -60, -20, 20, 0);
+      // East edge to Windmill area
+      createCurvedRoad(90, 40, 40, 40, 30, -4);
 
       // Wooden fences around play area
       const fenceMat = new THREE.MeshToonMaterial({ color: 0x8B4513 });
