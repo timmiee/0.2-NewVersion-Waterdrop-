@@ -4131,8 +4131,10 @@
       // 3. Statue (0,0) to Stonehenge (-60,-20) - curved path
       createCurvedRoad(0, 0, -60, -20, 30, 5);
       
-      // 4. Statue (0,0) to Pyramid (50,-50) - curved path
-      createCurvedRoad(0, 0, 50, -50, 35, -4);
+      // 4. REMOVED: Statue (0,0) to Pyramid (50,-50) - road was going through lake
+      // Instead, create road that goes around the lake to the east
+      createCurvedRoad(0, 0, 50, 0, 25, 2); // Road to east first
+      createCurvedRoad(50, 0, 50, -50, 25, 3); // Then south to pyramid
       
       // 5. Statue (0,0) to Mine (-40,40) - curved path
       createCurvedRoad(0, 0, -40, 40, 25, 4);
@@ -4369,62 +4371,84 @@
       
       scene.add(statueGroup);
 
-      // Comet Stone - Beside the lake where player spawns (brings the water droplet to life)
-      const cometGroup = new THREE.Group();
-      cometGroup.position.set(37, 0, -30); // Right beside lake where player spawns
+      // REMOVED: Comet Stone artifact (was beside the lake, now replaced with better structures below)
+
+      // Additional Mountain near lake
+      const mountainGroup = new THREE.Group();
+      mountainGroup.position.set(37, 0, -30); // Where comet was
       
-      // Impact crater (dark brown ring)
-      const craterGeo = new THREE.RingGeometry(2, 3, 32);
-      const craterMat = new THREE.MeshToonMaterial({ color: 0x3E2723 }); // Dark brown
-      const crater = new THREE.Mesh(craterGeo, craterMat);
-      crater.rotation.x = -Math.PI/2;
-      crater.position.y = 0.02;
-      cometGroup.add(crater);
+      const mountainGeo = new THREE.ConeGeometry(4, 12, 8);
+      const mountainMat = new THREE.MeshToonMaterial({ color: 0x8B7355 });
+      const mountain = new THREE.Mesh(mountainGeo, mountainMat);
+      mountain.position.y = 6;
+      mountain.castShadow = true;
+      mountainGroup.add(mountain);
       
-      // Comet stone (dark metallic rock with glow)
-      const cometGeo = new THREE.DodecahedronGeometry(1.2, 1);
-      const cometMat = new THREE.MeshPhysicalMaterial({ 
-        color: 0x1a1a1a, // Very dark gray, almost black
-        metalness: 0.8,
-        roughness: 0.3,
-        emissive: 0x4FC3F7, // Blue glow
-        emissiveIntensity: 0.3
-      });
-      const cometStone = new THREE.Mesh(cometGeo, cometMat);
-      cometStone.position.y = 0.6;
-      cometStone.castShadow = true;
-      // Slight tilt for dramatic effect
-      cometStone.rotation.x = 0.2;
-      cometStone.rotation.z = 0.3;
-      cometGroup.add(cometStone);
+      // Snow cap on mountain
+      const snowGeo = new THREE.ConeGeometry(2.5, 4, 8);
+      const snowMat = new THREE.MeshToonMaterial({ color: 0xFFFFFF });
+      const snow = new THREE.Mesh(snowGeo, snowMat);
+      snow.position.y = 10;
+      mountainGroup.add(snow);
       
-      // Glowing particles around comet stone
-      for(let i=0; i<8; i++) {
-        const particleGeo = new THREE.SphereGeometry(0.1, 8, 8);
-        const particleMat = new THREE.MeshBasicMaterial({ 
-          color: 0x4FC3F7,
-          transparent: true,
-          opacity: 0.6
-        });
-        const particle = new THREE.Mesh(particleGeo, particleMat);
-        const angle = (i / 8) * Math.PI * 2;
-        particle.position.set(
-          Math.cos(angle) * 1.5,
-          0.6 + Math.random() * 0.5,
-          Math.sin(angle) * 1.5
-        );
-        particle.userData = { 
-          isCometParticle: true,
-          angle: angle,
-          radius: 1.5,
-          speed: 0.5 + Math.random() * 0.5,
-          height: particle.position.y
-        };
-        cometGroup.add(particle);
-        animatedObjects.cometParticles.push(particle); // Cache for optimized animation
+      scene.add(mountainGroup);
+      
+      // Fishing Dock by the lake
+      const dockGroup = new THREE.Group();
+      dockGroup.position.set(30, 0.1, -15); // North edge of lake
+      
+      // Dock planks
+      const plankGeo = new THREE.BoxGeometry(8, 0.3, 2);
+      const plankMat = new THREE.MeshToonMaterial({ color: 0x8B4513 });
+      const dock = new THREE.Mesh(plankGeo, plankMat);
+      dockGroup.add(dock);
+      
+      // Dock posts
+      for(let i = 0; i < 3; i++) {
+        const postGeo = new THREE.CylinderGeometry(0.2, 0.2, 2, 8);
+        const post = new THREE.Mesh(postGeo, plankMat);
+        post.position.set(-3 + i * 3, -1, 0);
+        dockGroup.add(post);
       }
       
-      scene.add(cometGroup);
+      scene.add(dockGroup);
+
+      // Small House near lake
+      const houseGroup = new THREE.Group();
+      houseGroup.position.set(20, 0, -30); // West of lake
+      
+      // House base
+      const houseBaseGeo = new THREE.BoxGeometry(6, 4, 5);
+      const houseBaseMat = new THREE.MeshToonMaterial({ color: 0xD2691E });
+      const houseBase = new THREE.Mesh(houseBaseGeo, houseBaseMat);
+      houseBase.position.y = 2;
+      houseBase.castShadow = true;
+      houseGroup.add(houseBase);
+      
+      // Roof
+      const roofGeo = new THREE.ConeGeometry(4.5, 3, 4);
+      const roofMat = new THREE.MeshToonMaterial({ color: 0x8B4513 });
+      const roof = new THREE.Mesh(roofGeo, roofMat);
+      roof.position.y = 5.5;
+      roof.rotation.y = Math.PI / 4;
+      roof.castShadow = true;
+      houseGroup.add(roof);
+      
+      // Door
+      const doorGeo = new THREE.PlaneGeometry(1, 2);
+      const doorMat = new THREE.MeshToonMaterial({ color: 0x654321 });
+      const door = new THREE.Mesh(doorGeo, doorMat);
+      door.position.set(0, 1, 2.51);
+      houseGroup.add(door);
+      
+      // Window
+      const windowGeo = new THREE.PlaneGeometry(1, 1);
+      const windowMat = new THREE.MeshBasicMaterial({ color: 0xADD8E6 });
+      const window1 = new THREE.Mesh(windowGeo, windowMat);
+      window1.position.set(-1.5, 2.5, 2.51);
+      houseGroup.add(window1);
+      
+      scene.add(houseGroup);
 
       // Farm Area near windmill
       const farmGroup = new THREE.Group();
