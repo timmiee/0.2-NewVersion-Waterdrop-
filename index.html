@@ -3293,13 +3293,7 @@
       scene.add(ground);
 
       // Features
-      // Lake (Blue Plane) with water effect
-      const lakeGeo = new THREE.CircleGeometry(15, 32);
-      const lakeMat = new THREE.MeshBasicMaterial({ color: COLORS.lake, transparent: true, opacity: 0.8 });
-      const lake = new THREE.Mesh(lakeGeo, lakeMat);
-      lake.rotation.x = -Math.PI / 2;
-      lake.position.set(30, 0.01, -30);
-      scene.add(lake);
+      // NOTE: Old lake removed - using enhanced reflective lake defined later (line ~3747)
       
       // Add water ripple effect
       const rippleGeo = new THREE.RingGeometry(14, 15, 32);
