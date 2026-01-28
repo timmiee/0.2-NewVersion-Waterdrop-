@@ -248,6 +248,32 @@
       color: #bbb;
       display: none; /* Hidden - only show funny names */
     }
+    
+    /* Special upgrade cards */
+    .upgrade-card.perk {
+      border-color: #9b59b6;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3), 0 0 20px rgba(155,89,182,0.6);
+      animation: perkPulse 2s infinite;
+    }
+    
+    .upgrade-card.perk:hover {
+      box-shadow: 0 6px 12px rgba(155,89,182,0.8), 0 0 30px rgba(155,89,182,0.7);
+    }
+    
+    .upgrade-card.legendary {
+      border-color: #ff6b6b;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3), 0 0 20px rgba(255,107,107,0.6);
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .upgrade-card.legendary:hover {
+      box-shadow: 0 6px 12px rgba(255,107,107,0.8), 0 0 30px rgba(255,107,107,0.7);
+    }
+    
+    @keyframes perkPulse {
+      0%, 100% { box-shadow: 0 4px 8px rgba(0,0,0,0.3), 0 0 20px rgba(155,89,182,0.6); }
+      50% { box-shadow: 0 4px 8px rgba(0,0,0,0.3), 0 0 30px rgba(155,89,182,0.9); }
+    }
 
     /* Damage Numbers */
     .damage-number {
@@ -1433,7 +1459,24 @@
       survivalTime: 0,
       dashesPerformed: 0,
       damageTaken: 0,
-      weaponsUnlocked: 0
+      weaponsUnlocked: 0,
+      // Perk System
+      perks: {
+        vampire: 0,      // Life steal %
+        juggernaut: 0,   // Damage reduction %
+        swift: 0,        // Move speed %
+        lucky: 0,        // Crit chance %
+        berserker: 0     // Low HP attack speed bonus
+      },
+      // Skill upgrades
+      dashCooldownReduction: 0,
+      dashDistanceBonus: 0,
+      hasSecondWind: false,
+      lifeStealPercent: 0,
+      thornsPercent: 0,
+      hasBerserkerRage: false,
+      treasureHunterChance: 0,
+      doubleCritChance: 0
     };
 
     // Weapons State
@@ -1443,11 +1486,17 @@
       aura: { active: false, level: 0, damage: 5, cooldown: 500, lastShot: 0, range: 3 },
       meteor: { active: false, level: 0, damage: 60, cooldown: 2500, lastShot: 0, area: 5 },
       lightning: { active: false, level: 0, damage: 25, cooldown: 3000, lastShot: 0, targets: 4 },
-      doubleBarrel: { active: false, level: 0, damage: 25, cooldown: 1200, lastShot: 0, range: 12, spread: 0.3 }
+      doubleBarrel: { active: false, level: 0, damage: 25, cooldown: 1200, lastShot: 0, range: 12, spread: 0.3 },
+      iceSpear: { active: false, level: 0, damage: 20, cooldown: 1500, lastShot: 0, range: 15, slowPercent: 0.4, slowDuration: 2000 },
+      fireRing: { active: false, level: 0, damage: 8, cooldown: 800, lastShot: 0, range: 4, orbs: 3, rotationSpeed: 2 }
     };
 
     // Magnet range for XP collection
     let magnetRange = 2; // Base range for XP magnet
+    
+    // Dash mechanics
+    let dashCooldown = 1000; // Base cooldown in ms (1 second)
+    let dashDistance = 2.5; // Base dash distance multiplier
 
     // Upgrade Config
     const UPGRADES = {
@@ -1620,8 +1669,8 @@
         if (this.isDashing) {
           this.dashTime -= dt;
           const t = 1 - (this.dashTime / this.dashDuration);
-          // Dash distance = 2.5x character size (character is 1 unit tall, so dash ~2.5 units)
-          const dashSpeed = (2.5 / this.dashDuration); // units per second
+          // Dash distance uses the upgradeable dashDistance variable
+          const dashSpeed = (dashDistance / this.dashDuration); // units per second
           const speed = Math.sin(t * Math.PI) * dashSpeed; // Slow-Fast-Slow curve
           this.mesh.position.x += this.dashVec.x * speed * dt;
           this.mesh.position.z += this.dashVec.z * speed * dt;
@@ -4957,83 +5006,83 @@
           id: 'str', 
           icon: '⚔️',
           title: 'MUSCLE JUICE', 
-          desc: 'Weapon Damage +10% (Base Strength Multiplier)', 
+          desc: 'Weapon Damage +15% (Base Strength Multiplier)', 
           apply: () => { 
-            playerStats.strength += 0.1; 
-            showStatChange('+10% Damage');
+            playerStats.strength += 0.15; 
+            showStatChange('+15% Damage');
           } 
         },
         { 
           id: 'aspd', 
           icon: '⚡',
           title: 'SPEEDY TRIGGER', 
-          desc: 'Attack Speed +10% (Faster Weapon Fire Rate)', 
+          desc: 'Attack Speed +15% (Faster Weapon Fire Rate)', 
           apply: () => { 
-            playerStats.atkSpeed += 0.1; 
-            weapons.gun.cooldown *= 0.9; 
-            weapons.doubleBarrel.cooldown *= 0.9;
-            showStatChange('+10% Attack Speed');
+            playerStats.atkSpeed += 0.15; 
+            weapons.gun.cooldown *= 0.85; 
+            weapons.doubleBarrel.cooldown *= 0.85;
+            showStatChange('+15% Attack Speed');
           } 
         },
         { 
           id: 'armor', 
           icon: '🛡️',
           title: 'THICC ARMOR', 
-          desc: 'Armor +10% (Damage Reduction, Max 80%)', 
+          desc: 'Armor +12% (Damage Reduction, Max 80%)', 
           apply: () => { 
-            playerStats.armor = Math.min(80, playerStats.armor + 10); 
-            showStatChange('+10% Armor (Current: ' + playerStats.armor + '%)');
+            playerStats.armor = Math.min(80, playerStats.armor + 12); 
+            showStatChange('+12% Armor (Current: ' + playerStats.armor + '%)');
           } 
         },
         { 
           id: 'hp', 
           icon: '❤️',
           title: 'CHONKY BODY', 
-          desc: 'Max HP +20 (Instant Heal +20)', 
+          desc: 'Max HP +30 (Instant Heal +30)', 
           apply: () => { 
-            playerStats.maxHp += 20; 
-            playerStats.hp += 20; 
-            showStatChange('+20 Max HP');
+            playerStats.maxHp += 30; 
+            playerStats.hp += 30; 
+            showStatChange('+30 Max HP');
           } 
         },
         { 
           id: 'crit', 
           icon: '🎯',
           title: 'CRIT MACHINE', 
-          desc: 'Critical Hit Chance +5% (Lucky Strikes)', 
+          desc: 'Critical Hit Chance +8% (Lucky Strikes)', 
           apply: () => { 
-            playerStats.critChance += 0.05; 
-            showStatChange('+5% Crit Chance (Now: ' + Math.round(playerStats.critChance * 100) + '%)');
+            playerStats.critChance += 0.08; 
+            showStatChange('+8% Crit Chance (Now: ' + Math.round(playerStats.critChance * 100) + '%)');
           } 
         },
         { 
           id: 'regen', 
           icon: '💚',
           title: 'HEALING VIBES', 
-          desc: 'HP Regeneration +1/sec (Passive Healing)', 
+          desc: 'HP Regeneration +2/sec (Passive Healing)', 
           apply: () => { 
-            playerStats.hpRegen += 1; 
-            showStatChange('+1 HP/sec Regen (Total: ' + playerStats.hpRegen + '/sec)');
+            playerStats.hpRegen += 2; 
+            showStatChange('+2 HP/sec Regen (Total: ' + playerStats.hpRegen + '/sec)');
           } 
         },
         { 
           id: 'speed', 
           icon: '🏃',
           title: 'SPEEDY BOI', 
-          desc: 'Movement Speed +10% (Faster Movement)', 
+          desc: 'Movement Speed +15% (Faster Movement)', 
           apply: () => { 
-            playerStats.walkSpeed += 2.5; 
-            showStatChange('+10% Move Speed (Now: ' + Math.round(playerStats.walkSpeed / 25 * 100) + '%)');
+            playerStats.walkSpeed *= 1.15; 
+            showStatChange('+15% Move Speed');
           } 
         },
         { 
           id: 'critdmg', 
           icon: '💥',
           title: 'GLASS CANNON', 
-          desc: 'Critical Damage +20% (Stronger Crits)', 
+          desc: 'Critical Damage +30% (Stronger Crits)', 
           apply: () => { 
-            playerStats.critDmg += 0.2; 
-            showStatChange('+20% Crit Damage (Now: ' + Math.round(playerStats.critDmg * 100) + '%)');
+            playerStats.critDmg += 0.3; 
+            showStatChange('+30% Crit Damage (Now: ' + Math.round(playerStats.critDmg * 100) + '%)');
           } 
         },
         { 
@@ -5058,7 +5107,83 @@
             weapons.meteor.cooldown *= 0.95;
             weapons.lightning.cooldown *= 0.95;
             weapons.doubleBarrel.cooldown *= 0.95;
+            weapons.iceSpear.cooldown *= 0.95;
+            weapons.fireRing.cooldown *= 0.95;
             showStatChange('All Weapon Cooldowns -5%');
+          } 
+        },
+        { 
+          id: 'dash_mastery', 
+          icon: '💨',
+          title: 'DASH MASTERY', 
+          desc: 'Dash Cooldown -20%, Distance +30%', 
+          apply: () => { 
+            playerStats.dashCooldownReduction += 0.2;
+            playerStats.dashDistanceBonus += 0.3;
+            dashCooldown *= 0.8;
+            dashDistance *= 1.3;
+            player.dashDuration *= 0.9; // Slightly faster dash
+            showStatChange('Dash Improved! CD: -20%, Distance: +30%');
+          } 
+        },
+        { 
+          id: 'second_wind', 
+          icon: '🛡️',
+          title: 'SECOND WIND', 
+          desc: 'Gain 30 Shield when HP drops below 30%', 
+          apply: () => { 
+            playerStats.hasSecondWind = true;
+            showStatChange('Second Wind Unlocked!');
+          } 
+        },
+        { 
+          id: 'life_steal', 
+          icon: '🩸',
+          title: 'LIFE STEAL', 
+          desc: 'Heal 3% of Damage Dealt (Stacks)', 
+          apply: () => { 
+            playerStats.lifeStealPercent += 0.03;
+            showStatChange('Life Steal +3% (Total: ' + Math.round(playerStats.lifeStealPercent * 100) + '%)');
+          } 
+        },
+        { 
+          id: 'thorns', 
+          icon: '🔱',
+          title: 'THORNS', 
+          desc: 'Reflect 15% Damage to Attackers (Stacks)', 
+          apply: () => { 
+            playerStats.thornsPercent += 0.15;
+            showStatChange('Thorns +15% (Total: ' + Math.round(playerStats.thornsPercent * 100) + '%)');
+          } 
+        },
+        { 
+          id: 'berserker_rage', 
+          icon: '😤',
+          title: 'BERSERKER RAGE', 
+          desc: 'Gain 25% Attack Speed when below 50% HP', 
+          apply: () => { 
+            playerStats.hasBerserkerRage = true;
+            showStatChange('Berserker Rage Unlocked!');
+          } 
+        },
+        { 
+          id: 'treasure_hunter', 
+          icon: '💰',
+          title: 'TREASURE HUNTER', 
+          desc: '20% Chance to Drop Extra Gold (Stacks)', 
+          apply: () => { 
+            playerStats.treasureHunterChance += 0.2;
+            showStatChange('Treasure Hunter +20% (Total: ' + Math.round(playerStats.treasureHunterChance * 100) + '%)');
+          } 
+        },
+        { 
+          id: 'lucky_strikes', 
+          icon: '✨',
+          title: 'LUCKY STRIKES', 
+          desc: 'Crits have 25% Chance to Strike Twice', 
+          apply: () => { 
+            playerStats.doubleCritChance += 0.25;
+            showStatChange('Lucky Strikes +25% (Total: ' + Math.round(playerStats.doubleCritChance * 100) + '%)');
           } 
         }
       ];
@@ -5175,6 +5300,40 @@
           });
         }
         
+        if (weapons.iceSpear.active && weapons.iceSpear.level < 4) {
+          const nextLevel = weapons.iceSpear.level + 1;
+          choices.push({ 
+            id: 'icespear_upgrade', 
+            icon: '❄️',
+            title: `ICE SPEAR Level ${nextLevel}`, 
+            desc: `Damage +10, Slow +10%, Duration +0.5s`, 
+            apply: () => { 
+              weapons.iceSpear.level++;
+              weapons.iceSpear.damage += 10;
+              weapons.iceSpear.slowPercent += 0.1;
+              weapons.iceSpear.slowDuration += 500;
+              showStatChange(`Ice Spear Level ${weapons.iceSpear.level}`);
+            } 
+          });
+        }
+        
+        if (weapons.fireRing.active && weapons.fireRing.level < 4) {
+          const nextLevel = weapons.fireRing.level + 1;
+          choices.push({ 
+            id: 'firering_upgrade', 
+            icon: '🔥',
+            title: `FIRE RING Level ${nextLevel}`, 
+            desc: `Damage +5, +1 Orb, Range +0.5`, 
+            apply: () => { 
+              weapons.fireRing.level++;
+              weapons.fireRing.damage += 5;
+              weapons.fireRing.orbs += 1;
+              weapons.fireRing.range += 0.5;
+              showStatChange(`Fire Ring Level ${weapons.fireRing.level}`);
+            } 
+          });
+        }
+        
         // Add some stat upgrades too
         choices.push(...commonUpgrades.sort(() => 0.5 - Math.random()).slice(0, 2));
         
@@ -5238,6 +5397,28 @@
               weapons.doubleBarrel.level = 1;
               showStatChange('New Weapon: Double Barrel');
             } 
+          },
+          { 
+            id: 'icespear', 
+            icon: '❄️',
+            title: 'ICE SPEAR', 
+            desc: 'Freezing projectile that slows enemies 40%', 
+            apply: () => { 
+              weapons.iceSpear.active = true;
+              weapons.iceSpear.level = 1;
+              showStatChange('New Weapon: Ice Spear');
+            } 
+          },
+          { 
+            id: 'firering', 
+            icon: '🔥',
+            title: 'FIRE RING', 
+            desc: 'Spinning fire orbs orbit around you', 
+            apply: () => { 
+              weapons.fireRing.active = true;
+              weapons.fireRing.level = 1;
+              showStatChange('New Weapon: Fire Ring');
+            } 
           }
         ];
       }
@@ -5300,6 +5481,72 @@
           }
         ];
       } 
+      // Level 12, 18, 25: PERK UNLOCKS
+      else if ([12, 18, 25].includes(playerStats.lvl)) {
+        modal.querySelector('h2').innerText = 'PERK UNLOCK!';
+        modal.querySelector('h2').style.fontSize = '40px';
+        
+        // Create perk pool based on level
+        const perkChoices = [
+          { 
+            id: 'perk_vampire', 
+            icon: '🧛',
+            title: 'VAMPIRE', 
+            desc: `Life Steal +5% (Current: ${Math.round(playerStats.perks.vampire * 5)}%)`, 
+            apply: () => { 
+              playerStats.perks.vampire++;
+              playerStats.lifeStealPercent += 0.05;
+              showStatChange(`Vampire Perk Level ${playerStats.perks.vampire}! (+5% Life Steal)`);
+            } 
+          },
+          { 
+            id: 'perk_juggernaut', 
+            icon: '🛡️',
+            title: 'JUGGERNAUT', 
+            desc: `Damage Reduction +8% (Current: ${Math.round(playerStats.perks.juggernaut * 8)}%)`, 
+            apply: () => { 
+              playerStats.perks.juggernaut++;
+              playerStats.armor = Math.min(80, playerStats.armor + 8);
+              showStatChange(`Juggernaut Perk Level ${playerStats.perks.juggernaut}! (+8% Armor)`);
+            } 
+          },
+          { 
+            id: 'perk_swift', 
+            icon: '⚡',
+            title: 'SWIFT', 
+            desc: `Movement Speed +15% (Current: Level ${playerStats.perks.swift})`, 
+            apply: () => { 
+              playerStats.perks.swift++;
+              playerStats.walkSpeed *= 1.15;
+              showStatChange(`Swift Perk Level ${playerStats.perks.swift}! (+15% Move Speed)`);
+            } 
+          },
+          { 
+            id: 'perk_lucky', 
+            icon: '🍀',
+            title: 'LUCKY', 
+            desc: `Critical Chance +8% (Current: ${Math.round(playerStats.perks.lucky * 8)}%)`, 
+            apply: () => { 
+              playerStats.perks.lucky++;
+              playerStats.critChance += 0.08;
+              showStatChange(`Lucky Perk Level ${playerStats.perks.lucky}! (+8% Crit Chance)`);
+            } 
+          },
+          { 
+            id: 'perk_berserker', 
+            icon: '💢',
+            title: 'BERSERKER SOUL', 
+            desc: `Low HP Bonus +10% Damage (Current: Level ${playerStats.perks.berserker})`, 
+            apply: () => { 
+              playerStats.perks.berserker++;
+              showStatChange(`Berserker Soul Level ${playerStats.perks.berserker}! (Bonus when HP < 50%)`);
+            } 
+          }
+        ];
+        
+        // Randomly select 3 perks
+        choices = perkChoices.sort(() => 0.5 - Math.random()).slice(0, 3);
+      }
       else {
         // Random 4
         choices = commonUpgrades.sort(() => 0.5 - Math.random()).slice(0, 4);
@@ -5308,6 +5555,15 @@
       choices.forEach((u, index) => {
         const card = document.createElement('div');
         card.className = 'upgrade-card';
+        
+        // Add special styling for perks and powerful upgrades
+        if (u.id && u.id.startsWith('perk_')) {
+          card.className += ' perk';
+        } else if (u.id && (u.id.includes('dash_mastery') || u.id.includes('second_wind') || 
+                            u.id.includes('berserker_rage') || u.id.includes('lucky_strikes'))) {
+          card.className += ' legendary';
+        }
+        
         const iconHTML = u.icon ? `<div style="font-size: 48px; margin-bottom: 10px;">${u.icon}</div>` : '';
         card.innerHTML = `${iconHTML}<div class="upgrade-title">${u.title}</div><div class="upgrade-desc">${u.desc}</div>`;
         
