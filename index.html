@@ -1969,6 +1969,33 @@
         updateHUD();
         playSound('hit');
         
+        // Show damage number for player (red color)
+        const div = document.createElement('div');
+        div.className = 'damage-number player-damage';
+        div.innerText = `-${Math.floor(reduced)}`;
+        div.style.color = '#FF4444';
+        div.style.fontSize = '24px';
+        div.style.fontWeight = 'bold';
+        div.style.textShadow = '0 0 8px rgba(255,68,68,0.8), 2px 2px 4px #000';
+        
+        // Project 3D pos to 2D screen
+        const vec = this.mesh.position.clone();
+        vec.y += 2;
+        vec.project(camera);
+        
+        const x = (vec.x * .5 + .5) * window.innerWidth;
+        const y = (-(vec.y * .5) + .5) * window.innerHeight;
+        
+        div.style.position = 'absolute';
+        div.style.left = `${x}px`;
+        div.style.top = `${y}px`;
+        div.style.transform = 'translate(-50%, -50%)';
+        div.style.pointerEvents = 'none';
+        div.style.zIndex = '1000';
+        
+        document.body.appendChild(div);
+        setTimeout(() => div.remove(), 1000);
+        
         // Set invulnerability
         this.invulnerable = true;
         this.invulnerabilityTime = 0;
@@ -3502,8 +3529,9 @@
       applyRandomPerk() {
         const perks = [
           { name: 'Speed Boost', apply: () => { 
-            // Cap max speed at 2x base speed to prevent breaking physics
-            if (playerStats.walkSpeed < GAME_CONFIG.playerSpeedBase * 2) {
+            // Cap max speed at 2x initial walkSpeed (50) to prevent breaking physics
+            const maxWalkSpeed = 50; // 2x the initial 25
+            if (playerStats.walkSpeed < maxWalkSpeed) {
               playerStats.walkSpeed *= 1.1;
               showStatChange('+10% Move Speed');
             } else {
