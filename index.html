@@ -1040,6 +1040,9 @@
       <div class="stat-text" id="score-text" style="color: #8B4513;">KILLS: 0</div>
       <div class="stat-text gold-text" id="gold-text" style="color: #FFD700; text-shadow: 0 0 10px rgba(255,215,0,0.9), 0 0 15px rgba(255,215,0,0.6), 1px 1px 2px rgba(0,0,0,0.5);">GOLD: 0</div>
       
+      <!-- Status Message Bar -->
+      <div class="stat-text" id="status-message" style="color: #5DADE2; text-shadow: 0 0 8px rgba(93,173,226,0.8), 0 0 12px rgba(93,173,226,0.5), 1px 1px 2px rgba(0,0,0,0.5); font-size: 16px; min-height: 20px; margin-top: 5px;"></div>
+      
       <!-- Windmill Quest UI -->
       <div id="windmill-quest-ui" style="display: none; margin-top: 10px;">
         <div class="bar-container" style="border-color: #8B4513;">
@@ -1420,6 +1423,7 @@
     let lastWaveEndTime = 0; // Track when last wave was cleared
     let windmillQuest = { active: false, timer: 0, duration: 30, windmill: null, hasCompleted: false };
     let runStartGold = 0;  // Track gold at start of run for end-of-run calculation
+    let miniBossesSpawned = new Set(); // Track which mini-boss levels have been spawned
 
     // Game Settings
     const gameSettings = {
@@ -4939,10 +4943,14 @@
     function spawnWave() {
       waveCount++;
       
-      // Check if this is a mini-boss wave (levels 10, 15, 20, and every 5 levels after)
-      const isMiniBossWave = playerStats.lvl >= 10 && playerStats.lvl % 5 === 0;
+      // Check if this is a mini-boss wave (ONLY levels 10, 25, 50)
+      const miniBossLevels = [10, 25, 50];
+      const isMiniBossWave = miniBossLevels.includes(playerStats.lvl) && !miniBossesSpawned.has(playerStats.lvl);
       
       if (isMiniBossWave) {
+        // Mark this level's mini-boss as spawned
+        miniBossesSpawned.add(playerStats.lvl);
+        
         // Spawn mini-boss with 2-3 regular enemies
         const angle = Math.random() * Math.PI * 2;
         const dist = 28;
@@ -5534,55 +5542,31 @@
     }
     
     function createFloatingText(text, pos) {
-      const div = document.createElement('div');
-      div.style.position = 'absolute';
-      div.style.color = '#5DADE2';
-      div.style.fontSize = '28px';
-      div.style.fontWeight = 'bold';
-      div.style.textShadow = '0 0 15px rgba(93,173,226,0.8), 0 0 30px rgba(93,173,226,0.5), 2px 2px 4px #000';
-      div.style.pointerEvents = 'none';
-      div.style.zIndex = '100';
-      div.style.whiteSpace = 'nowrap';
-      div.innerText = text;
+      // Display message in status bar instead of floating text
+      const statusEl = document.getElementById('status-message');
+      if (!statusEl) return;
       
-      const vec = pos.clone();
-      vec.y += 1;
-      vec.project(camera);
+      statusEl.innerText = text;
+      statusEl.style.color = '#FF4444'; // Red for important messages like mini-boss
+      statusEl.style.fontSize = '18px';
+      statusEl.style.opacity = '1';
       
-      const x = (vec.x * .5 + .5) * window.innerWidth;
-      const y = (-(vec.y * .5) + .5) * window.innerHeight;
-      
-      div.style.left = `${x}px`;
-      div.style.top = `${y}px`;
-      div.style.transform = 'translate(-50%, -50%)';
-      
-      document.body.appendChild(div);
-      
-      // Animate upward
-      let offsetY = 0;
-      const animateDuration = 2000;
-      const startTime = Date.now();
-      
-      const animate = () => {
-        const elapsed = Date.now() - startTime;
-        const t = elapsed / animateDuration;
-        
-        if (t >= 1) {
-          div.remove();
-          return;
-        }
-        
-        offsetY = -100 * t;
-        const opacity = 1 - t;
-        const scale = 1 + t * 0.5;
-        
-        div.style.top = `${y + offsetY}px`;
-        div.style.opacity = opacity;
-        div.style.transform = `translate(-50%, -50%) scale(${scale})`;
-        
-        requestAnimationFrame(animate);
-      };
-      animate();
+      // Clear after 4 seconds with fade out
+      setTimeout(() => {
+        let opacity = 1;
+        const fadeOut = setInterval(() => {
+          opacity -= 0.05;
+          if (opacity <= 0) {
+            clearInterval(fadeOut);
+            statusEl.innerText = '';
+            statusEl.style.opacity = '1';
+            statusEl.style.fontSize = '16px';
+          } else {
+            statusEl.style.opacity = opacity.toString();
+          }
+        }, 50);
+      }, 4000);
+    }
     }
 
     function showUpgradeModal() {
@@ -6288,65 +6272,28 @@
     }
     
     function showStatChange(text) {
-      // Create floating text on bottom-left of screen (not blocking character)
-      const div = document.createElement('div');
-      div.style.position = 'fixed';
-      div.style.bottom = '80px'; // Bottom-left position
-      div.style.left = '20px';
-      div.style.transform = 'translateX(-100%) scale(0)'; // Start off-screen left
-      div.style.color = '#FFD700';
-      div.style.fontSize = '20px';
-      div.style.fontWeight = 'bold';
-      div.style.textShadow = '0 0 10px rgba(255,215,0,0.8), 0 0 20px rgba(255,215,0,0.5), 2px 2px 4px #000';
-      div.style.padding = '10px 15px';
-      div.style.background = 'rgba(30,30,30,0.9)';
-      div.style.borderRadius = '10px';
-      div.style.border = '2px solid #FFD700';
-      div.style.zIndex = '2000';
-      div.style.pointerEvents = 'none';
-      div.innerText = text;
+      // Display message in status bar instead of floating text
+      const statusEl = document.getElementById('status-message');
+      if (!statusEl) return;
       
-      document.body.appendChild(div);
+      statusEl.innerText = text;
+      statusEl.style.color = '#FFD700';
+      statusEl.style.opacity = '1';
       
-      // Animate: slide in from left, scale up, stay visible longer, then fade out matching fade-in
-      let scale = 0;
-      let opacity = 1;
-      const animDuration = 1700; // Increased from 1500ms by 200ms
-      const startTime = Date.now();
-      
-      const animate = () => {
-        const elapsed = Date.now() - startTime;
-        const t = elapsed / animDuration;
-        
-        if (t >= 1) {
-          div.remove();
-          return;
-        }
-        
-        // Scale and fade animation: ease-in, hold, ease-out (matching style)
-        if (t < 0.2) {
-          // Fade in (0 to 0.2)
-          scale = Math.sin((t / 0.2) * Math.PI / 2); // Ease in
-          opacity = scale;
-        } else if (t < 0.8) {
-          // Hold at full scale (0.2 to 0.8)
-          scale = 1;
-          opacity = 1;
-        } else {
-          // Fade out (0.8 to 1.0) - matching fade-in curve
-          const fadeT = (t - 0.8) / 0.2;
-          scale = Math.cos(fadeT * Math.PI / 2); // Ease out (mirror of ease in)
-          opacity = scale;
-        }
-        
-        // Slide in from left
-        const translateX = t < 0.2 ? (1 - (t / 0.2)) * -100 : 0;
-        div.style.transform = `translateX(${translateX}%) scale(${scale})`;
-        div.style.opacity = opacity;
-        
-        requestAnimationFrame(animate);
-      };
-      animate();
+      // Clear after 3 seconds with fade out
+      setTimeout(() => {
+        let opacity = 1;
+        const fadeOut = setInterval(() => {
+          opacity -= 0.05;
+          if (opacity <= 0) {
+            clearInterval(fadeOut);
+            statusEl.innerText = '';
+            statusEl.style.opacity = '1';
+          } else {
+            statusEl.style.opacity = opacity.toString();
+          }
+        }, 50);
+      }, 3000);
     }
 
     function gameOver() {
@@ -6402,6 +6349,7 @@
       playerStats.gold = 0;
       waveCount = 0;
       lastWaveEndTime = 0; // Reset wave timing
+      miniBossesSpawned.clear(); // Reset mini-boss tracking
       gameStartTime = Date.now();
       runStartGold = saveData.gold;
       
