@@ -907,9 +907,7 @@
         padding: 10px;
       }
       
-      #joystick-outer-right {
-        display: none !important; /* Hide right joystick in portrait */
-      }
+      /* Right joystick visibility controlled by auto-aim setting, not orientation */
     }
 
     @media (orientation: landscape) {
@@ -964,6 +962,7 @@
       <!-- Upgrade cards will be added dynamically -->
     </div>
     <button class="back-btn" id="shop-back-btn">BACK TO MENU</button>
+    <button class="back-btn" id="reset-progress-btn" style="background: #c0392b; border-color: #e74c3c; position: absolute; bottom: 20px; right: 20px;">RESET PROGRESS</button>
   </div>
 
   <!-- Achievements Screen -->
@@ -996,7 +995,7 @@
       <div class="settings-title">SETTINGS</div>
       
       <div class="settings-item">
-        <label for="auto-aim-checkbox">Auto-Aim (Portrait Mode)</label>
+        <label for="auto-aim-checkbox">Auto-Aim</label>
         <input type="checkbox" id="auto-aim-checkbox" checked>
       </div>
       
@@ -1747,11 +1746,11 @@
           
           // Rotation/Aiming with RIGHT stick (independent of movement)
           if (joystickRight.active) {
-            // Turn to face the direction of right stick
+            // Manual aim: Turn to face the direction of right stick
             const angle = Math.atan2(joystickRight.x, joystickRight.y);
             this.mesh.rotation.y = angle;
-          } else if (gameSettings.autoAim && gameSettings.isPortrait && enemies && enemies.length > 0) {
-            // Auto-aim only in portrait mode when enabled
+          } else if (gameSettings.autoAim && enemies && enemies.length > 0) {
+            // Auto-aim when enabled (works in any orientation)
             let nearestEnemy = null;
             let minDist = Infinity;
             enemies.forEach(e => {
@@ -1770,7 +1769,7 @@
               this.mesh.rotation.y = angle;
             }
           } else if (joystickLeft.active) {
-            // If no right stick input, rotate to face movement direction
+            // If no right stick input and no auto-aim, rotate to face movement direction
             const angle = Math.atan2(targetVel.x, targetVel.z);
             this.mesh.rotation.y = angle;
           }
@@ -2330,29 +2329,33 @@
             document.getElementById('windmill-quest-ui').style.display = 'none';
           }
         } else if (dist < 1.0 && this.type !== 4) { // Ranged enemies don't melee attack
-          // Attack player
-          player.takeDamage(this.damage);
-          
-          // Thorns damage - reflect damage back to enemy if still alive
-          if (playerStats.thornsPercent > 0 && !this.isDead) {
-            const thornsDamage = this.damage * playerStats.thornsPercent;
-            this.takeDamage(thornsDamage, false);
-            createDamageNumber(thornsDamage, this.mesh.position, false);
-            spawnParticles(this.mesh.position, 0xFF6347, 8); // Tomato red thorns
+          // Attack player with cooldown to prevent instant death
+          const now = Date.now();
+          if (now - this.lastAttackTime > this.attackCooldown) {
+            player.takeDamage(this.damage);
+            this.lastAttackTime = now;
+            
+            // Thorns damage - reflect damage back to enemy if still alive
+            if (playerStats.thornsPercent > 0 && !this.isDead) {
+              const thornsDamage = this.damage * playerStats.thornsPercent;
+              this.takeDamage(thornsDamage, false);
+              createDamageNumber(thornsDamage, this.mesh.position, false);
+              spawnParticles(this.mesh.position, 0xFF6347, 8); // Tomato red thorns
+            }
+            
+            // Slowing enemy slows player on hit
+            if (this.type === 3) {
+              playerStats.walkSpeed *= this.slowAmount;
+              // Remove slow after duration
+              setTimeout(() => {
+                playerStats.walkSpeed /= this.slowAmount;
+              }, this.slowDuration);
+              // Visual effect for slow
+              spawnParticles(player.mesh.position, 0x00FFFF, 10);
+            }
           }
           
-          // Slowing enemy slows player on hit
-          if (this.type === 3) {
-            playerStats.walkSpeed *= this.slowAmount;
-            // Remove slow after duration
-            setTimeout(() => {
-              playerStats.walkSpeed /= this.slowAmount;
-            }, this.slowDuration);
-            // Visual effect for slow
-            spawnParticles(player.mesh.position, 0x00FFFF, 10);
-          }
-          
-          // Knockback
+          // Knockback (always apply to prevent enemies from stacking)
           this.mesh.position.x -= (dx / dist) * 2;
           this.mesh.position.z -= (dz / dist) * 2;
         }
@@ -2719,11 +2722,26 @@
 
     class Projectile {
       constructor(x, z, target) {
-        const geometry = new THREE.SphereGeometry(0.2, 8, 8);
-        const material = new THREE.MeshBasicMaterial({ color: 0xFFFF00 });
+        const geometry = new THREE.SphereGeometry(0.25, 8, 8); // Larger bullet (was 0.2)
+        const material = new THREE.MeshBasicMaterial({ 
+          color: 0xFFFF00,
+          transparent: true,
+          opacity: 0.95
+        });
         this.mesh = new THREE.Mesh(geometry, material);
         this.mesh.position.set(x, 0.5, z);
         scene.add(this.mesh);
+        
+        // Add glowing trail effect
+        const glowGeometry = new THREE.SphereGeometry(0.35, 6, 6);
+        const glowMaterial = new THREE.MeshBasicMaterial({
+          color: 0xFFFF00,
+          transparent: true,
+          opacity: 0.4
+        });
+        this.glow = new THREE.Mesh(glowGeometry, glowMaterial);
+        this.glow.position.copy(this.mesh.position);
+        scene.add(this.glow);
 
         this.speed = 0.4;
         this.active = true;
@@ -2765,6 +2783,13 @@
         // Player projectiles
         this.mesh.position.x += this.vx;
         this.mesh.position.z += this.vz;
+        
+        // Update glow position and fade it
+        if (this.glow) {
+          this.glow.position.copy(this.mesh.position);
+          this.glow.material.opacity = 0.4 * (this.life / 60);
+        }
+        
         this.life--;
 
         if (this.life <= 0) {
@@ -2812,6 +2837,13 @@
         scene.remove(this.mesh);
         this.mesh.geometry.dispose();
         this.mesh.material.dispose();
+        
+        // Remove glow if it exists
+        if (this.glow) {
+          scene.remove(this.glow);
+          this.glow.geometry.dispose();
+          this.glow.material.dispose();
+        }
       }
     }
 
@@ -3937,46 +3969,62 @@
       });
       const roadGeo = new THREE.PlaneGeometry(4, 4);
       
-      // Road to windmill - smooth curved path
-      for(let i=0; i<30; i++) {
+      // Helper function to create smooth curved road between two points
+      function createCurvedRoad(startX, startZ, endX, endZ, segments, curve = 0) {
+        for(let i = 0; i <= segments; i++) {
+          const t = i / segments;
+          // Smooth interpolation with optional curve
+          const x = startX + (endX - startX) * t + Math.sin(t * Math.PI) * curve;
+          const z = startZ + (endZ - startZ) * t + Math.sin(t * Math.PI) * curve;
+          
+          const road = new THREE.Mesh(roadGeo, roadMat);
+          road.rotation.x = -Math.PI/2;
+          road.position.set(x, 0.03, z);
+          road.receiveShadow = true;
+          scene.add(road);
+        }
+      }
+      
+      // Main roads connecting key locations:
+      // 1. Statue (0,0) to Windmill (40,40) - curved path
+      createCurvedRoad(0, 0, 40, 40, 25, 3);
+      
+      // 2. Statue (0,0) to Cabin (-20,-20) - curved path
+      createCurvedRoad(0, 0, -20, -20, 15, -2);
+      
+      // 3. Statue (0,0) to Stonehenge (-60,-20) - curved path
+      createCurvedRoad(0, 0, -60, -20, 30, 5);
+      
+      // 4. Statue (0,0) to Pyramid (50,-50) - curved path
+      createCurvedRoad(0, 0, 50, -50, 35, -4);
+      
+      // 5. Statue (0,0) to Mine (-40,40) - curved path
+      createCurvedRoad(0, 0, -40, 40, 25, 4);
+      
+      // 6. Windmill (40,40) to Farm (35,35) - short connecting road
+      createCurvedRoad(40, 40, 35, 35, 8, 0);
+      
+      // 7. Circular road around statue - smooth ring road for patrol area
+      for(let i = 0; i < 60; i++) {
         const road = new THREE.Mesh(roadGeo, roadMat);
         road.rotation.x = -Math.PI/2;
-        const t = i / 30;
-        const x = t * 40;
-        const z = t * 40;
+        const angle = (i / 60) * Math.PI * 2;
+        const x = Math.cos(angle) * 8; // Smaller circle around statue
+        const z = Math.sin(angle) * 8;
         road.position.set(x, 0.03, z);
         road.receiveShadow = true;
         scene.add(road);
       }
       
-      // Circular path around center - smooth ring road
-      for(let i=0; i<50; i++) {
-        const road = new THREE.Mesh(roadGeo, roadMat);
-        road.rotation.x = -Math.PI/2;
-        const angle = (i / 50) * Math.PI * 2;
-        const x = Math.cos(angle) * 25;
-        const z = Math.sin(angle) * 25;
-        road.position.set(x, 0.03, z);
-        road.receiveShadow = true;
-        scene.add(road);
-      }
-      
-      // Additional main roads (cross pattern)
-      for(let i=-20; i<20; i++) {
-        // Horizontal road
-        const road1 = new THREE.Mesh(roadGeo, roadMat);
-        road1.rotation.x = -Math.PI/2;
-        road1.position.set(i * 2, 0.03, 0);
-        road1.receiveShadow = true;
-        scene.add(road1);
-        
-        // Vertical road
-        const road2 = new THREE.Mesh(roadGeo, roadMat);
-        road2.rotation.x = -Math.PI/2;
-        road2.position.set(0, 0.03, i * 2);
-        road2.receiveShadow = true;
-        scene.add(road2);
-      }
+      // 8. Map edge access roads (from edges to main areas)
+      // North edge to Windmill
+      createCurvedRoad(40, 90, 40, 40, 30, 3);
+      // South edge to Pyramid
+      createCurvedRoad(50, -90, 50, -50, 25, -3);
+      // West edge to Stonehenge
+      createCurvedRoad(-90, -20, -60, -20, 20, 0);
+      // East edge to Windmill area
+      createCurvedRoad(90, 40, 40, 40, 30, -4);
 
       // Wooden fences around play area
       const fenceMat = new THREE.MeshToonMaterial({ color: 0x8B4513 });
@@ -4839,6 +4887,41 @@
         playSound('levelup');
         document.getElementById('credits-screen').style.display = 'none';
         showMainMenu();
+      };
+      
+      // Reset progress button with double confirmation
+      document.getElementById('reset-progress-btn').onclick = () => {
+        if (confirm('⚠️ WARNING ⚠️\n\nAre you ABSOLUTELY SURE you want to RESET ALL PROGRESS?\n\nThis will delete:\n• All permanent upgrades\n• All gold\n• All achievements\n\nThis action CANNOT be undone!')) {
+          // Second confirmation
+          if (confirm('FINAL CONFIRMATION\n\nThis is your LAST CHANCE!\n\nDo you really want to DELETE EVERYTHING?\n\nClick OK to permanently reset, or Cancel to keep your progress.')) {
+            // Reset all save data
+            saveData = {
+              gold: 0,
+              upgrades: {
+                maxHp: 0,
+                hpRegen: 0,
+                moveSpeed: 0,
+                attackDamage: 0,
+                attackSpeed: 0,
+                critChance: 0,
+                critDamage: 0,
+                armor: 0,
+                cooldownReduction: 0
+              },
+              achievements: []
+            };
+            saveSaveData();
+            
+            // Reset game and return to menu
+            resetGame();
+            document.getElementById('progression-shop').style.display = 'none';
+            showMainMenu();
+            updateShopUI();
+            
+            alert('✅ All progress has been reset!');
+            playSound('hit');
+          }
+        }
       };
       
       // Restart button now returns to menu
@@ -5718,7 +5801,7 @@
               weapons.gun.level++;
               weapons.gun.damage += 10;
               weapons.gun.cooldown *= 0.85;
-              showStatChange(`Gun Level ${weapons.gun.level}`);
+              showStatChange(`Gun Level ${weapons.gun.level}: +10 Dmg, +15% Fire Rate`);
             } 
           });
         }
@@ -5734,7 +5817,7 @@
               weapons.sword.level++;
               weapons.sword.damage += 15;
               weapons.sword.range += 0.5;
-              showStatChange(`Sword Level ${weapons.sword.level}`);
+              showStatChange(`Sword Level ${weapons.sword.level}: +15 Dmg, +0.5 Range`);
             } 
           });
         }
@@ -5755,7 +5838,7 @@
               weapons.aura.level++;
               weapons.aura.damage += 3;
               weapons.aura.range = Math.min(5, baseRange * (1 + (weapons.aura.level * 0.10)));
-              showStatChange(`Aura Level ${weapons.aura.level}`);
+              showStatChange(`Aura Level ${weapons.aura.level}: +3 Dmg, +${rangeIncrease.toFixed(1)} Range`);
             } 
           });
         }
@@ -5771,7 +5854,7 @@
               weapons.meteor.level++;
               weapons.meteor.damage += 20;
               weapons.meteor.area += 1;
-              showStatChange(`Meteor Level ${weapons.meteor.level}`);
+              showStatChange(`Meteor Level ${weapons.meteor.level}: +20 Dmg, +1 Area`);
             } 
           });
         }
@@ -5788,7 +5871,7 @@
               weapons.lightning.level++;
               weapons.lightning.damage += 10;
               weapons.lightning.targets += targetIncrease;
-              showStatChange(`Lightning Level ${weapons.lightning.level}`);
+              showStatChange(`Lightning Level ${weapons.lightning.level}: +10 Dmg, +${targetIncrease} Targets`);
             } 
           });
         }
@@ -5804,7 +5887,7 @@
               weapons.doubleBarrel.level++;
               weapons.doubleBarrel.damage += 12;
               weapons.doubleBarrel.cooldown *= 0.9;
-              showStatChange(`Double Barrel Level ${weapons.doubleBarrel.level}`);
+              showStatChange(`Double Barrel Level ${weapons.doubleBarrel.level}: +12 Dmg, +10% Fire Rate`);
             } 
           });
         }
@@ -5821,7 +5904,7 @@
               weapons.iceSpear.damage += 10;
               weapons.iceSpear.slowPercent += 0.1;
               weapons.iceSpear.slowDuration += 500;
-              showStatChange(`Ice Spear Level ${weapons.iceSpear.level}`);
+              showStatChange(`Ice Spear Level ${weapons.iceSpear.level}: +10 Dmg, +10% Slow, +0.5s Duration`);
             } 
           });
         }
@@ -5838,7 +5921,7 @@
               weapons.fireRing.damage += 5;
               weapons.fireRing.orbs += 1;
               weapons.fireRing.range += 0.5;
-              showStatChange(`Fire Ring Level ${weapons.fireRing.level}`);
+              showStatChange(`Fire Ring Level ${weapons.fireRing.level}: +5 Dmg, +1 Orb, +0.5 Range`);
             } 
           });
         }
@@ -6335,6 +6418,31 @@
       weapons.meteor = { active: false, level: 0, damage: 60, cooldown: 2500, lastShot: 0, area: 5 };
       weapons.lightning = { active: false, level: 0, damage: 25, cooldown: 3000, lastShot: 0, targets: 4 };
       weapons.doubleBarrel = { active: false, level: 0, damage: 25, cooldown: 1200, lastShot: 0, range: 12, spread: 0.3 };
+      weapons.iceSpear = { active: false, level: 0, damage: 20, cooldown: 1500, lastShot: 0, range: 15, slowPercent: 0.4, slowDuration: 2000 };
+      weapons.fireRing = { active: false, level: 0, damage: 8, cooldown: 800, lastShot: 0, range: 4, orbs: 3, rotationSpeed: 2 };
+      
+      // Reset perks (these are temporary and should not persist between runs)
+      playerStats.perks = {
+        vampire: 0,
+        juggernaut: 0,
+        swift: 0,
+        lucky: 0,
+        berserker: 0
+      };
+      
+      // Reset temporary skills (these should not persist between runs)
+      playerStats.dashCooldownReduction = 0;
+      playerStats.dashDistanceBonus = 0;
+      playerStats.hasSecondWind = false;
+      playerStats.lifeStealPercent = 0;
+      playerStats.thornsPercent = 0;
+      playerStats.hasBerserkerRage = false;
+      playerStats.treasureHunterChance = 0;
+      playerStats.doubleCritChance = 0;
+      playerStats.survivalTime = 0;
+      playerStats.dashesPerformed = 0;
+      playerStats.damageTaken = 0;
+      playerStats.weaponsUnlocked = 0;
       
       windmillQuest = { active: false, timer: 0, duration: 15, windmill: null, hasCompleted: false };
       document.getElementById('windmill-quest-ui').style.display = 'none';
