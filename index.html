@@ -1423,6 +1423,7 @@
     let lastWaveEndTime = 0; // Track when last wave was cleared
     let windmillQuest = { active: false, timer: 0, duration: 30, windmill: null, hasCompleted: false };
     let runStartGold = 0;  // Track gold at start of run for end-of-run calculation
+    let lastCleanupTime = 0; // Track last memory cleanup time
     let miniBossesSpawned = new Set(); // Track which mini-boss levels have been spawned
 
     // Game Settings
@@ -2723,7 +2724,7 @@
         } else if (this.type === 0) { // Tank
           goldAmount = 2 + Math.floor(Math.random() * 2); // 2-3 gold (reduced from 3-5)
         } else if (this.type === 1) { // Fast
-          goldAmount = 1 + Math.floor(Math.random() * 1); // 1 gold (reduced from 1-2)
+          goldAmount = 1; // 1 gold (fast enemies drop less)
         } else if (this.type === 2) { // Balanced
           goldAmount = 1 + Math.floor(Math.random() * 2); // 1-2 gold (reduced from 2-3)
         } else if (this.type === 3) { // Slowing
@@ -5580,10 +5581,19 @@
       }
     }
     
+    // Floating text fade tracking to prevent memory leaks
+    let floatingTextFadeInterval = null;
+    
     function createFloatingText(text, pos) {
       // Display message in status bar instead of floating text
       const statusEl = document.getElementById('status-message');
       if (!statusEl) return;
+      
+      // Clear any existing fade interval
+      if (floatingTextFadeInterval) {
+        clearInterval(floatingTextFadeInterval);
+        floatingTextFadeInterval = null;
+      }
       
       statusEl.innerText = text;
       statusEl.style.color = '#FF4444'; // Red for important messages like mini-boss
@@ -5593,10 +5603,11 @@
       // Clear after 4 seconds with fade out
       setTimeout(() => {
         let opacity = 1;
-        const fadeOut = setInterval(() => {
+        floatingTextFadeInterval = setInterval(() => {
           opacity -= 0.05;
           if (opacity <= 0) {
-            clearInterval(fadeOut);
+            clearInterval(floatingTextFadeInterval);
+            floatingTextFadeInterval = null;
             statusEl.innerText = '';
             statusEl.style.opacity = '1';
             statusEl.style.fontSize = '16px';
@@ -5605,7 +5616,6 @@
           }
         }, 50);
       }, 4000);
-    }
     }
 
     function showUpgradeModal() {
@@ -6310,10 +6320,19 @@
       setTimeout(() => div.remove(), 1000);
     }
     
+    // Message fade tracking to prevent memory leaks
+    let statusMessageFadeInterval = null;
+    
     function showStatChange(text) {
       // Display message in status bar instead of floating text
       const statusEl = document.getElementById('status-message');
       if (!statusEl) return;
+      
+      // Clear any existing fade interval
+      if (statusMessageFadeInterval) {
+        clearInterval(statusMessageFadeInterval);
+        statusMessageFadeInterval = null;
+      }
       
       statusEl.innerText = text;
       statusEl.style.color = '#FFD700';
@@ -6322,10 +6341,11 @@
       // Clear after 3 seconds with fade out
       setTimeout(() => {
         let opacity = 1;
-        const fadeOut = setInterval(() => {
+        statusMessageFadeInterval = setInterval(() => {
           opacity -= 0.05;
           if (opacity <= 0) {
-            clearInterval(fadeOut);
+            clearInterval(statusMessageFadeInterval);
+            statusMessageFadeInterval = null;
             statusEl.innerText = '';
             statusEl.style.opacity = '1';
           } else {
@@ -7534,53 +7554,47 @@
         }
       });
 
-      // Cleanup and memory management
+      // Cleanup and memory management (run every 3 seconds to avoid performance issues)
       enemies = enemies.filter(e => !e.isDead);
       
-      // Limit max items on ground (memory optimization)
-      const MAX_EXP_GEMS = 100;
-      const MAX_GOLD_COINS = 50;
-      
-      // Auto-collect distant items if over limit
-      if (expGems.length > MAX_EXP_GEMS) {
-        // Sort by distance, keep closest ones, auto-collect furthest
-        expGems.sort((a, b) => {
-          const distA = a.mesh.position.distanceTo(player.mesh.position);
-          const distB = b.mesh.position.distanceTo(player.mesh.position);
-          return distA - distB;
-        });
+      const now = Date.now();
+      if (now - lastCleanupTime > 3000) { // Run cleanup every 3 seconds
+        lastCleanupTime = now;
         
-        // Auto-collect excess gems (furthest ones)
-        const excessGems = expGems.splice(MAX_EXP_GEMS);
-        excessGems.forEach(gem => {
-          if (gem.active) {
-            addExp(gem.value);
-            scene.remove(gem.mesh);
-            gem.mesh.geometry.dispose();
-            gem.mesh.material.dispose();
-            gem.active = false;
-          }
-        });
-      }
-      
-      if (goldCoins.length > MAX_GOLD_COINS) {
-        // Sort by distance, keep closest ones, auto-collect furthest
-        goldCoins.sort((a, b) => {
-          const distA = a.mesh.position.distanceTo(player.mesh.position);
-          const distB = b.mesh.position.distanceTo(player.mesh.position);
-          return distA - distB;
-        });
+        // Limit max items on ground (memory optimization)
+        const MAX_EXP_GEMS = 100;
+        const MAX_GOLD_COINS = 50;
         
-        // Auto-collect excess coins (furthest ones)
-        const excessCoins = goldCoins.splice(MAX_GOLD_COINS);
-        excessCoins.forEach(coin => {
-          if (coin.active) {
-            playerStats.gold += coin.amount;
-            scene.remove(coin.mesh);
-            coin.mesh.geometry.dispose();
-            coin.mesh.material.dispose();
-            coin.active = false;
+        // Helper function to cleanup distant items
+        const cleanupDistantItems = (items, maxItems, collectCallback) => {
+          if (items.length > maxItems) {
+            // Sort by distance, keep closest ones, auto-collect furthest
+            items.sort((a, b) => {
+              const distA = a.mesh.position.distanceTo(player.mesh.position);
+              const distB = b.mesh.position.distanceTo(player.mesh.position);
+              return distA - distB;
+            });
+            
+            // Auto-collect excess items (furthest ones)
+            const excessItems = items.splice(maxItems);
+            excessItems.forEach(item => {
+              if (item.active) {
+                collectCallback(item);
+                scene.remove(item.mesh);
+                item.mesh.geometry.dispose();
+                item.mesh.material.dispose();
+                item.active = false;
+              }
+            });
           }
+        };
+        
+        // Clean up exp gems
+        cleanupDistantItems(expGems, MAX_EXP_GEMS, (gem) => addExp(gem.value));
+        
+        // Clean up gold coins
+        cleanupDistantItems(goldCoins, MAX_GOLD_COINS, (coin) => {
+          playerStats.gold += coin.amount;
         });
       }
       
