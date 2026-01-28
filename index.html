@@ -5440,7 +5440,7 @@
       div.style.fontWeight = 'bold';
       
       // Match text shadow to color - gold or blue
-      if (textColor === '#FFD700' || isChestReward) {
+      if (textColor === '#FFD700') {
         div.style.textShadow = '0 0 10px rgba(255,215,0,0.9), 0 0 15px rgba(255,215,0,0.6), 1px 1px 2px rgba(0,0,0,0.5)';
       } else {
         div.style.textShadow = '0 0 15px rgba(93,173,226,0.8), 0 0 30px rgba(93,173,226,0.5), 2px 2px 4px #000';
@@ -6402,9 +6402,14 @@
       playSound('levelup'); // Add button sound
       const modal = document.getElementById('stats-modal');
       const levelUpModal = document.getElementById('levelup-modal');
+      const goldText = document.getElementById('gold-text');
       
       if (modal.style.display === 'flex') {
         modal.style.display = 'none';
+        // Restore gold text visibility if game is active
+        if (isGameActive && !isGameOver) {
+          goldText.style.display = 'block';
+        }
         if (levelUpModal.style.display !== 'flex' && !isGameOver) {
           isPaused = false;
         }
@@ -6485,6 +6490,8 @@
 </div>
         `;
         modal.style.display = 'flex';
+        // Hide gold text when stats modal is open for UI consistency
+        goldText.style.display = 'none';
         isPaused = true;
       }
     }
