@@ -2541,25 +2541,59 @@
         // More dramatic explosion effect on death
         const enemyColor = this.mesh.material.color.getHex();
         
-        // Main explosion - ENHANCED
-        spawnParticles(this.mesh.position, enemyColor, 40); // Increased from 25
-        spawnParticles(this.mesh.position, 0xFFFFFF, 15); // Increased from 10
-        spawnParticles(this.mesh.position, 0x8B0000, 12); // Added blood particles
+        // Main explosion - ENHANCED with more particles
+        spawnParticles(this.mesh.position, enemyColor, 40);
+        spawnParticles(this.mesh.position, 0xFFFFFF, 15);
+        spawnParticles(this.mesh.position, 0x8B0000, 12); // Blood particles
+        
+        // Add explosion ring effect
+        const ringGeo = new THREE.RingGeometry(0.1, 0.2, 16);
+        const ringMat = new THREE.MeshBasicMaterial({ 
+          color: enemyColor, 
+          transparent: true, 
+          opacity: 0.8,
+          side: THREE.DoubleSide
+        });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.position.copy(this.mesh.position);
+        ring.position.y = 0.1;
+        ring.rotation.x = Math.PI / 2;
+        scene.add(ring);
+        
+        // Animate ring expanding and fading
+        let ringLife = 20;
+        const animateRing = () => {
+          ringLife--;
+          const scale = 1 + (20 - ringLife) * 0.3;
+          ring.scale.set(scale, scale, 1);
+          ring.material.opacity = ringLife / 20;
+          
+          if (ringLife <= 0) {
+            scene.remove(ring);
+            ring.geometry.dispose();
+            ring.material.dispose();
+          } else {
+            requestAnimationFrame(animateRing);
+          }
+        };
+        animateRing();
         
         // Explode into more pieces - ENHANCED
-        for(let i = 0; i < 15; i++) { // Increased from 8 to 15
+        const pieceCount = this.isMiniBoss ? 25 : 15; // More pieces for mini-boss
+        for(let i = 0; i < pieceCount; i++) {
           const piece = new THREE.Mesh(
             new THREE.BoxGeometry(0.3, 0.3, 0.3),
-            new THREE.MeshBasicMaterial({ color: enemyColor, transparent: true }) // Added transparent flag
+            new THREE.MeshBasicMaterial({ color: enemyColor, transparent: true })
           );
           piece.position.copy(this.mesh.position);
           scene.add(piece);
           
-          const angle = (i / 15) * Math.PI * 2; // Updated for 15 pieces
+          const angle = (i / pieceCount) * Math.PI * 2;
+          const speed = this.isMiniBoss ? 0.6 : 0.4; // Faster explosion for mini-boss
           const vel = new THREE.Vector3(
-            Math.cos(angle) * 0.4,
+            Math.cos(angle) * speed,
             0.3 + Math.random() * 0.3,
-            Math.sin(angle) * 0.4
+            Math.sin(angle) * speed
           );
           
           let life = 50;
@@ -2582,18 +2616,18 @@
           updatePiece();
         }
         
-        // Screen flash on kill (dopamine boost)
+        // Screen flash on kill (dopamine boost) - stronger flash for mini-boss
         const flash = document.createElement('div');
         flash.style.position = 'fixed';
         flash.style.top = '0';
         flash.style.left = '0';
         flash.style.width = '100%';
         flash.style.height = '100%';
-        flash.style.background = 'rgba(255, 255, 255, 0.2)';
+        flash.style.background = this.isMiniBoss ? 'rgba(255, 215, 0, 0.3)' : 'rgba(255, 255, 255, 0.2)';
         flash.style.pointerEvents = 'none';
         flash.style.zIndex = '500';
         document.body.appendChild(flash);
-        setTimeout(() => flash.remove(), 50);
+        setTimeout(() => flash.remove(), this.isMiniBoss ? 100 : 50);
         
         scene.remove(this.mesh);
         this.mesh.geometry.dispose();
