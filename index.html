@@ -5583,16 +5583,21 @@
     
     // Floating text fade tracking to prevent memory leaks
     let floatingTextFadeInterval = null;
+    let floatingTextFadeTimeout = null;
     
     function createFloatingText(text, pos) {
       // Display message in status bar instead of floating text
       const statusEl = document.getElementById('status-message');
       if (!statusEl) return;
       
-      // Clear any existing fade interval
+      // Clear any existing fade interval and timeout
       if (floatingTextFadeInterval) {
         clearInterval(floatingTextFadeInterval);
         floatingTextFadeInterval = null;
+      }
+      if (floatingTextFadeTimeout) {
+        clearTimeout(floatingTextFadeTimeout);
+        floatingTextFadeTimeout = null;
       }
       
       statusEl.innerText = text;
@@ -5601,7 +5606,7 @@
       statusEl.style.opacity = '1';
       
       // Clear after 4 seconds with fade out
-      setTimeout(() => {
+      floatingTextFadeTimeout = setTimeout(() => {
         let opacity = 1;
         floatingTextFadeInterval = setInterval(() => {
           opacity -= 0.05;
@@ -6322,16 +6327,21 @@
     
     // Message fade tracking to prevent memory leaks
     let statusMessageFadeInterval = null;
+    let statusMessageFadeTimeout = null;
     
     function showStatChange(text) {
       // Display message in status bar instead of floating text
       const statusEl = document.getElementById('status-message');
       if (!statusEl) return;
       
-      // Clear any existing fade interval
+      // Clear any existing fade interval and timeout
       if (statusMessageFadeInterval) {
         clearInterval(statusMessageFadeInterval);
         statusMessageFadeInterval = null;
+      }
+      if (statusMessageFadeTimeout) {
+        clearTimeout(statusMessageFadeTimeout);
+        statusMessageFadeTimeout = null;
       }
       
       statusEl.innerText = text;
@@ -6339,7 +6349,7 @@
       statusEl.style.opacity = '1';
       
       // Clear after 3 seconds with fade out
-      setTimeout(() => {
+      statusMessageFadeTimeout = setTimeout(() => {
         let opacity = 1;
         statusMessageFadeInterval = setInterval(() => {
           opacity -= 0.05;
@@ -7567,7 +7577,7 @@
         
         // Helper function to cleanup distant items
         const cleanupDistantItems = (items, maxItems, collectCallback) => {
-          if (items.length > maxItems) {
+          if (items.length > maxItems && player && player.mesh) {
             // Sort by distance, keep closest ones, auto-collect furthest
             items.sort((a, b) => {
               const distA = a.mesh.position.distanceTo(player.mesh.position);
