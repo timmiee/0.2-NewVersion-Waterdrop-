@@ -1425,6 +1425,23 @@
     let runStartGold = 0;  // Track gold at start of run for end-of-run calculation
     let lastCleanupTime = 0; // Track last memory cleanup time
     let miniBossesSpawned = new Set(); // Track which mini-boss levels have been spawned
+    
+    // Performance optimization - particle cap to prevent memory overflow
+    const MAX_PARTICLES = 150;
+    const MAX_PROJECTILES = 100;
+    const MAX_METEORS = 50;
+    
+    // Cache animated objects to avoid scene.traverse() every frame
+    let animatedObjects = {
+      windmills: [],
+      waterRipples: [],
+      sparkles: [],
+      crystals: [],
+      cometParticles: [],
+      waterfalls: [],
+      waterDrops: [],
+      splashes: []
+    };
 
     // Game Settings
     const gameSettings = {
@@ -3991,6 +4008,7 @@
       ripple.position.set(30, 0.02, -30);
       ripple.userData = { isWaterRipple: true, phase: 0 };
       scene.add(ripple);
+      animatedObjects.waterRipples.push(ripple); // Cache for optimized animation
 
       // Smooth nice roads connecting areas
       const roadMat = new THREE.MeshPhysicalMaterial({ 
@@ -4137,6 +4155,7 @@
       // Store blades reference for rotation animation
       wmGroup.userData = { isWindmill: true, blades: [wmBlades, wmBlades2], hp: 600, maxHp: 600, questActive: false, light: wmLight };
       scene.add(wmGroup);
+      animatedObjects.windmills.push(wmGroup); // Cache for optimized animation
       
       // Mine
       const mineGeo = new THREE.DodecahedronGeometry(5);
@@ -4317,6 +4336,7 @@
           height: particle.position.y
         };
         cometGroup.add(particle);
+        animatedObjects.cometParticles.push(particle); // Cache for optimized animation
       }
       
       scene.add(cometGroup);
@@ -4410,6 +4430,7 @@
         };
         crystal.castShadow = true;
         crystalGroup.add(crystal);
+        animatedObjects.crystals.push(crystal); // Cache for optimized animation
       }
       
       scene.add(crystalGroup);
@@ -4438,6 +4459,7 @@
         water.position.set(0, tier * 3 + 1.5, tier * 2 + 1.1);
         water.userData = { isWaterfall: true, tier: tier };
         waterfallGroup.add(water);
+        animatedObjects.waterfalls.push(water); // Cache for optimized animation
       }
       
       scene.add(waterfallGroup);
@@ -4480,6 +4502,7 @@
           speed: 1 + Math.random() * 2
         };
         scene.add(sparkle);
+        animatedObjects.sparkles.push(sparkle); // Cache for optimized animation
       }
 
       // More fences around farm area
@@ -4608,6 +4631,7 @@
       waterfall.rotation.x = -0.2; // Slight angle
       waterfall.userData = { isWaterfall: true, phase: 0 };
       waterfallGroup2.add(waterfall);
+      animatedObjects.waterfalls.push(waterfall); // Cache for optimized animation
       
       // Add flowing water particles
       for(let i=0; i<5; i++) {
@@ -4621,6 +4645,7 @@
         drop.position.set(30 + (Math.random()-0.5)*2, 12 - i*2, -39);
         drop.userData = { isWaterDrop: true, speed: 0.1 + Math.random()*0.1, startY: 12 - i*2 };
         waterfallGroup2.add(drop);
+        animatedObjects.waterDrops.push(drop); // Cache for optimized animation
       }
       
       // Splash at bottom
@@ -4635,6 +4660,7 @@
       splash.position.set(30, 0.1, -33);
       splash.userData = { isSplash: true, phase: 0 };
       waterfallGroup2.add(splash);
+      animatedObjects.splashes.push(splash); // Cache for optimized animation
       
       scene.add(waterfallGroup2);
       
@@ -7463,6 +7489,35 @@
 
       // Entities Update
       enemies.forEach(e => e.update(dt, player.mesh.position));
+      
+      // Apply particle limits to prevent memory overflow (CRITICAL FIX for freeze bug)
+      if (particles.length > MAX_PARTICLES) {
+        const excess = particles.splice(0, particles.length - MAX_PARTICLES);
+        excess.forEach(p => {
+          if (p.mesh && p.mesh.parent) scene.remove(p.mesh);
+          if (p.mesh && p.mesh.geometry) p.mesh.geometry.dispose();
+          if (p.mesh && p.mesh.material) p.mesh.material.dispose();
+        });
+      }
+      
+      if (projectiles.length > MAX_PROJECTILES) {
+        const excess = projectiles.splice(0, projectiles.length - MAX_PROJECTILES);
+        excess.forEach(p => {
+          if (p.mesh && p.mesh.parent) scene.remove(p.mesh);
+          if (p.mesh && p.mesh.geometry) p.mesh.geometry.dispose();
+          if (p.mesh && p.mesh.material) p.mesh.material.dispose();
+        });
+      }
+      
+      if (meteors.length > MAX_METEORS) {
+        const excess = meteors.splice(0, meteors.length - MAX_METEORS);
+        excess.forEach(m => {
+          if (m.mesh && m.mesh.parent) scene.remove(m.mesh);
+          if (m.mesh && m.mesh.geometry) m.mesh.geometry.dispose();
+          if (m.mesh && m.mesh.material) m.mesh.material.dispose();
+        });
+      }
+      
       // Projectiles update returns false if dead
       projectiles = projectiles.filter(p => p.update() !== false);
       meteors = meteors.filter(m => m.update() !== false);
@@ -7471,104 +7526,111 @@
       chests.forEach(c => c.update(player.mesh.position));
       particles = particles.filter(p => p.update() !== false);
       
+      // OPTIMIZED: Use cached animated objects instead of scene.traverse() every frame
       // Windmill Rotation and Light Animation
-      scene.children.forEach(c => {
-        if (c.userData.isWindmill) {
-          // Rotate the blades stored in userData
-          if (c.userData.blades && c.userData.blades.length > 0) {
-            c.userData.blades[0].rotation.z += 0.05;
-            c.userData.blades[1].rotation.z += 0.05;
-          }
-          
-          // Animate windmill light (pulsing) with null check
-          if (c.userData.light && c.userData.light.material) {
-            c.userData.light.material.opacity = 0.8 + Math.sin(gameTime * 3) * 0.2;
-          }
+      animatedObjects.windmills.forEach(c => {
+        if (!c || !c.parent) return; // Skip if removed from scene
+        // Rotate the blades stored in userData
+        if (c.userData.blades && c.userData.blades.length > 0) {
+          c.userData.blades[0].rotation.z += 0.05;
+          c.userData.blades[1].rotation.z += 0.05;
         }
-        // Water ripple animation
-        if (c.userData.isWaterRipple) {
-          c.userData.phase += 0.05;
-          const scale = 1 + Math.sin(c.userData.phase) * 0.1;
-          c.scale.set(scale, 1, scale);
-          c.material.opacity = 0.3 + Math.sin(c.userData.phase) * 0.2;
+        
+        // Animate windmill light (pulsing) with null check
+        if (c.userData.light && c.userData.light.material) {
+          c.userData.light.material.opacity = 0.8 + Math.sin(gameTime * 3) * 0.2;
         }
-        // Lake sparkles animation
-        if (c.userData.isSparkle) {
-          c.userData.phase += 0.02 * c.userData.speed;
-          c.material.opacity = 0.3 + Math.abs(Math.sin(c.userData.phase)) * 0.7;
-          c.scale.set(
-            1 + Math.sin(c.userData.phase * 2) * 0.5,
-            1,
-            1 + Math.sin(c.userData.phase * 2) * 0.5
-          );
-        }
+      });
+      
+      // Water ripple animation
+      animatedObjects.waterRipples.forEach(c => {
+        if (!c || !c.parent) return;
+        c.userData.phase += 0.05;
+        const scale = 1 + Math.sin(c.userData.phase) * 0.1;
+        c.scale.set(scale, 1, scale);
+        c.material.opacity = 0.3 + Math.sin(c.userData.phase) * 0.2;
+      });
+      
+      // Lake sparkles animation
+      animatedObjects.sparkles.forEach(c => {
+        if (!c || !c.parent) return;
+        c.userData.phase += 0.02 * c.userData.speed;
+        c.material.opacity = 0.3 + Math.abs(Math.sin(c.userData.phase)) * 0.7;
+        c.scale.set(
+          1 + Math.sin(c.userData.phase * 2) * 0.5,
+          1,
+          1 + Math.sin(c.userData.phase * 2) * 0.5
+        );
       });
       
       // Crystal tower animation
-      scene.traverse(obj => {
-        if (obj.userData.isCrystal) {
-          // Rotate crystals
-          obj.rotation.x += 0.01;
-          obj.rotation.y += 0.02;
-          
-          // Orbit animation
-          obj.userData.phase += 0.01 * obj.userData.orbitSpeed;
-          const offsetY = Math.sin(obj.userData.phase) * 0.5;
-          obj.position.y += offsetY * 0.05;
-          
-          // Pulsing emissive
-          if (obj.material.emissiveIntensity !== undefined) {
-            obj.material.emissiveIntensity = 0.3 + Math.sin(obj.userData.phase * 2) * 0.2;
-          }
+      animatedObjects.crystals.forEach(obj => {
+        if (!obj || !obj.parent) return;
+        // Rotate crystals
+        obj.rotation.x += 0.01;
+        obj.rotation.y += 0.02;
+        
+        // Orbit animation
+        obj.userData.phase += 0.01 * obj.userData.orbitSpeed;
+        const offsetY = Math.sin(obj.userData.phase) * 0.5;
+        obj.position.y += offsetY * 0.05;
+        
+        // Pulsing emissive
+        if (obj.material.emissiveIntensity !== undefined) {
+          obj.material.emissiveIntensity = 0.3 + Math.sin(obj.userData.phase * 2) * 0.2;
+        }
+      });
+      
+      // Comet particle animation (orbiting particles)
+      animatedObjects.cometParticles.forEach(obj => {
+        if (!obj || !obj.parent) return;
+        // Store the initial position as the orbit center (relative to parent/comet group)
+        if (!obj.userData.basePosition) {
+          obj.userData.basePosition = obj.position.clone();
         }
         
-        // Comet particle animation (orbiting particles)
-        if (obj.userData.isCometParticle) {
-          // Store the initial position as the orbit center (relative to parent/comet group)
-          if (!obj.userData.basePosition) {
-            obj.userData.basePosition = obj.position.clone();
-          }
-          
-          obj.userData.angle += obj.userData.speed * 0.02;
-          
-          const centerX = obj.userData.basePosition.x;
-          const centerZ = obj.userData.basePosition.z;
-          const centerY = obj.userData.basePosition.y;
-          
-          obj.position.x = centerX + Math.cos(obj.userData.angle) * obj.userData.radius;
-          obj.position.z = centerZ + Math.sin(obj.userData.angle) * obj.userData.radius;
-          obj.position.y = centerY + obj.userData.height + Math.sin(obj.userData.angle * 2) * 0.3;
-          
-          // Pulsing opacity (between 0.3 and 0.7 for good visibility)
-          obj.material.opacity = 0.5 + Math.sin(obj.userData.angle * 3) * 0.2;
-        }
+        obj.userData.angle += obj.userData.speed * 0.02;
+        
+        const centerX = obj.userData.basePosition.x;
+        const centerZ = obj.userData.basePosition.z;
+        const centerY = obj.userData.basePosition.y;
+        
+        obj.position.x = centerX + Math.cos(obj.userData.angle) * obj.userData.radius;
+        obj.position.z = centerZ + Math.sin(obj.userData.angle) * obj.userData.radius;
+        obj.position.y = centerY + obj.userData.height + Math.sin(obj.userData.angle * 2) * 0.3;
+        
+        // Pulsing opacity (between 0.3 and 0.7 for good visibility)
+        obj.material.opacity = 0.5 + Math.sin(obj.userData.angle * 3) * 0.2;
       });
       
       // Waterfall animation
-      scene.traverse(obj => {
-        if (obj.userData.isWaterfall) {
-          obj.userData.phase += 0.05;
-          obj.material.opacity = 0.6 + Math.sin(obj.userData.phase) * 0.1;
-        }
-        if (obj.userData.isWaterDrop) {
-          obj.position.y -= obj.userData.speed;
-          if (obj.position.y < 0) {
-            obj.position.y = obj.userData.startY;
-          }
-        }
-        if (obj.userData.isSplash) {
-          obj.userData.phase += 0.1;
-          const scale = 1 + Math.sin(obj.userData.phase) * 0.3;
-          obj.scale.set(scale, 1, scale);
-          obj.material.opacity = 0.4 + Math.sin(obj.userData.phase) * 0.2;
+      animatedObjects.waterfalls.forEach(obj => {
+        if (!obj || !obj.parent) return;
+        obj.userData.phase += 0.05;
+        obj.material.opacity = 0.6 + Math.sin(obj.userData.phase) * 0.1;
+      });
+      
+      animatedObjects.waterDrops.forEach(obj => {
+        if (!obj || !obj.parent) return;
+        obj.position.y -= obj.userData.speed;
+        if (obj.position.y < 0) {
+          obj.position.y = obj.userData.startY;
         }
       });
+      
+      animatedObjects.splashes.forEach(obj => {
+        if (!obj || !obj.parent) return;
+        obj.userData.phase += 0.1;
+        const scale = 1 + Math.sin(obj.userData.phase) * 0.3;
+        obj.scale.set(scale, 1, scale);
+        obj.material.opacity = 0.4 + Math.sin(obj.userData.phase) * 0.2;
+      });
 
-      // Cleanup and memory management (run every 3 seconds to avoid performance issues)
+      // Cleanup and memory management (OPTIMIZED: Run more frequently to prevent lag spikes)
       enemies = enemies.filter(e => !e.isDead);
       
       const now = Date.now();
-      if (now - lastCleanupTime > 3000) { // Run cleanup every 3 seconds
+      if (now - lastCleanupTime > 500) { // Run cleanup every 500ms instead of 3 seconds
         lastCleanupTime = now;
         
         // Limit max items on ground (memory optimization)
