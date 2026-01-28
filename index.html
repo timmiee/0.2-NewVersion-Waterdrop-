@@ -1651,6 +1651,10 @@
         this.auraCircle.visible = false;
         scene.add(this.auraCircle);
         
+        // Fire Ring Orbs (visible when fireRing weapon is active)
+        this.fireRingOrbs = [];
+        this.fireRingAngle = 0;
+        
         // Physics/Visuals
         this.velocity = new THREE.Vector3(0, 0, 0);
         this.targetScale = new THREE.Vector3(1, 1, 1);
@@ -1841,6 +1845,52 @@
           this.auraCircle.material.opacity = 0.25 + Math.sin(gameTime * 4) * 0.15;
         } else {
           this.auraCircle.visible = false;
+        }
+        
+        // Update fire ring orbs
+        if (weapons.fireRing.active) {
+          const currentOrbCount = weapons.fireRing.orbs;
+          
+          // Add orbs if needed
+          while (this.fireRingOrbs.length < currentOrbCount) {
+            const geo = new THREE.SphereGeometry(0.3, 8, 8);
+            const mat = new THREE.MeshBasicMaterial({ 
+              color: 0xFF4500, 
+              transparent: true, 
+              opacity: 0.8 
+            });
+            const orb = new THREE.Mesh(geo, mat);
+            scene.add(orb);
+            this.fireRingOrbs.push(orb);
+          }
+          
+          // Remove extra orbs if downgraded (shouldn't happen but safety)
+          while (this.fireRingOrbs.length > currentOrbCount) {
+            const orb = this.fireRingOrbs.pop();
+            scene.remove(orb);
+            orb.geometry.dispose();
+            orb.material.dispose();
+          }
+          
+          // Update orb positions (orbit around player)
+          this.fireRingAngle += weapons.fireRing.rotationSpeed * dt;
+          const radius = weapons.fireRing.range;
+          
+          for (let i = 0; i < this.fireRingOrbs.length; i++) {
+            const angle = this.fireRingAngle + (i * Math.PI * 2 / currentOrbCount);
+            const orb = this.fireRingOrbs[i];
+            orb.position.x = this.mesh.position.x + Math.cos(angle) * radius;
+            orb.position.z = this.mesh.position.z + Math.sin(angle) * radius;
+            orb.position.y = this.mesh.position.y + Math.sin(gameTime * 5 + i) * 0.3; // Bob up and down
+            
+            // Glow effect
+            orb.material.opacity = 0.7 + Math.sin(gameTime * 8 + i) * 0.2;
+          }
+        } else {
+          // Hide orbs when weapon not active
+          for (let orb of this.fireRingOrbs) {
+            orb.visible = false;
+          }
         }
 
         // Camera Follow
@@ -2152,6 +2202,12 @@
           }
           this.mesh.lookAt(targetPos);
         } else if (dist > 0.5) {
+          // Check if slow effect expired
+          if (this.slowedUntil && this.slowedUntil < Date.now()) {
+            this.speed = this.originalSpeed || this.speed;
+            this.slowedUntil = null;
+          }
+          
           // Move towards target
           let vx = (dx / dist) * this.speed;
           let vz = (dz / dist) * this.speed;
@@ -2701,6 +2757,103 @@
           return false;
         }
         return true;
+      }
+    }
+
+    class IceSpear {
+      constructor(x, z, target) {
+        // Ice spear shape - elongated diamond
+        const geometry = new THREE.ConeGeometry(0.15, 0.6, 4);
+        const material = new THREE.MeshBasicMaterial({ color: 0x87CEEB, transparent: true, opacity: 0.9 });
+        this.mesh = new THREE.Mesh(geometry, material);
+        this.mesh.position.set(x, 0.5, z);
+        scene.add(this.mesh);
+
+        this.speed = 0.35;
+        this.active = true;
+        this.life = 70; // Frames - longer range than normal projectile
+
+        // Calculate direction
+        const dx = target.x - x;
+        const dz = target.z - z;
+        const dist = Math.sqrt(dx*dx + dz*dz);
+        this.vx = (dx / dist) * this.speed;
+        this.vz = (dz / dist) * this.speed;
+        
+        // Rotate spear to face direction
+        this.mesh.rotation.z = -Math.atan2(dz, dx) + Math.PI/2;
+        this.mesh.rotation.x = Math.PI/2;
+        
+        // Trailing particles
+        this.particleTimer = 0;
+      }
+
+      update() {
+        if (!this.active) return false;
+        
+        this.mesh.position.x += this.vx;
+        this.mesh.position.z += this.vz;
+        this.life--;
+        
+        // Ice trail particles
+        this.particleTimer++;
+        if (this.particleTimer % 3 === 0) {
+          spawnParticles(this.mesh.position, 0x87CEEB, 2);
+        }
+
+        if (this.life <= 0) {
+          this.destroy();
+          return false;
+        }
+
+        // Collision Check
+        for (let enemy of enemies) {
+          if (enemy.isDead) continue;
+          const dx = this.mesh.position.x - enemy.mesh.position.x;
+          const dz = this.mesh.position.z - enemy.mesh.position.z;
+          if (dx*dx + dz*dz < 0.6) {
+            // Calculate Damage
+            let dmg = weapons.iceSpear.damage * playerStats.damage * playerStats.strength;
+            const isCrit = Math.random() < playerStats.critChance;
+            if (isCrit) dmg *= playerStats.critDmg;
+            
+            enemy.takeDamage(Math.floor(dmg), isCrit);
+            
+            // Apply slow effect
+            if (!enemy.slowedUntil || enemy.slowedUntil < Date.now()) {
+              enemy.originalSpeed = enemy.speed;
+            }
+            enemy.slowedUntil = Date.now() + weapons.iceSpear.slowDuration;
+            enemy.speed = enemy.originalSpeed * (1 - weapons.iceSpear.slowPercent);
+            
+            // Ice impact particles
+            spawnParticles(enemy.mesh.position, 0x87CEEB, 8);
+            spawnParticles(enemy.mesh.position, 0xFFFFFF, 5);
+            
+            // Visual ice effect on enemy
+            if (enemy.mesh.material.color) {
+              const originalColor = enemy.mesh.material.color.getHex();
+              enemy.mesh.material.color.setHex(0xADD8E6); // Light blue
+              setTimeout(() => {
+                if (enemy.mesh.material.color) {
+                  enemy.mesh.material.color.setHex(originalColor);
+                }
+              }, 200);
+            }
+            
+            this.destroy();
+            playSound('hit');
+            break;
+          }
+        }
+        return true;
+      }
+
+      destroy() {
+        this.active = false;
+        scene.remove(this.mesh);
+        this.mesh.geometry.dispose();
+        this.mesh.material.dispose();
       }
     }
 
@@ -6689,6 +6842,70 @@
           weapons.doubleBarrel.lastShot = time;
           playSound('shoot');
         }
+      }
+      
+      // 7. ICE SPEAR
+      if (weapons.iceSpear.active && time - weapons.iceSpear.lastShot > weapons.iceSpear.cooldown) {
+        // Find nearest enemy
+        let nearest = null;
+        let minDst = Infinity;
+        
+        for (let e of enemies) {
+          if (e.isDead) continue;
+          const d = player.mesh.position.distanceTo(e.mesh.position);
+          if (d < weapons.iceSpear.range && d < minDst) {
+            minDst = d;
+            nearest = e;
+          }
+        }
+
+        if (nearest) {
+          projectiles.push(new IceSpear(player.mesh.position.x, player.mesh.position.z, nearest.mesh.position));
+          
+          // Ice flash effect
+          const flashLight = new THREE.PointLight(0x87CEEB, 3, 12); // Sky blue
+          flashLight.position.copy(player.mesh.position);
+          flashLight.position.y += 1;
+          scene.add(flashLight);
+          flashLights.push(flashLight);
+          const timeoutId = setTimeout(() => {
+            scene.remove(flashLight);
+            const idx = flashLights.indexOf(flashLight);
+            if (idx > -1) flashLights.splice(idx, 1);
+            const tidx = activeTimeouts.indexOf(timeoutId);
+            if (tidx > -1) activeTimeouts.splice(tidx, 1);
+          }, 80);
+          activeTimeouts.push(timeoutId);
+          
+          spawnParticles(player.mesh.position, 0x87CEEB, 8); // Ice blue particles
+          spawnParticles(player.mesh.position, 0xFFFFFF, 5); // White particles
+          
+          weapons.iceSpear.lastShot = time;
+          playSound('shoot');
+        }
+      }
+      
+      // 8. FIRE RING
+      if (weapons.fireRing.active && time - weapons.fireRing.lastShot > weapons.fireRing.cooldown) {
+        // Damage enemies within ring range
+        let hit = false;
+        enemies.forEach(e => {
+          if (e.isDead) return;
+          const d = player.mesh.position.distanceTo(e.mesh.position);
+          if (d < weapons.fireRing.range) {
+            const dmg = weapons.fireRing.damage * playerStats.strength;
+            const isCrit = Math.random() < playerStats.critChance;
+            const finalDmg = isCrit ? dmg * playerStats.critDmg : dmg;
+            e.takeDamage(finalDmg);
+            createDamageNumber(finalDmg, e.mesh.position, isCrit);
+            
+            // Fire particles on hit
+            spawnParticles(e.mesh.position, 0xFF4500, 6); // Orange-red fire
+            spawnParticles(e.mesh.position, 0xFFD700, 4); // Yellow flames
+            hit = true;
+          }
+        });
+        weapons.fireRing.lastShot = time;
       }
 
       // Entities Update
