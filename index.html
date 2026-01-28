@@ -4128,6 +4128,8 @@
         joystickRight.active = false;
         joystickRight.x = 0;
         joystickRight.y = 0;
+        // Clear keyboard state when switching control types
+        gameSettings.keysPressed = {};
         updateControlType();
       };
       
