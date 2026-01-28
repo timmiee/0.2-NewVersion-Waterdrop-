@@ -1914,6 +1914,8 @@
     }
 
     // Cached deformed geometry for Hard Tank (performance optimization)
+    // Note: All Hard Tank enemies share the same deformed shape for performance.
+    // This is intentional - visual variety comes from animations and positioning.
     let hardTankGeometryCache = null;
     function getHardTankGeometry() {
       if (!hardTankGeometryCache) {
@@ -2193,7 +2195,7 @@
           // Larger breathing effect for mini-boss
           this.mesh.scale.set(1+squish*2, 1-squish*2, 1+squish*2);
         } else if (this.type === 0 || this.type === 3 || this.type === 6) {
-           // Box and Slowing breathe more dramatically
+           // Tank, Slowing, and Hard Tank breathe more dramatically
            this.mesh.scale.set(1+squish*1.5, 1-squish*1.5, 1+squish*1.5);
         } else {
            this.mesh.scale.set(1-squish, 1+squish*1.5, 1-squish);
@@ -4343,6 +4345,8 @@
           const supportType = Math.floor(Math.random() * Math.min(3, Math.max(1, playerStats.lvl / 3)));
           enemies.push(new Enemy(supportType, supportX, supportZ, playerStats.lvl));
         }
+        // Don't spawn additional regular wave enemies on mini-boss waves
+        return;
       }
       
       // Scale spawn count with player level for increased difficulty - Rebalanced
@@ -4382,8 +4386,8 @@
         // 0: Tank, 1: Fast, 2: Balanced, 3: Slowing (lvl 8+), 4: Ranged (lvl 10+)
         // 5: Flying (lvl 8+), 6-9: Hard variants (lvl 12+)
         let maxType = 2; // Start with 3 base types
-        if (playerStats.lvl >= 8) maxType = 3; // Add slowing enemies
-        if (playerStats.lvl >= 10) maxType = 4; // Add ranged enemies
+        if (playerStats.lvl >= 8) maxType = 5; // Add slowing (3), ranged placeholder, and flying (5)
+        if (playerStats.lvl >= 10) maxType = 5; // Add ranged enemies (4)
         if (playerStats.lvl >= 12) maxType = 6; // Add hard tank
         if (playerStats.lvl >= 14) maxType = 7; // Add hard fast
         if (playerStats.lvl >= 16) maxType = 8; // Add hard balanced
@@ -4392,8 +4396,13 @@
         let type = Math.floor(Math.random() * (maxType + 1));
         
         // Special spawning logic for specific types
-        // Flying enemies (type 5) - 15% chance at level 8+ if unlocked
-        if (playerStats.lvl >= 8 && maxType >= 5 && Math.random() < 0.15) {
+        // Exclude type 4 (ranged) from random selection at level 8-9, only available at 10+
+        if (type === 4 && playerStats.lvl < 10) {
+          type = 3; // Fall back to slowing
+        }
+        
+        // Flying enemies (type 5) - 15% chance at level 8+
+        if (playerStats.lvl >= 8 && Math.random() < 0.15) {
           type = 5;
         }
         
@@ -4404,8 +4413,13 @@
         
         // Hard variants (6-9) - reduce spawn rate to 30%
         if (type >= 6 && type <= 9 && Math.random() > 0.3) {
-          // Fallback to types 0-5 (including flying if available)
-          type = Math.floor(Math.random() * Math.min(6, maxType + 1));
+          // Fallback to types 0-5 (all basic types)
+          const fallbackMax = playerStats.lvl >= 8 ? 6 : 3;
+          type = Math.floor(Math.random() * fallbackMax);
+          // Exclude type 4 if not unlocked
+          if (type === 4 && playerStats.lvl < 10) {
+            type = Math.floor(Math.random() * 3);
+          }
         }
         
         enemies.push(new Enemy(type, ex, ez, playerStats.lvl));
