@@ -1913,9 +1913,32 @@
       }
     }
 
+    // Cached deformed geometry for Hard Tank (performance optimization)
+    let hardTankGeometryCache = null;
+    function getHardTankGeometry() {
+      if (!hardTankGeometryCache) {
+        const geometry = new THREE.SphereGeometry(0.6, 8, 8);
+        const positions = geometry.attributes.position;
+        for (let i = 0; i < positions.count; i++) {
+          const x = positions.getX(i);
+          const y = positions.getY(i);
+          const z = positions.getZ(i);
+          const noiseX = 1 + (Math.random() - 0.5) * 0.3;
+          const noiseY = 1 + (Math.random() - 0.5) * 0.3;
+          const noiseZ = 1 + (Math.random() - 0.5) * 0.3;
+          positions.setX(i, x * noiseX);
+          positions.setY(i, y * noiseY);
+          positions.setZ(i, z * noiseZ);
+        }
+        geometry.computeVertexNormals();
+        hardTankGeometryCache = geometry;
+      }
+      return hardTankGeometryCache;
+    }
+
     class Enemy {
       constructor(type, x, z, playerLevel = 1) {
-        this.type = type; // 0: Tank, 1: Fast, 2: Balanced, 3: Slowing, 4: Ranged, 5: Flying, 6-9: Hard variants, 10: MiniBoss
+        this.type = type; // 0: Tank, 1: Fast, 2: Balanced, 3: Slowing, 4: Ranged, 5: Flying, 6: Hard Tank, 7: Hard Fast, 8: Hard Balanced, 9: Elite, 10: MiniBoss
         let geometry;
         let color;
         
@@ -1962,21 +1985,8 @@
           geometry = new THREE.OctahedronGeometry(0.5, 1);
           color = 0x87CEEB; // Sky blue - Flying
         } else if (type === 6) {
-          // Hard Tank
-          geometry = new THREE.SphereGeometry(0.6, 8, 8);
-          const positions = geometry.attributes.position;
-          for (let i = 0; i < positions.count; i++) {
-            const x = positions.getX(i);
-            const y = positions.getY(i);
-            const z = positions.getZ(i);
-            const noiseX = 1 + (Math.random() - 0.5) * 0.3;
-            const noiseY = 1 + (Math.random() - 0.5) * 0.3;
-            const noiseZ = 1 + (Math.random() - 0.5) * 0.3;
-            positions.setX(i, x * noiseX);
-            positions.setY(i, y * noiseY);
-            positions.setZ(i, z * noiseZ);
-          }
-          geometry.computeVertexNormals();
+          // Hard Tank - use cached deformed geometry for performance
+          geometry = getHardTankGeometry();
           color = 0xFF1493; // Deep pink - Hard Tank
         } else if (type === 7) {
           // Hard Fast
@@ -2049,7 +2059,8 @@
           this.hp = 200 * levelScaling;
           this.speed = GAME_CONFIG.enemySpeedBase * 0.9;
         } else if (type === 10) { // MiniBoss
-          this.hp = 500 * (1 + (playerLevel - 10) * 0.15);
+          const miniBossStartLevel = 10;
+          this.hp = 500 * (1 + (playerLevel - miniBossStartLevel) * 0.15);
           this.speed = GAME_CONFIG.enemySpeedBase * 0.5;
           this.isMiniBoss = true;
         }
@@ -2467,8 +2478,24 @@
           goldAmount = 3 + Math.floor(Math.random() * 3); // 3-5 gold
         } else if (this.type === 1) { // Fast
           goldAmount = 1 + Math.floor(Math.random() * 2); // 1-2 gold
-        } else { // Balanced
+        } else if (this.type === 2) { // Balanced
           goldAmount = 2 + Math.floor(Math.random() * 2); // 2-3 gold
+        } else if (this.type === 3) { // Slowing
+          goldAmount = 3 + Math.floor(Math.random() * 2); // 3-4 gold
+        } else if (this.type === 4) { // Ranged
+          goldAmount = 2 + Math.floor(Math.random() * 3); // 2-4 gold
+        } else if (this.type === 5) { // Flying
+          goldAmount = 3 + Math.floor(Math.random() * 3); // 3-5 gold
+        } else if (this.type === 6) { // Hard Tank
+          goldAmount = 5 + Math.floor(Math.random() * 4); // 5-8 gold
+        } else if (this.type === 7) { // Hard Fast
+          goldAmount = 4 + Math.floor(Math.random() * 3); // 4-6 gold
+        } else if (this.type === 8) { // Hard Balanced
+          goldAmount = 4 + Math.floor(Math.random() * 4); // 4-7 gold
+        } else if (this.type === 9) { // Elite
+          goldAmount = 8 + Math.floor(Math.random() * 5); // 8-12 gold
+        } else {
+          goldAmount = 2 + Math.floor(Math.random() * 2); // 2-3 gold (fallback)
         }
         spawnGold(this.mesh.position.x, this.mesh.position.z, goldAmount);
         
@@ -4298,13 +4325,24 @@
       const isMiniBossWave = playerStats.lvl >= 10 && playerStats.lvl % 5 === 0;
       
       if (isMiniBossWave) {
-        // Spawn mini-boss with some regular enemies
+        // Spawn mini-boss with 2-3 regular enemies
         const angle = Math.random() * Math.PI * 2;
         const dist = 28;
         const ex = player.mesh.position.x + Math.cos(angle) * dist;
         const ez = player.mesh.position.z + Math.sin(angle) * dist;
         enemies.push(new Enemy(10, ex, ez, playerStats.lvl));
         createFloatingText("MINI-BOSS INCOMING!", player.mesh.position);
+        
+        // Spawn 2-3 regular enemies with the mini-boss
+        const supportCount = 2 + Math.floor(Math.random() * 2);
+        for (let i = 0; i < supportCount; i++) {
+          const supportAngle = Math.random() * Math.PI * 2;
+          const supportDist = 25 + Math.random() * 5;
+          const supportX = player.mesh.position.x + Math.cos(supportAngle) * supportDist;
+          const supportZ = player.mesh.position.z + Math.sin(supportAngle) * supportDist;
+          const supportType = Math.floor(Math.random() * Math.min(3, Math.max(1, playerStats.lvl / 3)));
+          enemies.push(new Enemy(supportType, supportX, supportZ, playerStats.lvl));
+        }
       }
       
       // Scale spawn count with player level for increased difficulty - Rebalanced
@@ -4341,22 +4379,21 @@
         }
         
         // Random type - include new enemy types as level increases
-        // 0: Tank, 1: Fast, 2: Balanced, 3: Slowing (lvl 10+), 4: Ranged (lvl 15+)
+        // 0: Tank, 1: Fast, 2: Balanced, 3: Slowing (lvl 8+), 4: Ranged (lvl 10+)
         // 5: Flying (lvl 8+), 6-9: Hard variants (lvl 12+)
         let maxType = 2; // Start with 3 base types
         if (playerStats.lvl >= 8) maxType = 3; // Add slowing enemies
-        if (playerStats.lvl >= 10) maxType = 3; // Keep at 3
+        if (playerStats.lvl >= 10) maxType = 4; // Add ranged enemies
         if (playerStats.lvl >= 12) maxType = 6; // Add hard tank
         if (playerStats.lvl >= 14) maxType = 7; // Add hard fast
-        if (playerStats.lvl >= 15) maxType = 7; // Keep at 7
         if (playerStats.lvl >= 16) maxType = 8; // Add hard balanced
         if (playerStats.lvl >= 18) maxType = 9; // Add elite
         
         let type = Math.floor(Math.random() * (maxType + 1));
         
         // Special spawning logic for specific types
-        // Flying enemies (type 5) - 15% chance at level 8+
-        if (playerStats.lvl >= 8 && Math.random() < 0.15) {
+        // Flying enemies (type 5) - 15% chance at level 8+ if unlocked
+        if (playerStats.lvl >= 8 && maxType >= 5 && Math.random() < 0.15) {
           type = 5;
         }
         
@@ -4365,9 +4402,10 @@
           type = Math.floor(Math.random() * 3);
         }
         
-        // Hard variants (6-9) - reduce spawn rate slightly
+        // Hard variants (6-9) - reduce spawn rate to 30%
         if (type >= 6 && type <= 9 && Math.random() > 0.3) {
-          type = Math.floor(Math.random() * 5); // Fallback to basic types
+          // Fallback to types 0-5 (including flying if available)
+          type = Math.floor(Math.random() * Math.min(6, maxType + 1));
         }
         
         enemies.push(new Enemy(type, ex, ez, playerStats.lvl));
