@@ -3400,8 +3400,10 @@
         if (rand < 0.35) {
           // Health restore (35% chance)
           const healAmount = 50;
+          const prevHp = playerStats.hp;
           playerStats.hp = Math.min(playerStats.maxHp, playerStats.hp + healAmount);
-          createFloatingText(`+${healAmount} HP!`, this.mesh.position);
+          const actualHeal = playerStats.hp - prevHp;
+          createFloatingText(`+${actualHeal} HP!`, this.mesh.position);
           spawnParticles(this.mesh.position, 0xFF69B4, 20); // Pink health particles
         } else if (rand < 0.6) {
           // Gold (25% chance)
