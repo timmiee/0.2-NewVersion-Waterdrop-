@@ -2176,8 +2176,9 @@
         }
         
         this.maxHp = this.hp;
-        this.damage = (type === 9 ? 25 * 1.5 : 25) * levelScaling; // Elite does 1.5x damage
-        if (type === 10) this.damage = 50 * levelScaling; // MiniBoss damage
+        // Reduced enemy damage to be less overwhelming - make gameplay more forgiving
+        this.damage = (type === 9 ? 18 * 1.5 : 18) * levelScaling; // Elite does 1.5x damage (reduced from 25)
+        if (type === 10) this.damage = 35 * levelScaling; // MiniBoss damage (reduced from 50)
         this.isDead = false;
         this.isDamaged = false; // Track if enemy has been visually damaged
         this.pulsePhase = Math.random() * Math.PI;
@@ -2582,10 +2583,15 @@
         this.mesh.geometry.dispose();
         this.mesh.material.dispose();
         
-        // Drop EXP
-        const expMultiplier = this.isMiniBoss ? 3 : 1;
+        // Drop EXP - Increased frequency and scattered around enemy (not predictable)
+        const expMultiplier = this.isMiniBoss ? 5 : 2; // Mini-boss: 5 stars (up from 3), Regular: 2 stars (up from 1)
         for (let i = 0; i < expMultiplier; i++) {
-          spawnExp(this.mesh.position.x, this.mesh.position.z);
+          // Scatter exp drops in a circle around the enemy for better positioning
+          const angle = (i / expMultiplier) * Math.PI * 2 + Math.random() * 0.5;
+          const distance = 0.5 + Math.random() * 1.5; // Random distance 0.5-2 units
+          const expX = this.mesh.position.x + Math.cos(angle) * distance;
+          const expZ = this.mesh.position.z + Math.sin(angle) * distance;
+          spawnExp(expX, expZ);
         }
         
         // Drop GOLD based on enemy type
@@ -3636,11 +3642,11 @@
       });
       const roadGeo = new THREE.PlaneGeometry(4, 4);
       
-      // Road to windmill - smooth curved path
-      for(let i=0; i<30; i++) {
+      // Road to windmill - smooth curved path with more segments for rounded edges
+      for(let i=0; i<60; i++) { // Increased from 30 to 60 for smoother curves
         const road = new THREE.Mesh(roadGeo, roadMat);
         road.rotation.x = -Math.PI/2;
-        const t = i / 30;
+        const t = i / 60;
         const x = t * 40;
         const z = t * 40;
         road.position.set(x, 0.03, z);
@@ -3648,11 +3654,11 @@
         scene.add(road);
       }
       
-      // Circular path around center - smooth ring road
-      for(let i=0; i<50; i++) {
+      // Circular path around center - smooth ring road with more segments for rounded appearance
+      for(let i=0; i<100; i++) { // Increased from 50 to 100 for smoother curves
         const road = new THREE.Mesh(roadGeo, roadMat);
         road.rotation.x = -Math.PI/2;
-        const angle = (i / 50) * Math.PI * 2;
+        const angle = (i / 100) * Math.PI * 2;
         const x = Math.cos(angle) * 25;
         const z = Math.sin(angle) * 25;
         road.position.set(x, 0.03, z);
@@ -4587,14 +4593,30 @@
       const count = Math.min(baseCount + levelBonus, 15); // Cap at 15 enemies per wave
       
       for(let i=0; i<count; i++) {
-        // Spawn at edge of camera view approx - avoid lake area
+        // Spawn enemies around the player in varied patterns (not just behind)
         let ex, ez, inLake;
         let attempts = 0;
         const MAX_ATTEMPTS = 10;
         
         do {
-          const angle = Math.random() * Math.PI * 2;
-          const dist = 25 + Math.random() * 10; // Just outside view
+          // Randomize spawn pattern - add more variety to prevent predictable positioning
+          const spawnPattern = Math.random();
+          let angle, dist;
+          
+          if (spawnPattern < 0.7) {
+            // 70% - Random circle around player (standard spawning)
+            angle = Math.random() * Math.PI * 2;
+            dist = 25 + Math.random() * 10; // Just outside view
+          } else if (spawnPattern < 0.85) {
+            // 15% - Spawn from sides (flanking positions)
+            angle = (Math.random() < 0.5 ? Math.PI/2 : -Math.PI/2) + (Math.random() - 0.5) * Math.PI/3;
+            dist = 20 + Math.random() * 8;
+          } else {
+            // 15% - Spawn from front (approaching head-on)
+            angle = (Math.random() - 0.5) * Math.PI/3; // Front 60-degree cone
+            dist = 22 + Math.random() * 12;
+          }
+          
           ex = player.mesh.position.x + Math.cos(angle) * dist;
           ez = player.mesh.position.z + Math.sin(angle) * dist;
           
@@ -6657,6 +6679,32 @@
               spawnParticles(player.mesh.position, 0xFFA500, 8); // Increased from 5
               // Add smoke particles
               spawnParticles(player.mesh.position, 0x888888, 4);
+              
+              // GUN KICKBACK EFFECT - Small recoil animation
+              const shootDir = new THREE.Vector3(
+                nearest.mesh.position.x - player.mesh.position.x,
+                0,
+                nearest.mesh.position.z - player.mesh.position.z
+              ).normalize();
+              
+              // Apply small backward push (kickback)
+              const kickbackForce = 0.15;
+              const originalPos = player.mesh.position.clone();
+              player.mesh.position.x -= shootDir.x * kickbackForce;
+              player.mesh.position.z -= shootDir.z * kickbackForce;
+              
+              // Quick squish effect on player for impact feel
+              const originalScale = player.mesh.scale.clone();
+              player.mesh.scale.set(0.95, 1.1, 0.95);
+              
+              // Reset position and scale after short delay
+              const kickbackTimeout = setTimeout(() => {
+                player.mesh.position.copy(originalPos);
+                player.mesh.scale.copy(originalScale);
+                const tidx = activeTimeouts.indexOf(kickbackTimeout);
+                if (tidx > -1) activeTimeouts.splice(tidx, 1);
+              }, 60);
+              activeTimeouts.push(kickbackTimeout);
             }, i * 100);
           }
           weapons.gun.lastShot = time;
