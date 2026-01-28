@@ -5907,8 +5907,14 @@
           if (dashPressed && !gameSettings.gamepadButtonStates.dashButton && !player.isDashing && joystickLeft.active) {
             player.isDashing = true;
             player.dashTime = player.dashDuration;
-            const dist = Math.sqrt(joystickLeft.x*joystickLeft.x + joystickLeft.y*joystickLeft.y);
-            player.dashVec.set(joystickLeft.x / dist, 0, joystickLeft.y / dist);
+            // Convert joystick direction to isometric world coordinates before dashing
+            const inputX = joystickLeft.x;
+            const inputY = joystickLeft.y;
+            // Standard isometric transform from input (screen) space to world space
+            const isoX = (inputX - inputY) * Math.SQRT1_2;
+            const isoZ = (inputX + inputY) * Math.SQRT1_2;
+            const isoLen = Math.sqrt(isoX * isoX + isoZ * isoZ) || 1;
+            player.dashVec.set(isoX / isoLen, 0, isoZ / isoLen);
             playerStats.dashesPerformed++;
             playSound('dash');
             spawnParticles(player.mesh.position, COLORS.player, 20);
