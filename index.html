@@ -1154,6 +1154,14 @@
       lakeRadius: 18
     };
 
+    const CAMERA_CONFIG = {
+      defaultDistance: 20,     // Default orthographic camera distance
+      minDistance: 8,          // Minimum distance - prevents extreme zoom-in and UI overlap
+      maxDistance: 30,         // Maximum distance - prevents entities becoming too small
+      nearClipPlane: 0.1,      // Near clipping plane - must be < 0.5 to render player/enemies at y=0.5
+      farClipPlane: 1000       // Far clipping plane - renders distant objects
+    };
+
     // --- AUDIO SYSTEM (Oscillators) ---
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     let musicOscillators = [];
@@ -4550,8 +4558,12 @@
 
       // Camera (Orthographic for miniature look)
       const aspect = window.innerWidth / window.innerHeight;
-      const d = 20;
-      camera = new THREE.OrthographicCamera(-d * aspect, d * aspect, d, -d, 0.1, 1000);
+      const d = CAMERA_CONFIG.defaultDistance;
+      camera = new THREE.OrthographicCamera(
+        -d * aspect, d * aspect, d, -d, 
+        CAMERA_CONFIG.nearClipPlane, 
+        CAMERA_CONFIG.farClipPlane
+      );
       camera.position.set(20, 20, 20); // Isometric angle
       camera.lookAt(scene.position);
 
@@ -6802,7 +6814,7 @@
 
     function onWindowResize() {
       const aspect = window.innerWidth / window.innerHeight;
-      let d = 20;
+      let d = CAMERA_CONFIG.defaultDistance;
       
       // Landscape camera zoom - 50% closer in landscape mode
       const isPortrait = window.innerHeight > window.innerWidth;
@@ -6813,9 +6825,8 @@
       }
       
       // Clamp camera distance to prevent extreme zoom issues
-      const minD = 8;
-      const maxD = 30;
-      d = Math.max(minD, Math.min(maxD, d));
+      // Min prevents UI overlap and disorientation, Max prevents entities becoming too small
+      d = Math.max(CAMERA_CONFIG.minDistance, Math.min(CAMERA_CONFIG.maxDistance, d));
       
       camera.left = -d * aspect;
       camera.right = d * aspect;
