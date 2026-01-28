@@ -962,6 +962,7 @@
       <!-- Upgrade cards will be added dynamically -->
     </div>
     <button class="back-btn" id="shop-back-btn">BACK TO MENU</button>
+    <button class="back-btn" id="reset-progress-btn" style="background: #c0392b; border-color: #e74c3c; position: absolute; bottom: 20px; right: 20px;">RESET PROGRESS</button>
   </div>
 
   <!-- Achievements Screen -->
@@ -2721,11 +2722,26 @@
 
     class Projectile {
       constructor(x, z, target) {
-        const geometry = new THREE.SphereGeometry(0.2, 8, 8);
-        const material = new THREE.MeshBasicMaterial({ color: 0xFFFF00 });
+        const geometry = new THREE.SphereGeometry(0.25, 8, 8); // Larger bullet (was 0.2)
+        const material = new THREE.MeshBasicMaterial({ 
+          color: 0xFFFF00,
+          transparent: true,
+          opacity: 0.95
+        });
         this.mesh = new THREE.Mesh(geometry, material);
         this.mesh.position.set(x, 0.5, z);
         scene.add(this.mesh);
+        
+        // Add glowing trail effect
+        const glowGeometry = new THREE.SphereGeometry(0.35, 6, 6);
+        const glowMaterial = new THREE.MeshBasicMaterial({
+          color: 0xFFFF00,
+          transparent: true,
+          opacity: 0.4
+        });
+        this.glow = new THREE.Mesh(glowGeometry, glowMaterial);
+        this.glow.position.copy(this.mesh.position);
+        scene.add(this.glow);
 
         this.speed = 0.4;
         this.active = true;
@@ -2767,6 +2783,13 @@
         // Player projectiles
         this.mesh.position.x += this.vx;
         this.mesh.position.z += this.vz;
+        
+        // Update glow position and fade it
+        if (this.glow) {
+          this.glow.position.copy(this.mesh.position);
+          this.glow.material.opacity = 0.4 * (this.life / 60);
+        }
+        
         this.life--;
 
         if (this.life <= 0) {
@@ -2814,6 +2837,13 @@
         scene.remove(this.mesh);
         this.mesh.geometry.dispose();
         this.mesh.material.dispose();
+        
+        // Remove glow if it exists
+        if (this.glow) {
+          scene.remove(this.glow);
+          this.glow.geometry.dispose();
+          this.glow.material.dispose();
+        }
       }
     }
 
@@ -4843,6 +4873,41 @@
         showMainMenu();
       };
       
+      // Reset progress button with double confirmation
+      document.getElementById('reset-progress-btn').onclick = () => {
+        if (confirm('⚠️ WARNING ⚠️\n\nAre you ABSOLUTELY SURE you want to RESET ALL PROGRESS?\n\nThis will delete:\n• All permanent upgrades\n• All gold\n• All achievements\n\nThis action CANNOT be undone!')) {
+          // Second confirmation
+          if (confirm('FINAL CONFIRMATION\n\nThis is your LAST CHANCE!\n\nDo you really want to DELETE EVERYTHING?\n\nClick OK to permanently reset, or Cancel to keep your progress.')) {
+            // Reset all save data
+            saveData = {
+              gold: 0,
+              upgrades: {
+                maxHp: 0,
+                hpRegen: 0,
+                moveSpeed: 0,
+                attackDamage: 0,
+                attackSpeed: 0,
+                critChance: 0,
+                critDamage: 0,
+                armor: 0,
+                cooldownReduction: 0
+              },
+              achievements: []
+            };
+            saveSaveData();
+            
+            // Reset game and return to menu
+            resetGame();
+            document.getElementById('progression-shop').style.display = 'none';
+            showMainMenu();
+            updateShopUI();
+            
+            alert('✅ All progress has been reset!');
+            playSound('hit');
+          }
+        }
+      };
+      
       // Restart button now returns to menu
       document.getElementById('restart-btn').onclick = () => {
         playSound('levelup');
@@ -5720,7 +5785,7 @@
               weapons.gun.level++;
               weapons.gun.damage += 10;
               weapons.gun.cooldown *= 0.85;
-              showStatChange(`Gun Level ${weapons.gun.level}`);
+              showStatChange(`Gun Level ${weapons.gun.level}: +10 Dmg, +15% Fire Rate`);
             } 
           });
         }
@@ -5736,7 +5801,7 @@
               weapons.sword.level++;
               weapons.sword.damage += 15;
               weapons.sword.range += 0.5;
-              showStatChange(`Sword Level ${weapons.sword.level}`);
+              showStatChange(`Sword Level ${weapons.sword.level}: +15 Dmg, +0.5 Range`);
             } 
           });
         }
@@ -5757,7 +5822,7 @@
               weapons.aura.level++;
               weapons.aura.damage += 3;
               weapons.aura.range = Math.min(5, baseRange * (1 + (weapons.aura.level * 0.10)));
-              showStatChange(`Aura Level ${weapons.aura.level}`);
+              showStatChange(`Aura Level ${weapons.aura.level}: +3 Dmg, +${rangeIncrease.toFixed(1)} Range`);
             } 
           });
         }
@@ -5773,7 +5838,7 @@
               weapons.meteor.level++;
               weapons.meteor.damage += 20;
               weapons.meteor.area += 1;
-              showStatChange(`Meteor Level ${weapons.meteor.level}`);
+              showStatChange(`Meteor Level ${weapons.meteor.level}: +20 Dmg, +1 Area`);
             } 
           });
         }
@@ -5790,7 +5855,7 @@
               weapons.lightning.level++;
               weapons.lightning.damage += 10;
               weapons.lightning.targets += targetIncrease;
-              showStatChange(`Lightning Level ${weapons.lightning.level}`);
+              showStatChange(`Lightning Level ${weapons.lightning.level}: +10 Dmg, +${targetIncrease} Targets`);
             } 
           });
         }
@@ -5806,7 +5871,7 @@
               weapons.doubleBarrel.level++;
               weapons.doubleBarrel.damage += 12;
               weapons.doubleBarrel.cooldown *= 0.9;
-              showStatChange(`Double Barrel Level ${weapons.doubleBarrel.level}`);
+              showStatChange(`Double Barrel Level ${weapons.doubleBarrel.level}: +12 Dmg, +10% Fire Rate`);
             } 
           });
         }
@@ -5823,7 +5888,7 @@
               weapons.iceSpear.damage += 10;
               weapons.iceSpear.slowPercent += 0.1;
               weapons.iceSpear.slowDuration += 500;
-              showStatChange(`Ice Spear Level ${weapons.iceSpear.level}`);
+              showStatChange(`Ice Spear Level ${weapons.iceSpear.level}: +10 Dmg, +10% Slow, +0.5s Duration`);
             } 
           });
         }
@@ -5840,7 +5905,7 @@
               weapons.fireRing.damage += 5;
               weapons.fireRing.orbs += 1;
               weapons.fireRing.range += 0.5;
-              showStatChange(`Fire Ring Level ${weapons.fireRing.level}`);
+              showStatChange(`Fire Ring Level ${weapons.fireRing.level}: +5 Dmg, +1 Orb, +0.5 Range`);
             } 
           });
         }
